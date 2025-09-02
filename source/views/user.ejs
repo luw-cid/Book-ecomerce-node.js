@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Profile</title></head>
+<body>
+  <h1>Xin chào <%= user.displayName || user.username %></h1>
+  <% if (user.email) { %>
+    <p>Email: <%= user.email %></p>
+  <% } %>
+  <% if (user.photo) { %>
+    <img src="<%= user.photo %>" width="100">
+  <% } %>
+  <br>
+  <a href="/auth/logout">Đăng xuất</a>
+</body>
+</html>
