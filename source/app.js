@@ -1,20 +1,25 @@
-const createError = require('http-errors');
-const express = require('express');
-const path = require('path');
-const cookieParser = require('cookie-parser');
-const session = repuire('express-session')
-const passport = require('passport');
-const moongoose = require('moongoose');
-const { dir } = require('console');
+require('dotenv').config();
 
-const indexRouter = require('./routes/index');
-const authRouter = require('./routes/authRoute');
-const userRouter = require('./routes/userRoute');
+const createError = require("http-errors");
+const express = require("express");
+const path = require('path');
+const cookieParser = require("cookie-parser");
+const session = require("express-session");
+const passport = require("passport");
+const mongoose = require("mongoose");
+
+// const indexRouter = require("./routes/index");
+const authRouter = require("./routes/authRoute");
+// const userRouter = require("./routes/userRoute");
+
+// import passport config
+require("./config/passport");
+
 // connect to database
-moongoose.connect('mongodb://localhost:27017/ecommerce_db', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+mongoose.connect('mongodb://localhost:27017/ecommerce_db'
+  // useNewUrlParser: true,
+  // useUnifiedTopology: true
+);
 
 const app = express();
 
@@ -25,15 +30,21 @@ app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(session({
-  secret: 'your_secret_key',
-  resave: false,
-  saveUninitialized: true
-}));
+
+// cấu hình session
+app.use(
+    session({
+        secret: "secretkey",
+        resave: false,
+        saveUninitialized: true,
+    })
+);
+
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.user('/', )
+//Routes
+app.use("/auth", authRouter);
 
 // bắt lỗi 404
 app.use(function (req, res, next) {

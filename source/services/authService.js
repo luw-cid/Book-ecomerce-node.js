@@ -1,5 +1,5 @@
 const User = require("../models/userModel");
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 
 // đăng ký new user 
 // hash password bằng bcrypt

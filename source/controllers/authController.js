@@ -39,3 +39,11 @@ const profile = (req, res) => {
 const googleCallback = (req, res) => {
     res.redirect('/profile');
 }
+
+module.exports = {
+    showLoginForm,
+    register,
+    login,
+    profile,
+    googleCallback,
+}
