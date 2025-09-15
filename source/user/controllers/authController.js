@@ -23,7 +23,7 @@ const login = async (req, res) => {
     try {
         const user = await authService.login(username, password);
         if(!user) return res.status(401).send("Tên đăng nhập hoặc mật khẩu không đúng!!");
-        res.redirect('/auth/login');
+        res.redirect('/home');
     } catch (err) {
         console.error(err);
         res.status(500).send("Lỗi server!!");

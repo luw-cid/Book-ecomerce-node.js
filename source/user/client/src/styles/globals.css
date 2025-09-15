@@ -1,0 +1,249 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  
+  /* 4-Season Themed Base Colors */
+  --background: linear-gradient(135deg, #fef7f7 0%, #f0fdf4 25%, #fffbf0 50%, #f0f9ff 75%, #fef7f7 100%);
+  --background-solid: #fdfcff;
+  --foreground: #374151;
+  
+  /* Cards with seasonal touches */
+  --card: #ffffff;
+  --card-foreground: #374151;
+  --popover: #ffffff;
+  --popover-foreground: #374151;
+  
+  /* Primary colors rotating through seasons */
+  --primary: linear-gradient(90deg, #f472b6 0%, #34d399 25%, #fbbf24 50%, #60a5fa 75%, #f472b6 100%);
+  --primary-solid: #60a5fa;
+  --primary-foreground: #ffffff;
+  
+  /* Secondary with seasonal muted tones */
+  --secondary: #f8fafc;
+  --secondary-foreground: #64748b;
+  
+  /* Muted backgrounds with seasonal hints */
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  
+  /* Accent colors cycling through seasons */
+  --accent: #e0f2fe;
+  --accent-foreground: #0369a1;
+  
+  /* Seasonal destructive */
+  --destructive: #fecaca;
+  --destructive-foreground: #dc2626;
+  
+  /* Borders with subtle seasonal gradients */
+  --border: #e2e8f0;
+  --input: transparent;
+  --input-background: #f8fafc;
+  --switch-background: #e2e8f0;
+  
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #60a5fa;
+  
+  /* Enhanced 4-Season Chart Colors */
+  --chart-1: #f472b6; /* Spring Pink */
+  --chart-2: #34d399; /* Summer Green */
+  --chart-3: #fbbf24; /* Autumn Gold */
+  --chart-4: #60a5fa; /* Winter Blue */
+  --chart-5: #a78bfa; /* Seasonal Purple */
+  
+  --radius: 0.75rem;
+  
+  /* 4-Season Theme Colors */
+  --spring: #f472b6;
+  --spring-light: #fce7f3;
+  --spring-foreground: #831843;
+  --summer: #34d399;
+  --summer-light: #ecfdf5;
+  --summer-foreground: #064e3b;
+  --autumn: #fbbf24;
+  --autumn-light: #fefce8;
+  --autumn-foreground: #92400e;
+  --winter: #60a5fa;
+  --winter-light: #eff6ff;
+  --winter-foreground: #1e3a8a;
+  --sidebar: #f0f8ff;
+  --sidebar-foreground: #2c3e50;
+  --sidebar-primary: #a8c8ec;
+  --sidebar-primary-foreground: #1e3a8a;
+  --sidebar-accent: #dbeafe;
+  --sidebar-accent-foreground: #1e40af;
+  --sidebar-border: #c7d2fe;
+  --sidebar-ring: #a8c8ec;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background-solid);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary-solid);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  
+  /* 4-Season Theme Colors */
+  --color-spring: var(--spring);
+  --color-spring-light: var(--spring-light);
+  --color-spring-foreground: var(--spring-foreground);
+  --color-summer: var(--summer);
+  --color-summer-light: var(--summer-light);
+  --color-summer-foreground: var(--summer-foreground);
+  --color-autumn: var(--autumn);
+  --color-autumn-light: var(--autumn-light);
+  --color-autumn-foreground: var(--autumn-foreground);
+  --color-winter: var(--winter);
+  --color-winter-light: var(--winter-light);
+  --color-winter-foreground: var(--winter-foreground);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply text-foreground;
+    background: linear-gradient(135deg, 
+      rgba(254, 247, 247, 0.8) 0%,   /* Spring blush */
+      rgba(240, 253, 244, 0.8) 25%,  /* Summer mint */
+      rgba(255, 251, 240, 0.8) 50%,  /* Autumn cream */
+      rgba(240, 249, 255, 0.8) 75%,  /* Winter frost */
+      rgba(254, 247, 247, 0.8) 100%  /* Back to spring */
+    ), 
+    #fdfcff;
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h4 {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    p {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    label {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    button {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    input {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
