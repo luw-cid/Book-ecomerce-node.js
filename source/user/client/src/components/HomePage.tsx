@@ -2,17 +2,20 @@ import React, { useState, useMemo } from "react";
 import { HeroSection } from "./HeroSection";
 import { CategorySection } from "./CategorySection";
 import { ProductSection } from "./ProductSection";
-import { BookCard, Book } from "./BookCard";
-import { ShoppingCart, CartItem } from "./ShoppingCart";
+import { BookCard} from "./BookCard";
+import type { Book } from "./BookCard";
+import { ShoppingCart } from "./ShoppingCart";
+import  type { CartItem } from "./ShoppingCart";
 import { Footer } from "./Footer";
 import { sampleBooks } from "../data/books";
 import { Button } from "./ui/button";
 import { Filter, DollarSign, X } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Slider } from "./ui/slider";
+import type { PageType } from "../App";
 
 interface HomePageProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate?: (page: PageType, data?: any) => void;
   cartItems: CartItem[];
   onAddToCart: (book: Book) => void;
   onUpdateQuantity: (bookId: string, quantity: number) => void;
@@ -108,7 +111,7 @@ export function HomePage({
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleBookClick = (bookId: string) => {
-    onNavigate("product", { bookId });
+    onNavigate?.("product", { bookId });
   };
 
   // Get different book categories
@@ -243,7 +246,7 @@ export function HomePage({
                     <div className="px-3">
                       <Slider
                         value={priceRange}
-                        onValueChange={setPriceRange}
+                        onValueChange={(value: number[]) => setPriceRange([value[0], value[1]])}
                         max={maxPrice}
                         min={minPrice}
                         step={0.99}
@@ -396,7 +399,7 @@ export function HomePage({
         onUpdateQuantity={onUpdateQuantity}
         onRemoveItem={onRemoveItem}
         trigger={<div />}
-        onNavigateToCart={() => onNavigate("cart")}
+        onNavigateToCart={() => onNavigate?.("cart")}
       />
     </div>
   );

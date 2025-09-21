@@ -4,11 +4,12 @@ import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import { Card, CardContent } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { CartItem } from "./ShoppingCart";
+import type { CartItem } from "./ShoppingCart";
+import type { PageType } from "../App";
 
 interface CartPageProps {
   cartItems: CartItem[];
-  onNavigate: (page: string) => void;
+  onNavigate?: (page: PageType, data?: any) => void;
   onUpdateQuantity: (bookId: string, quantity: number) => void;
   onRemoveItem: (bookId: string) => void;
 }
@@ -31,7 +32,7 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
         <div className="container mx-auto px-4 py-4">
           <Button
             variant="ghost"
-            onClick={() => onNavigate("home")}
+            onClick={() => onNavigate?.("home")}
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -51,8 +52,8 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
             <ShoppingBag className="h-16 w-16 mx-auto text-gray-400 mb-4" />
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
             <p className="text-gray-600 mb-6">Looks like you haven't added any books to your cart yet.</p>
-            <Button 
-              onClick={() => onNavigate("home")}
+            <Button
+              onClick={() => onNavigate?.("home")}
               className="bg-blue-600 hover:bg-blue-700"
             >
               Start Shopping
@@ -165,15 +166,15 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
 
                 <Button 
                   className="w-full mt-6 h-12 bg-blue-600 hover:bg-blue-700"
-                  onClick={() => onNavigate("checkout")}
+                  onClick={() => onNavigate?.("checkout")}
                 >
                   Proceed to Checkout
                 </Button>
 
                 <div className="mt-4 text-center">
-                  <Button 
-                    variant="link" 
-                    onClick={() => onNavigate("home")}
+                  <Button
+                    variant="link"
+                    onClick={() => onNavigate?.("home")}
                     className="text-blue-600"
                   >
                     Continue Shopping

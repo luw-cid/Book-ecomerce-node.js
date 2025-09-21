@@ -6,9 +6,10 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
+import type { PageType } from "../App";
 
 interface PaymentPageProps {
-  onNavigate: (page: string) => void;
+  onNavigate?: (page: PageType, data?: any) => void;
   checkoutData?: any;
 }
 
@@ -84,7 +85,7 @@ export function PaymentPage({ onNavigate, checkoutData }: PaymentPageProps) {
 
             <div className="space-y-3">
               <Button 
-                onClick={() => onNavigate("home")} 
+                onClick={() => onNavigate?.("home")} 
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 Continue Shopping
@@ -110,7 +111,7 @@ export function PaymentPage({ onNavigate, checkoutData }: PaymentPageProps) {
         <div className="container mx-auto px-4 py-4">
           <Button
             variant="ghost"
-            onClick={() => onNavigate("checkout")}
+            onClick={() => onNavigate?.("checkout")}
             className="flex items-center space-x-2"
             disabled={isProcessing}
           >

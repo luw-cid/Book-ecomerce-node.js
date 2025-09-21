@@ -1,12 +1,15 @@
+import axios from "axios";
+import React from "react";
 import { useState } from "react";
 import { BookOpen, Eye, EyeOff, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import type { PageType } from "../App";
 
 interface RegisterPageProps {
-  onNavigate: (page: string) => void;
+  onNavigate?: (page: PageType, data?: any) => void;
 }
 
 export function RegisterPage({ onNavigate }: RegisterPageProps) {
@@ -38,11 +41,34 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate registration process
-    setTimeout(() => {
+    try {
+      const response = await axios.post('http://localhost:3000/auth/register',
+        { 
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true, 
+          }
+      );
+      if(response.status === 201) {
+        alert(response.data.message);
+        onNavigate?.("login");
+      } else {
+        alert (response.data.message || "Registration failed");
+      }
+    } catch (err: any) {
+      if(err.response && err.response.data && err.response.data.message) {
+        alert(err.response.data.message);
+      }
+      alert("An error occurred during registration");
+    } finally {
       setIsLoading(false);
-      onNavigate("home");
-    }, 1000);
+    }
   };
 
   return (
@@ -52,7 +78,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
         <div className="text-center">
           <div 
             className="flex items-center justify-center space-x-2 mb-4 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => onNavigate("home")}
+            onClick={() => onNavigate?.("home")}
           >
             <BookOpen className="h-8 w-8 bg-gradient-to-r from-spring to-winter bg-clip-text text-transparent" />
             <span className="text-2xl font-semibold bg-gradient-to-r from-winter to-summer bg-clip-text text-transparent">BookHaven</span>
@@ -206,7 +232,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
               <Button
                 variant="link"
                 className="px-0 text-blue-600 hover:text-blue-800"
-                onClick={() => onNavigate("login")}
+                onClick={() => onNavigate?.("login")}
               >
                 Sign in
               </Button>

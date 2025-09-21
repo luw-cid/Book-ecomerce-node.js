@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "./dialog.tsx";
+} from "./dialog";
 
 function Command({
   className,

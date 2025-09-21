@@ -7,14 +7,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Progress } from "./ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Card, CardContent } from "./ui/card";
-import { BookCard, Book } from "./BookCard";
+import { BookCard } from "./BookCard";
+import type { Book } from "./BookCard";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { sampleBooks } from "../data/books";
 import { getReviewsForBook, getRatingDistribution } from "../data/reviews";
+import type { PageType } from "../App";
 
 interface ProductDetailPageProps {
   bookId: string;
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate?: (page: PageType, data?: any) => void;
   onAddToCart: (book: Book) => void;
   onToggleWishlist: (bookId: string) => void;
   isInWishlist: boolean;
@@ -78,7 +80,7 @@ export function ProductDetailPage({
 
   const handleBuyNow = () => {
     onAddToCart(book);
-    onNavigate("cart");
+    onNavigate?.("cart");
   };
 
   return (
@@ -88,7 +90,7 @@ export function ProductDetailPage({
         <div className="container mx-auto px-4 py-4">
           <Button
             variant="ghost"
-            onClick={() => onNavigate("home")}
+            onClick={() => onNavigate?.("home")}
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="h-4 w-4" />

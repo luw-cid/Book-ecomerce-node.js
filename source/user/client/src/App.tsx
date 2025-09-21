@@ -7,12 +7,15 @@ import { ProductDetailPage } from "./components/ProductDetailPage";
 import { CartPage } from "./components/CartPage";
 import { CheckoutPage } from "./components/CheckoutPage";
 import { PaymentPage } from "./components/PaymentPage";
-import { Book } from "./components/BookCard";
-import { CartItem } from "./components/ShoppingCart";
+import { ProfilePage } from "./components/ProfilePage";
+import type { Book } from "./components/BookCard";
+import type { CartItem } from "./components/ShoppingCart";
+import  { useAuth } from "./context/authContext";
 
-type PageType = "home" | "login" | "register" | "product" | "cart" | "checkout" | "payment";
+export type PageType = "home" | "login" | "register" | "product" | "cart" | "checkout" | "payment" | "profile";
 
 export default function App() {
+  const { user, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageType>("home");
   const [pageData, setPageData] = useState<any>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -116,6 +119,18 @@ export default function App() {
           <PaymentPage
             onNavigate={handleNavigate}
             checkoutData={pageData}
+          />
+        );
+      case "profile":
+        return (
+          <ProfilePage 
+            user={user}
+            onLogout={logout}
+            onNavigate={handleNavigate}
+            cartItems={cartItems}
+            wishlist={wishlist}
+            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
           />
         );
       default:
