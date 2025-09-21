@@ -1,13 +1,15 @@
 require('dotenv').config();
 
-const createError = require("http-errors");
-const express = require("express");
+const createError = require('http-errors');
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const cookieParser = require("cookie-parser");
-const session = require("express-session");
-const passport = require("passport");
-const mongoose = require("mongoose");
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const passport = require('passport');
+const mongoose = require('mongoose');
+
+import {errorHandle} from './middlewares/errorHandler';
 
 const app = express();
 
@@ -22,7 +24,7 @@ const authRouter = require("./routes/authRoute");
 // const userRouter = require("./routes/userRoute");
 
 // import passport config
-require("./config/passport");
+require('./config/passport');
 
 // connect to database
 mongoose.connect('mongodb://localhost:27017/ecommerce_db'
@@ -61,13 +63,7 @@ app.use(function (req, res, next) {
 });
 
 // xử lý lỗi
-app.use(function(err, req, res, next) {
-    console.error(err.stack);
-    res.status(err.status || 500).json({
-        message: err.message || "Internal Server Error",
-        error: req.app.get('env') === 'development' ? err : {}
-    });
-});
+app.use(errorHandle);
 
 app.listen(3000, () => console.log('Server is running on http://localhost:3000'));
 

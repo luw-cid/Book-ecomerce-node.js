@@ -82,6 +82,16 @@ async function deleteProduct(productId) {
 }
 
 /**
+ * Lấy sản phẩm theo tag
+ */
+async function getProductsByTag(tag, limit = 10) {
+  return await Product.find({ tags: tag })
+    .limit(limit)
+    .populate("category")
+    .populate("discount");
+}
+
+/**
  * Lấy sản phẩm mới (isNew = true)
  */
 async  function getNewProducts (limit = 10) {
@@ -109,6 +119,7 @@ module.exports = {
     searchProducts,
     updateProduct,
     deleteProduct,
+    getProductsByTag,
     getNewProducts,
     getBestSellerProducts,
     getFlashSaleProducts
