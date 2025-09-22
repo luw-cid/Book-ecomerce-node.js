@@ -9,7 +9,8 @@ const session = require('express-session');
 const passport = require('passport');
 const mongoose = require('mongoose');
 
-import {errorHandle} from './middlewares/errorHandler';
+const authRouter = require("./routes/authRoute");
+const errorHandle = require('./middlewares/errorHandler');
 
 const app = express();
 
@@ -20,19 +21,15 @@ app.use(cors({
 }));
 
 // const indexRouter = require("./routes/index");
-const authRouter = require("./routes/authRoute");
-// const userRouter = require("./routes/userRoute");
 
 // import passport config
 require('./config/passport');
 
 // connect to database
-mongoose.connect('mongodb://localhost:27017/ecommerce_db'
-  // useNewUrlParser: true,
-  // useUnifiedTopology: true
+mongoose.connect(process.env.URL_DB
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true
 );
-
-
 
 // cấu hình view engine
 // app.set('views', path.join(__dirname, 'views'));

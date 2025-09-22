@@ -1,5 +1,5 @@
-const productService = require('../services/productService');
-import asyncHandle from 'express-async-handler';
+const productService = require("../services/productService");
+const asyncHandle = require('express-async-handler');
 const AppError = require('../errors');
 
 // Tạo sản phẩm mới

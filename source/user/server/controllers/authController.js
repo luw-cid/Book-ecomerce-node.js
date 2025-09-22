@@ -1,7 +1,7 @@
 // controllers/authController.js
-import asyncHandle from 'express-async-handler';
-const authService = require('../services/authService');
-const AppError = require('../errors');
+const authService = require("../services/authService");
+const AppError = require("../errors");
+const asyncHandle = require('express-async-handler');
 
 // Đăng ký tài khoản (API REST)
 const register = asyncHandle(async (req, res) => {
