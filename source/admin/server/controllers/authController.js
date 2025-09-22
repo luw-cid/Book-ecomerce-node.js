@@ -1,5 +1,5 @@
 // controllers/authController.js
-import asyncHandle from 'express-async-handler';
+const asyncHandle = require ('express-async-handler');
 const authService = require('../services/authService');
 const AppError = require('../errors');
 

@@ -1,5 +1,5 @@
 // Middleware xử lý lỗi tổng quát cho Express
-export const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, next) => {
     console.error(err.stack);
     const status = err.status || 500;
     const message = "Internal Server Error";
@@ -13,3 +13,4 @@ export const errorHandler = (err, req, res, next) => {
     });
 }
 
+module.exports = errorHandler;

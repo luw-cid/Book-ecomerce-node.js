@@ -9,25 +9,24 @@ const session = require('express-session');
 const passport = require('passport');
 const mongoose = require('mongoose');
 
-import {errorHandle} from './middlewares/errorHandler';
+const authRouter = require("./routes/authRoute");
+const errorHandle = require('./middlewares/errorHandler');
 
 const app = express();
 
-// Cấu hình CORS
+// Cấu hình CORS để nhập req từ client
 app.use(cors({
     origin: 'http://localhost:5173',
     credentials: true
 }));
 
 // const indexRouter = require("./routes/index");
-const authRouter = require("./routes/authRoute");
-// const userRouter = require("./routes/userRoute");
 
 // import passport config
-require('./config/passport');
+// require('./config/passport');
 
 // connect to database
-mongoose.connect('mongodb://localhost:27017/ecommerce_db'
+mongoose.connect(process.env.URL_DB
   // useNewUrlParser: true,
   // useUnifiedTopology: true
 );
@@ -51,8 +50,8 @@ app.use(
     })
 );
 
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 //Routes
 app.use("/auth", authRouter);
