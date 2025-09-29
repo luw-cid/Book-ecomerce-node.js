@@ -8,12 +8,12 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Separator } from "./ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import type { CartItem } from "./ShoppingCart";
+import { CartItem } from "./ShoppingCart";
 import type { PageType } from "../App";
 
 interface CheckoutPageProps {
   cartItems: CartItem[];
-  onNavigate?: (page: PageType, data?: any) => void;
+  onNavigate: (page: PageType, data?: any) => void;
 }
 
 export function CheckoutPage({ cartItems, onNavigate }: CheckoutPageProps) {
@@ -43,7 +43,7 @@ export function CheckoutPage({ cartItems, onNavigate }: CheckoutPageProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onNavigate?.("payment", { formData, deliveryMethod, paymentMethod, total });
+    onNavigate("payment", { formData, deliveryMethod, paymentMethod, total });
   };
 
   const deliveryOptions = [
@@ -91,7 +91,7 @@ export function CheckoutPage({ cartItems, onNavigate }: CheckoutPageProps) {
         <div className="container mx-auto px-4 py-4">
           <Button
             variant="ghost"
-            onClick={() => onNavigate?.("cart")}
+            onClick={() => onNavigate("cart")}
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -198,7 +198,7 @@ export function CheckoutPage({ cartItems, onNavigate }: CheckoutPageProps) {
                     </div>
                     <div>
                       <Label htmlFor="state">State</Label>
-                      <Select value={formData.state} onValueChange={(value) => handleInputChange("state", value)}>
+                      <Select value={formData.state} onValueChange={(value : any) => handleInputChange("state", value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select state" />
                         </SelectTrigger>

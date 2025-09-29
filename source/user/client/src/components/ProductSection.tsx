@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock, Flame, Star, TrendingUp, Sparkles, ArrowRight } from "lucide-react";
-import { BookCard} from "./BookCard";
-import type {Book} from "./BookCard";
+import { BookCard, Book } from "./BookCard";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";

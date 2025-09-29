@@ -7,15 +7,15 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import type { PageType } from "../App";
 import { useAuth } from "../context/authContext";
+import type { PageType } from "../App";
 
 interface LoginPageProps {
-  onNavigate: (page: PageType) => void;
+  onNavigate?: (page: PageType, data?: any) => void;
 }
 
 export function LoginPage({ onNavigate }: LoginPageProps) {
-  const { login } = useAuth();
+  const { login: LoginPage } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,9 +25,10 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
     e.preventDefault();
     setIsLoading(true);
     
+
     try {
-      const response = await axios.post('http://localhost:3000/auth/login',
-        {
+      const response = await axios.post('http://localhost:3000/auth/login', 
+        { 
           email: email, 
           password: password
         },
@@ -39,12 +40,14 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         }
       );
       if(response.status === 200) {
+        // backend trả về { message, user, token }
         const { user, token } = response.data;
-        login(user, token); // Lưu vào context
-        onNavigate("home");
+        LoginPage(user, token); // lưu vào context
+        onNavigate?.("home");
       } else {
         alert (response.data.message || "Login failed");
       }
+      
     } catch (err: any) {
       if (err.response && err.response.data && err.response.data.message) {
         alert(err.response.data.message);
@@ -55,7 +58,6 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
     } finally {
       setIsLoading(false);
     }
-
   };
 
   return (
@@ -65,10 +67,10 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         <div className="text-center">
           <div 
             className="flex items-center justify-center space-x-2 mb-4 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => onNavigate("home")}
+            onClick={() => onNavigate?.("home")}
           >
             <BookOpen className="h-8 w-8 bg-gradient-to-r from-spring to-winter bg-clip-text text-transparent" />
-            <span className="text-2xl font-semibold bg-gradient-to-r from-winter to-summer bg-clip-text text-transparent">BookHaven</span>
+            <span className="text-2xl font-semibold bg-gradient-to-r from-winter to-summer bg-clip-text text-transparent">BlueShelf</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-gray-600 mt-2">Sign in to your account to continue</p>
@@ -185,7 +187,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
               <Button
                 variant="link"
                 className="px-0 text-blue-600 hover:text-blue-800"
-                onClick={() => onNavigate("register")}
+                onClick={() => onNavigate?.("register")}
               >
                 Sign up
               </Button>

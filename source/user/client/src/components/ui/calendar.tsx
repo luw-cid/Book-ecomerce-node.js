@@ -1,12 +1,11 @@
 "use client";
 
 import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 
 import { cn } from "./utils";
 import { buttonVariants } from "./button";
-
-// type IconComponentProps = { className?: string } & React.SVGProps<SVGSVGElement>;
 
 function Calendar({
   className,
@@ -61,7 +60,12 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        // XÓA IconLeft và IconRight ở đây
+        IconLeft: ({ className, ...props }) => (
+          <ChevronLeft className={cn("size-4", className)} {...props} />
+        ),
+        IconRight: ({ className, ...props }) => (
+          <ChevronRight className={cn("size-4", className)} {...props} />
+        ),
       }}
       {...props}
     />

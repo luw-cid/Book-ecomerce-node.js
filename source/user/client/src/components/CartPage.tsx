@@ -1,28 +1,68 @@
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, Tag } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, Tag, Gift, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import { Card, CardContent } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import type { CartItem } from "./ShoppingCart";
+import { CartItem } from "./ShoppingCart";
+import { validateDiscountCode, calculateDiscount, DiscountCode } from "../data/discountCodes";
+import { getLoyaltyAccount, getPointsValue } from "../data/loyaltyPoints";
 import type { PageType } from "../App";
 
 interface CartPageProps {
   cartItems: CartItem[];
-  onNavigate?: (page: PageType, data?: any) => void;
+  onNavigate: (page: PageType) => void;
   onUpdateQuantity: (bookId: string, quantity: number) => void;
   onRemoveItem: (bookId: string) => void;
+  isAuthenticated?: boolean;
+  userId?: string;
 }
 
-export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem }: CartPageProps) {
+export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem, isAuthenticated, userId }: CartPageProps) {
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+  const [couponMessage, setCouponMessage] = useState("");
+  const [loyaltyPointsToUse, setLoyaltyPointsToUse] = useState(0);
+  
   const subtotal = cartItems.reduce((sum, item) => sum + (item.book.price * item.quantity), 0);
   const shipping = 0; // Free shipping
-  const tax = subtotal * 0.08; // 8% tax
-  const total = subtotal + shipping + tax;
+  
+  // Calculate discount
+  const discountAmount = appliedDiscount ? calculateDiscount(appliedDiscount, subtotal) : 0;
+  const subtotalAfterDiscount = subtotal - discountAmount;
+  
+  // Calculate loyalty points discount
+  const loyaltyAccount = isAuthenticated && userId ? getLoyaltyAccount(userId) : null;
+  const maxLoyaltyPoints = loyaltyAccount ? Math.min(loyaltyAccount.totalPoints, subtotalAfterDiscount) : 0;
+  const loyaltyDiscount = getPointsValue(loyaltyPointsToUse);
+  
+  const taxableAmount = subtotalAfterDiscount - loyaltyDiscount;
+  const tax = Math.max(0, taxableAmount * 0.08); // 8% tax
+  const total = Math.max(0, subtotalAfterDiscount - loyaltyDiscount + shipping + tax);
 
   const handleApplyCoupon = () => {
-    // Placeholder for coupon functionality
-    alert("Coupon functionality would be implemented here");
+    if (!couponCode.trim()) {
+      setCouponMessage("Please enter a coupon code");
+      return;
+    }
+
+    const validation = validateDiscountCode(couponCode);
+    
+    if (validation.isValid && validation.discount) {
+      setAppliedDiscount(validation.discount);
+      setCouponMessage(validation.message);
+      setCouponCode("");
+    } else {
+      setAppliedDiscount(null);
+      setCouponMessage(validation.message);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedDiscount(null);
+    setCouponMessage("");
+    setCouponCode("");
   };
 
   return (
@@ -32,7 +72,7 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
         <div className="container mx-auto px-4 py-4">
           <Button
             variant="ghost"
-            onClick={() => onNavigate?.("home")}
+            onClick={() => onNavigate("home")}
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -52,8 +92,8 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
             <ShoppingBag className="h-16 w-16 mx-auto text-gray-400 mb-4" />
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
             <p className="text-gray-600 mb-6">Looks like you haven't added any books to your cart yet.</p>
-            <Button
-              onClick={() => onNavigate?.("home")}
+            <Button 
+              onClick={() => onNavigate("home")}
               className="bg-blue-600 hover:bg-blue-700"
             >
               Start Shopping
@@ -133,13 +173,91 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
                   <Tag className="h-4 w-4 mr-2" />
                   Promo Code
                 </h3>
-                <div className="flex space-x-2">
-                  <Input placeholder="Enter coupon code" className="flex-1" />
-                  <Button variant="outline" onClick={handleApplyCoupon}>
-                    Apply
-                  </Button>
-                </div>
+                
+                {!appliedDiscount ? (
+                  <div className="space-y-3">
+                    <div className="flex space-x-2">
+                      <Input 
+                        placeholder="Enter 5-character code" 
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        maxLength={5}
+                        className="flex-1" 
+                      />
+                      <Button variant="outline" onClick={handleApplyCoupon}>
+                        Apply
+                      </Button>
+                    </div>
+                    {couponMessage && (
+                      <div className={`flex items-center space-x-2 text-sm ${
+                        appliedDiscount ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {appliedDiscount ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4" />
+                        )}
+                        <span>{couponMessage}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <div>
+                          <span className="font-medium text-green-800">{appliedDiscount.code}</span>
+                          <p className="text-sm text-green-600">{appliedDiscount.description}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={handleRemoveCoupon}>
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </Card>
+
+              {/* Loyalty Points */}
+              {isAuthenticated && loyaltyAccount && loyaltyAccount.totalPoints > 0 && (
+                <Card className="p-6">
+                  <h3 className="font-semibold mb-4 flex items-center">
+                    <Gift className="h-4 w-4 mr-2" />
+                    Loyalty Points
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>Available Points:</span>
+                      <span className="font-medium">{loyaltyAccount.totalPoints.toFixed(2)} pts ($1 = 1 pt)</span>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Use Points:</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max={maxLoyaltyPoints}
+                        step="0.01"
+                        value={loyaltyPointsToUse}
+                        onChange={(e) => setLoyaltyPointsToUse(Math.min(maxLoyaltyPoints, Math.max(0, parseFloat(e.target.value) || 0)))}
+                        placeholder="0.00"
+                      />
+                      <div className="flex justify-between">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setLoyaltyPointsToUse(maxLoyaltyPoints)}
+                        >
+                          Use All
+                        </Button>
+                        <span className="text-sm text-gray-600">
+                          Save: ${loyaltyDiscount.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
 
               {/* Order Summary */}
               <Card className="p-6">
@@ -149,6 +267,21 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
                     <span className="text-gray-600">Subtotal ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
+                  
+                  {appliedDiscount && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount ({appliedDiscount.code})</span>
+                      <span>-${discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  {loyaltyPointsToUse > 0 && (
+                    <div className="flex justify-between text-blue-600">
+                      <span>Loyalty Points ({loyaltyPointsToUse.toFixed(2)} pts)</span>
+                      <span>-${loyaltyDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
                     <span className="text-green-600">Free</span>
@@ -162,19 +295,28 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
                     <span>Total</span>
                     <span>${total.toFixed(2)}</span>
                   </div>
+                  
+                  {isAuthenticated && (
+                    <div className="text-sm text-gray-600 pt-2 border-t">
+                      <div className="flex items-center space-x-1">
+                        <Gift className="h-3 w-3" />
+                        <span>You'll earn {(total * 0.10).toFixed(2)} loyalty points from this order!</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Button 
                   className="w-full mt-6 h-12 bg-blue-600 hover:bg-blue-700"
-                  onClick={() => onNavigate?.("checkout")}
+                  onClick={() => onNavigate("checkout")}
                 >
                   Proceed to Checkout
                 </Button>
 
                 <div className="mt-4 text-center">
-                  <Button
-                    variant="link"
-                    onClick={() => onNavigate?.("home")}
+                  <Button 
+                    variant="link" 
+                    onClick={() => onNavigate("home")}
                     className="text-blue-600"
                   >
                     Continue Shopping

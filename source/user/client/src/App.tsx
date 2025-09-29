@@ -8,19 +8,31 @@ import { CartPage } from "./components/CartPage";
 import { CheckoutPage } from "./components/CheckoutPage";
 import { PaymentPage } from "./components/PaymentPage";
 import { ProfilePage } from "./components/ProfilePage";
-import type { Book } from "./components/BookCard";
-import type { CartItem } from "./components/ShoppingCart";
-import  { useAuth } from "./context/authContext";
+import { CategoryPage } from "./components/CategoryPage";
+import { Book } from "./components/BookCard";
+import { CartItem } from "./components/ShoppingCart";
 
-export type PageType = "home" | "login" | "register" | "product" | "cart" | "checkout" | "payment" | "profile";
+import { useAuth } from "./context/authContext";
+
+export type PageType = "home" | "login" | "register" | "product" | "cart" | "checkout" | "payment" | "profile" | "category";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  joinDate: string;   
+}
 
 export default function App() {
-  const { user, logout } = useAuth();
+  const { user, login, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageType>("home");
   const [pageData, setPageData] = useState<any>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState<string>("");
+  // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  // const [user, setUser] = useState<User | null>(null);
 
   const handleNavigate = (page: PageType, data?: any) => {
     setCurrentPage(page);
@@ -82,6 +94,13 @@ export default function App() {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const handleLogout = () => {
+    // setUser(null);
+    // setIsAuthenticated(false);
+    logout();
+    handleNavigate("home");
+  };
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case "login":
@@ -105,6 +124,8 @@ export default function App() {
             onNavigate={handleNavigate}
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}
+            isAuthenticated={!!user}
+            userId={user?.id}
           />
         );
       case "checkout":
@@ -123,14 +144,25 @@ export default function App() {
         );
       case "profile":
         return (
-          <ProfilePage 
+          <ProfilePage
             user={user}
-            onLogout={logout}
             onNavigate={handleNavigate}
+            onLogout={handleLogout}
             cartItems={cartItems}
             wishlist={wishlist}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
+          />
+        );
+      case "category":
+        return (
+          <CategoryPage
+            category={pageData?.category || ""}
+            onNavigate={handleNavigate}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            wishlist={wishlist}
+            searchQuery={searchQuery}
           />
         );
       default:
@@ -158,6 +190,9 @@ export default function App() {
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         onNavigate={handleNavigate}
+        isAuthenticated={!!user}
+        user={user}
+        onLogout={handleLogout}
       />
       {renderCurrentPage()}
     </div>

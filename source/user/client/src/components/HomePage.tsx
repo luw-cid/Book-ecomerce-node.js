@@ -2,20 +2,19 @@ import React, { useState, useMemo } from "react";
 import { HeroSection } from "./HeroSection";
 import { CategorySection } from "./CategorySection";
 import { ProductSection } from "./ProductSection";
-import { BookCard} from "./BookCard";
-import type { Book } from "./BookCard";
-import { ShoppingCart } from "./ShoppingCart";
-import  type { CartItem } from "./ShoppingCart";
+import { BookCard, Book } from "./BookCard";
+import { ShoppingCart, CartItem } from "./ShoppingCart";
 import { Footer } from "./Footer";
 import { sampleBooks } from "../data/books";
 import { Button } from "./ui/button";
 import { Filter, DollarSign, X } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Slider } from "./ui/slider";
+import { Badge } from "./ui/badge";
 import type { PageType } from "../App";
 
 interface HomePageProps {
-  onNavigate?: (page: PageType, data?: any) => void;
+  onNavigate: (page: PageType, data?: any) => void;
   cartItems: CartItem[];
   onAddToCart: (book: Book) => void;
   onUpdateQuantity: (bookId: string, quantity: number) => void;
@@ -39,13 +38,20 @@ export function HomePage({
 }: HomePageProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating">("featured");
+  const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating" | "name-az" | "name-za">("featured");
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   
   // Get min and max prices from books
   const minPrice = Math.min(...sampleBooks.map(book => book.price));
   const maxPrice = Math.max(...sampleBooks.map(book => book.price));
+
+  // Get unique brands for filtering
+  const availableBrands = useMemo(() => {
+    const brands = new Set(sampleBooks.map(book => book.brand));
+    return Array.from(brands).sort();
+  }, []);
 
   // Filter and search books
   const filteredBooks = useMemo(() => {
@@ -56,13 +62,19 @@ export function HomePage({
       books = books.filter(book => 
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.category.toLowerCase().includes(searchQuery.toLowerCase())
+        book.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        book.brand.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Filter by category
     if (selectedCategory) {
       books = books.filter(book => book.category === selectedCategory);
+    }
+
+    // Filter by brands
+    if (selectedBrands.length > 0) {
+      books = books.filter(book => selectedBrands.includes(book.brand));
     }
 
     // Filter by price range
@@ -79,6 +91,12 @@ export function HomePage({
       case "rating":
         books = [...books].sort((a, b) => b.rating - a.rating);
         break;
+      case "name-az":
+        books = [...books].sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case "name-za":
+        books = [...books].sort((a, b) => b.title.localeCompare(a.title));
+        break;
       default:
         // Featured (keep original order, but prioritize bestsellers)
         books = [...books].sort((a, b) => {
@@ -89,7 +107,7 @@ export function HomePage({
     }
 
     return books;
-  }, [searchQuery, selectedCategory, sortBy, priceRange]);
+  }, [searchQuery, selectedCategory, selectedBrands, sortBy, priceRange]);
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
@@ -102,16 +120,17 @@ export function HomePage({
 
   const clearFilters = () => {
     setSelectedCategory(null);
+    setSelectedBrands([]);
     onSearchChange("");
     setPriceRange([minPrice, maxPrice]);
   };
 
-  const hasActiveFilters = selectedCategory || searchQuery || priceRange[0] > minPrice || priceRange[1] < maxPrice;
+  const hasActiveFilters = selectedCategory || selectedBrands.length > 0 || searchQuery || priceRange[0] > minPrice || priceRange[1] < maxPrice;
 
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleBookClick = (bookId: string) => {
-    onNavigate?.("product", { bookId });
+    onNavigate("product", { bookId });
   };
 
   // Get different book categories
@@ -246,7 +265,7 @@ export function HomePage({
                     <div className="px-3">
                       <Slider
                         value={priceRange}
-                        onValueChange={(value: number[]) => setPriceRange([value[0], value[1]])}
+                        onValueChange={setPriceRange}
                         max={maxPrice}
                         min={minPrice}
                         step={0.99}
@@ -264,7 +283,7 @@ export function HomePage({
           </div>
         </section>
         
-        <CategorySection onCategorySelect={handleCategorySelect} />
+        <CategorySection onNavigate={onNavigate} />
 
         {/* Product Sections - only show when not searching/filtering */}
         {showProductSections && (
@@ -334,6 +353,22 @@ export function HomePage({
                     {(priceRange[0] > minPrice || priceRange[1] < maxPrice) && 
                      ` in ${priceRange[0]} - ${priceRange[1]} range`}
                   </p>
+                  
+                  {/* Active Brand Filters */}
+                  {selectedBrands.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedBrands.map(brand => (
+                        <Badge 
+                          key={brand} 
+                          variant="secondary" 
+                          className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => setSelectedBrands(selectedBrands.filter(b => b !== brand))}
+                        >
+                          {brand} ×
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-4">
@@ -343,18 +378,44 @@ export function HomePage({
                     </Button>
                   )}
                   
-                  <div className="flex items-center space-x-2">
-                    <Filter className="h-4 w-4" />
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
-                      className="bg-background border border-border rounded px-3 py-2 text-sm"
-                    >
-                      <option value="featured">Featured</option>
-                      <option value="price-low">Price: Low to High</option>
-                      <option value="price-high">Price: High to Low</option>
-                      <option value="rating">Highest Rated</option>
-                    </select>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    {/* Brand Filter */}
+                    {availableBrands.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium">Brand:</span>
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value && !selectedBrands.includes(e.target.value)) {
+                              setSelectedBrands([...selectedBrands, e.target.value]);
+                            }
+                          }}
+                          className="bg-background border border-border rounded px-3 py-2 text-sm"
+                        >
+                          <option value="">Add Brand</option>
+                          {availableBrands.filter(brand => !selectedBrands.includes(brand)).map(brand => (
+                            <option key={brand} value={brand}>{brand}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    
+                    {/* Sort Options */}
+                    <div className="flex items-center space-x-2">
+                      <Filter className="h-4 w-4" />
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="bg-background border border-border rounded px-3 py-2 text-sm"
+                      >
+                        <option value="featured">Featured</option>
+                        <option value="name-az">Name: A to Z</option>
+                        <option value="name-za">Name: Z to A</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="rating">Highest Rated</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -399,7 +460,7 @@ export function HomePage({
         onUpdateQuantity={onUpdateQuantity}
         onRemoveItem={onRemoveItem}
         trigger={<div />}
-        onNavigateToCart={() => onNavigate?.("cart")}
+        onNavigateToCart={() => onNavigate("cart")}
       />
     </div>
   );

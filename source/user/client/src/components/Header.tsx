@@ -1,52 +1,74 @@
-
 import { Search, ShoppingCart, User, BookOpen, Heart, LogOut, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { useAuth } from "../context/authContext";
-import type { PageType} from "../App";
+import  type { PageType } from "../App";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  joinDate: string;
+}
 
 interface HeaderProps {
   cartItemCount: number;
   onCartClick: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onNavigate?: (page: PageType, data?: any) => void;
+  onNavigate?: (page: PageType) => void;
+  isAuthenticated: boolean;
+  user: User | null;
+  onLogout: () => void;
 }
 
-export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange, onNavigate }: HeaderProps) {
-  const { isAuthenticated, user, logout } = useAuth();
-
+export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange, onNavigate, isAuthenticated, user, onLogout }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo - Left Side */}
         <div className="flex items-center space-x-2 flex-shrink-0">
           <BookOpen className="h-6 w-6" />
-          <span className="hidden sm:inline-block font-medium">BlueShelf</span>
+          <span className="hidden sm:inline-block font-medium">BookHaven</span>
         </div>
 
         {/* Centered Navigation & Search */}
         <div className="flex-1 flex items-center justify-center space-x-8 max-w-4xl mx-6">
           {/* Navigation */}
           <nav className="hidden lg:flex items-center space-x-6">
-            <a href="#" className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary">
+            <button 
+              onClick={() => onNavigate?.("category", { category: "Fiction" })}
+              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
+            >
               Fiction
-            </a>
-            <a href="#" className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary">
-              Non-Fiction
-            </a>
-            <a href="#" className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary">
+            </button>
+            <button 
+              onClick={() => onNavigate?.("category", { category: "Biography" })}
+              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
+            >
+              Biography
+            </button>
+            <button 
+              onClick={() => onNavigate?.("category", { category: "Mystery" })}
+              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
+            >
               Mystery
-            </a>
-            <a href="#" className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary">
+            </button>
+            <button 
+              onClick={() => onNavigate?.("category", { category: "Science Fiction" })}
+              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
+            >
               Sci-Fi
-            </a>
-            <a href="#" className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary">
+            </button>
+            <button 
+              onClick={() => onNavigate?.("category", { category: "Romance" })}
+              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
+            >
               Romance
-            </a>
+            </button>
           </nav>
 
           {/* Search */}
@@ -70,7 +92,6 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
           </Button>
           
           {/* Authentication Actions */}
-
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -98,7 +119,7 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
                   <span>Your Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>
+                <DropdownMenuItem onClick={onLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign Out</span>
                 </DropdownMenuItem>

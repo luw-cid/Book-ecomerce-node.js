@@ -1,4 +1,4 @@
-import { Book, Heart, Users, Zap, Telescope, Shield, ArrowRight } from "lucide-react";
+import { Book, Heart, Users, Zap, Telescope, Shield, ArrowRight, Sparkles } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -63,14 +63,24 @@ const categories = [
     description: "Suspense that keeps you guessing",
     color: "text-white",
     overlayColor: "bg-slate-500/40"
+  },
+  {
+    name: "Fantasy",
+    icon: Sparkles,
+    count: "4,200+ books",
+    gradient: "from-purple-300 to-indigo-400",
+    bgImage: "https://images.unsplash.com/photo-1606337740587-3aee763fec8b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW50YXN5JTIwbWVkaWV2YWwlMjBib29rcyUyMG1hZ2ljfGVufDF8fHx8MTc1OTAzNzMyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    description: "Magic and adventure await",
+    color: "text-white",
+    overlayColor: "bg-purple-500/40"
   }
 ];
 
 interface CategorySectionProps {
-  onCategorySelect: (category: string) => void;
+  onNavigate: (page: string, data?: any) => void;
 }
 
-export function CategorySection({ onCategorySelect }: CategorySectionProps) {
+export function CategorySection({ onNavigate }: CategorySectionProps) {
   return (
     <section className="py-20 bg-gradient-to-br from-blue-50/50 to-sky-50/30">
       <div className="container mx-auto px-4">
@@ -91,7 +101,7 @@ export function CategorySection({ onCategorySelect }: CategorySectionProps) {
               <Card 
                 key={category.name}
                 className="group cursor-pointer transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 border-0 overflow-hidden relative h-64"
-                onClick={() => onCategorySelect(category.name)}
+                onClick={() => onNavigate("category", { category: category.name })}
               >
                 {/* Background Image */}
                 <div className="absolute inset-0">
@@ -152,7 +162,7 @@ export function CategorySection({ onCategorySelect }: CategorySectionProps) {
             variant="outline" 
             size="lg"
             className="border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50/50 text-blue-600 px-8 py-3"
-            onClick={() => onCategorySelect("")}
+            onClick={() => onNavigate("category", { category: "" })}
           >
             View All Categories
           </Button>

@@ -4,6 +4,15 @@ import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
+export interface BookVariant {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+  sku: string;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -13,7 +22,9 @@ export interface Book {
   rating: number;
   reviewCount: number;
   category: string;
+  brand: string; // Publisher/Brand for filtering
   coverImage: string;
+  variants: BookVariant[];
   isNew?: boolean;
   isBestseller?: boolean;
   isFlashSale?: boolean;

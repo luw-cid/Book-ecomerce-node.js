@@ -8,35 +8,11 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const passport = require('passport');
 const mongoose = require('mongoose');
-<<<<<<<< HEAD:source/user/server/app.js
-
-const authRouter = require("./routes/authRoute");
-const errorHandle = require('./middlewares/errorHandler');
-========
 
 const authRouter = require("./routes/authRoute");
 const errorHandle = require('./middlewares/errorHandler');
 
 const app = express();
-
-// Cấu hình CORS để nhập req từ client
-app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true
-}));
-
-// const indexRouter = require("./routes/index");
-
-// import passport config
-// require('./config/passport');
-
-// connect to database
-mongoose.connect(process.env.URL_DB
-  // useNewUrlParser: true,
-  // useUnifiedTopology: true
-);
->>>>>>>> admin:source/admin/server/app.js
-
 
 
 // Cấu hình CORS

@@ -8,15 +8,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
-import { BookCard, type Book } from "./BookCard";
-import { type CartItem } from "./ShoppingCart";
+import { BookCard, Book } from "./BookCard";
+import { CartItem } from "./ShoppingCart";
 import { sampleBooks } from "../data/books";
 import type { PageType } from "../App";
-import type { User as authUser } from "../context/authContext"; 
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  joinDate: string;
+}
 
 interface ProfilePageProps {
-  user: authUser | null;
+  user: User | null;
   onNavigate: (page: PageType, data?: any) => void;
   onLogout: () => void;
   cartItems: CartItem[];
@@ -42,7 +48,7 @@ export function ProfilePage({
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
-            <User className="h-16 w-16 mx-auto text-gray-400 mb-4"/>
+            <User className="h-16 w-16 mx-auto text-gray-400 mb-4" />
             <h2 className="text-xl font-semibold mb-2">Please Sign In</h2>
             <p className="text-gray-600 mb-4">You need to be logged in to view your profile.</p>
             <Button onClick={() => onNavigate("login")}>Sign In</Button>

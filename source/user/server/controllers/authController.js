@@ -7,7 +7,7 @@ const asyncHandle = require('express-async-handler');
 const register = asyncHandle(async (req, res) => {
     const { fullName, password, email } = req.body;
     const user = await authService.registerUser(fullName, password, email);
-    res.status(201).json({ message: "Đăng ký thành công", user });
+    res.status(201).json({ message: "Login successfully", user });
 });
 
 // Đăng nhập (API REST)
@@ -15,7 +15,7 @@ const login = asyncHandle(async (req, res) => {
     const { email, password } = req.body;
     const result = await authService.loginUser(email, password);
     if (!result) {
-        throw new AppError("Tài khoản hoặc mật khẩu không đúng!", 401);
+        throw new AppError("Account or password incorrect", 401);
     }
     const { user, token } = result;
     // Nếu dùng session:
@@ -23,7 +23,7 @@ const login = asyncHandle(async (req, res) => {
     // res.json({ message: "Đăng nhập thành công!", user });
     // Nếu dùng JWT, trả về token ở đây
     res.json({
-        message: "Đăng nhập thành công!",
+        message: "Login successfully!",
         token,
         user: {
             id: user.id,
@@ -44,7 +44,7 @@ const logout = asyncHandle(async (req, res) => {
         if (err) {
             throw new AppError("Lỗi khi đăng xuất!", 500);
         }
-        res.json({ message: "Đăng xuất thành công!" });
+        res.json({ message: "Logout successfully!" });
     });
 });
 
