@@ -2,6 +2,7 @@ import { Book, Heart, Users, Zap, Telescope, Shield, ArrowRight, Sparkles } from
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import type { PageType } from "../App";
 
 const categories = [
   {
@@ -77,7 +78,7 @@ const categories = [
 ];
 
 interface CategorySectionProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: PageType, data?: any) => void;
 }
 
 export function CategorySection({ onNavigate }: CategorySectionProps) {

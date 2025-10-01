@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import type { PageType } from "../App";
 
 export interface BookVariant {
   id: string;
@@ -36,6 +37,7 @@ interface BookCardProps {
   onAddToCart: (book: Book) => void;
   onToggleWishlist: (bookId: string) => void;
   isInWishlist: boolean;
+  onNavigate?: (page: PageType, data?: any) => void; // 👈 thêm dòng này
 }
 
 export function BookCard({ book, onAddToCart, onToggleWishlist, isInWishlist }: BookCardProps) {
