@@ -27,7 +27,7 @@ app.use(cors({
 require('./config/passport');
 
 // connect to database
-mongoose.connect(process.env.URL_DB
+mongoose.connect("mongodb://localhost:27017/ecommerce_db"
 //   useNewUrlParser: true,
 //   useUnifiedTopology: true
 );
