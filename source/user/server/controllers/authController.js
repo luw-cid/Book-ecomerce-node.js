@@ -6,8 +6,11 @@ const asyncHandle = require('express-async-handler');
 // Đăng ký tài khoản (API REST)
 const register = asyncHandle(async (req, res) => {
     const { fullName, password, email } = req.body;
+    if (!fullName || !password || !email) {
+        throw new AppError("Please provide full name, email and password", 400);
+    }
     const user = await authService.registerUser(fullName, password, email);
-    res.status(201).json({ message: "Login successfully", user });
+    res.status(201).json({ message: "Register successfully", user });
 });
 
 // Đăng nhập (API REST)

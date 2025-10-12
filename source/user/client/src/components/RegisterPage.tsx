@@ -41,9 +41,8 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
     setIsLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:3000/auth/register',
-        { formData,
-        },
+      const response = await axios.post('http://localhost:3000/auth/signup',
+        formData,
         {
           headers: {
             "Content-Type": "application/json",

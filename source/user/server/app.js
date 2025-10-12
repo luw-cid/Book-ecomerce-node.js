@@ -11,6 +11,7 @@ const mongoose = require('mongoose');
 
 const authRouter = require("./routes/authRoute");
 const errorHandle = require('./middlewares/errorHandler');
+const connectDB = require('./config/connectDB');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(cors({
 require('./config/passport');
 
 // connect to database
+<<<<<<< Updated upstream
 mongoose.connect("mongodb://localhost:27017/ecommerce_db"
 //   useNewUrlParser: true,
 //   useUnifiedTopology: true
@@ -35,6 +37,9 @@ mongoose.connect("mongodb://localhost:27017/ecommerce_db"
 // cấu hình view engine
 // app.set('views', path.join(__dirname, 'views'));
 // app.set('view engine', 'ejs');
+=======
+connectDB();
+>>>>>>> Stashed changes
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

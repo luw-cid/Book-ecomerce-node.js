@@ -10,10 +10,10 @@ router.get("/", (req, res) => {
 });
 
 // Register & login thường
-router.get("/register", (req, res) => res.json({message: "Register page (API)"}));
-router.post("/register", authController.register);
+// router.get("/register", (req, res) => res.json({message: "Register page (API)"}));
+router.post("/signup", authController.register);
 
-router.get("/login", (req, res) => res.json({ message: "Login page (API only)" }));
+// router.get("/login", (req, res) => res.json({ message: "Login page (API only)" }));
 router.post("/login", authController.login);
 
 // Xem profile (phải login mới xem được)
