@@ -10,7 +10,7 @@ router.get("/", (req, res) => {
 });
 
 // Register & login thường
-// router.get("/register", (req, res) => res.json({message: "Register page (API)"}));
+// router.get("/signup", (req, res) => res.json({message: "Register page (API)"}));
 router.post("/signup", authController.register);
 
 // router.get("/login", (req, res) => res.json({ message: "Login page (API only)" }));

@@ -10,8 +10,8 @@ const productSchema = new mongoose.Schema(
         discount: { type: mongoose.Schema.Types.ObjectId, ref: "Discount" },
         images: [String],      
         isNew: { type: Boolean, default: false},
-        isBestseller: { type: String, default: false},
-        isFlashSale: { type: String, default: false},
+        isBestseller: { type: Boolean, default: false},
+        isFlashSale: { type: Boolean, default: false},
         tags: [{ type: String}], 
     },
     {timestamps: true}
