@@ -70,9 +70,6 @@ export function HomePage({
   }, [minPrice, maxPrice]);
   // ============= HELPER: MAP BACKEND DATA → FRONTEND DATA =============
   const mapProductToBook = (product: any): Book => {
-    console.log('🔍 Product data:', product); // ← THÊM LOG
-    console.log('📁 Category:', product.category); // ← THÊM LOG
-    console.log('📁 Category name:', product.category?.name); // ← THÊM LOG
     const originalPrice = product.discount
       ? product.price / (1 - product.discount.percentage / 100)
       : undefined;
@@ -114,6 +111,7 @@ export function HomePage({
 
         // Gọi 3 API song song (giống LoginPage)
         const [newRes, bestsellerRes, flashSaleRes] = await Promise.all([
+
           axios.get('http://localhost:3000/products/new', {
             params: { limit: 8 },
             headers: { "Content-Type": "application/json" }
@@ -182,6 +180,7 @@ export function HomePage({
       setIsLoading(true);
       try {
         const response = await axios.get('http://localhost:3000/products', {
+
           params: {
             search: searchQuery || undefined,
             category: selectedCategory || undefined,
