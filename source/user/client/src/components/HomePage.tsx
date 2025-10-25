@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 import { HeroSection } from "./HeroSection";
 import { CategorySection } from "./CategorySection";
 import { ProductSection } from "./ProductSection";
 import { BookCard, Book } from "./BookCard";
 import { ShoppingCart, CartItem } from "./ShoppingCart";
 import { Footer } from "./Footer";
-import { sampleBooks } from "../data/books";
+// import { sampleBooks } from "../data/books";
 import { Button } from "./ui/button";
 import { Filter, DollarSign, X } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
@@ -36,50 +37,192 @@ export function HomePage({
   searchQuery,
   onSearchChange
 }: HomePageProps) {
+  // ============= STATE =============
+  const [allBooks, setAllBooks] = useState<Book[]>([]);
+  const [newBooks, setNewBooks] = useState<Book[]>([]);
+  const [bestsellerBooks, setBestsellerBooks] = useState<Book[]>([]);
+  const [flashSaleBooks, setFlashSaleBooks] = useState<Book[]>([]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating" | "name-az" | "name-za">("featured");
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
-  const [showPriceFilter, setShowPriceFilter] = useState(false);
-  
-  // Get min and max prices from books
-  const minPrice = Math.min(...sampleBooks.map(book => book.price));
-  const maxPrice = Math.max(...sampleBooks.map(book => book.price));
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+  // ============= COMPUTED VALUES =============
+  const minPrice = useMemo(() => {
+    if (allBooks.length === 0) return 0;
+    return Math.min(...allBooks.map(book => book.price));
+  }, [allBooks]);
 
-  // Get unique brands for filtering
-  const availableBrands = useMemo(() => {
-    const brands = new Set(sampleBooks.map(book => book.brand));
-    return Array.from(brands).sort();
-  }, []);
+  const maxPrice = useMemo(() => {
+    if (allBooks.length === 0) return 50;
+    return Math.max(...allBooks.map(book => book.price));
+  }, [allBooks]);
 
-  // Filter and search books
+  // Update price range khi books thay đổi
+  useEffect(() => {
+    setPriceRange([minPrice, maxPrice]);
+  }, [minPrice, maxPrice]);
+  // ============= HELPER: MAP BACKEND DATA → FRONTEND DATA =============
+  const mapProductToBook = (product: any): Book => {
+    const originalPrice = product.discount
+      ? product.price / (1 - product.discount.percentage / 100)
+      : undefined;
+
+    return {
+      id: product._id,
+      title: product.name,
+      author: product.tags?.[0] || 'Unknown Author',
+      price: product.price,
+      originalPrice,
+      rating: 4.5, // Backend chưa có rating field
+      reviewCount: 0, // Backend chưa có reviews
+      category: product.category?.name || 'Uncategorized',
+      brand: product.tags?.[1] || 'Unknown Brand',
+      coverImage: product.images?.[0] || '/placeholder-book.jpg',
+      variants: [
+        {
+          id: product._id,
+          name: 'Standard Edition',
+          price: product.price,
+          originalPrice,
+          stock: product.stock,
+          sku: product._id
+        }
+      ],
+      isNew: product.isNew,
+      isBestseller: product.isBestseller,
+      isFlashSale: product.isFlashSale,
+      flashSaleEndTime: product.isFlashSale ? '2025-01-20T23:59:59' : undefined
+    };
+  };
+
+  // ============= FETCH DATA KHI COMPONENT MOUNT =============
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      try {
+        setError(null);
+
+        // Gọi 3 API song song (giống LoginPage)
+        const [newRes, bestsellerRes, flashSaleRes] = await Promise.all([
+          axios.get('http://localhost:3000/api/products/new', {
+            params: { limit: 8 },
+            headers: { "Content-Type": "application/json" }
+          }),
+          axios.get('http://localhost:3000/api/products/bestseller', {
+            params: { limit: 8 },
+            headers: { "Content-Type": "application/json" }
+          }),
+          axios.get('http://localhost:3000/api/products/flash-sale', {
+            params: { limit: 8 },
+            headers: { "Content-Type": "application/json" }
+          })
+        ]);
+
+        console.log('✅ New books response:', newRes.data);
+        console.log('✅ Bestseller response:', bestsellerRes.data);
+        console.log('✅ Flash sale response:', flashSaleRes.data);
+
+        // Map backend products sang frontend books
+        const newBooksData = newRes.data.map(mapProductToBook);
+        const bestsellerData = bestsellerRes.data.map(mapProductToBook);
+        const flashSaleData = flashSaleRes.data.map(mapProductToBook);
+
+        setNewBooks(newBooksData);
+        setBestsellerBooks(bestsellerData);
+        setFlashSaleBooks(flashSaleData);
+
+        // Gộp tất cả books để filter
+        const combined = [...newBooksData, ...bestsellerData, ...flashSaleData];
+        // Loại bỏ duplicate bằng Map
+        const uniqueBooks = Array.from(
+          new Map(combined.map(book => [book.id, book])).values()
+        );
+        setAllBooks(uniqueBooks);
+        // 👇 EXTRACT BRANDS
+        const brands = new Set<string>();
+        uniqueBooks.forEach(book => {
+          if (book.brand && book.brand !== 'Unknown Brand') {
+            brands.add(book.brand);
+          }
+        });
+        setAvailableBrands(Array.from(brands).sort());
+      } catch (err: any) {
+        console.error('❌ Error loading initial data:', err);
+        if (err.response && err.response.data && err.response.data.message) {
+          setError(err.response.data.message);
+        } else {
+          setError('Failed to load books. Please try again later.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, []); // Empty dependency = chỉ chạy 1 lần khi mount
+
+  // ============= FETCH KHI SEARCH HOẶC FILTER =============
+  useEffect(() => {
+    // Nếu không có filter thì không cần fetch
+    if (!searchQuery && !selectedCategory) {
+      return;
+    }
+
+    const loadFilteredBooks = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get('http://localhost:3000/api/products', {
+          params: {
+            search: searchQuery || undefined,
+            category: selectedCategory || undefined,
+            sortBy: sortBy,
+          },
+          headers: { "Content-Type": "application/json" }
+        });
+
+        console.log('✅ Filtered books response:', response.data);
+
+        const books = response.data.products.map(mapProductToBook);
+        setAllBooks(books);
+      } catch (err: any) {
+        console.error('❌ Error loading filtered books:', err);
+        if (err.response && err.response.data && err.response.data.message) {
+          setError(err.response.data.message);
+        } else {
+          setError('Failed to load books.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Debounce: Chờ 300ms sau khi user ngừng gõ mới search
+    const timeoutId = setTimeout(() => {
+      loadFilteredBooks();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, selectedCategory, sortBy]);
+
+  // ============= FILTER & SORT BOOKS (CLIENT-SIDE) =============
   const filteredBooks = useMemo(() => {
-    let books = sampleBooks;
+    let books = allBooks;
+    // 👇 FILTER BY PRICE RANGE
+    books = books.filter(book =>
+      book.price >= priceRange[0] && book.price <= priceRange[1]
+    );
 
-    // Filter by search query
-    if (searchQuery) {
-      books = books.filter(book => 
-        book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.brand.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by category
-    if (selectedCategory) {
-      books = books.filter(book => book.category === selectedCategory);
-    }
-
-    // Filter by brands
+    // 👇 FILTER BY BRANDS
     if (selectedBrands.length > 0) {
       books = books.filter(book => selectedBrands.includes(book.brand));
     }
-
-    // Filter by price range
-    books = books.filter(book => book.price >= priceRange[0] && book.price <= priceRange[1]);
-
     // Sort books
     switch (sortBy) {
       case "price-low":
@@ -98,7 +241,7 @@ export function HomePage({
         books = [...books].sort((a, b) => b.title.localeCompare(a.title));
         break;
       default:
-        // Featured (keep original order, but prioritize bestsellers)
+        // Featured: ưu tiên bestseller trước
         books = [...books].sort((a, b) => {
           if (a.isBestseller && !b.isBestseller) return -1;
           if (!a.isBestseller && b.isBestseller) return 1;
@@ -107,15 +250,18 @@ export function HomePage({
     }
 
     return books;
-  }, [searchQuery, selectedCategory, selectedBrands, sortBy, priceRange]);
+  }, [allBooks, sortBy, priceRange, selectedBrands]);
 
+  // ============= EVENT HANDLERS =============
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    // Scroll to books section
-    const booksSection = document.getElementById('books-section');
-    if (booksSection) {
-      booksSection.scrollIntoView({ behavior: 'smooth' });
-    }
+    // Scroll xuống phần books
+    setTimeout(() => {
+      document.getElementById('books-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 100);
   };
 
   const clearFilters = () => {
@@ -125,26 +271,52 @@ export function HomePage({
     setPriceRange([minPrice, maxPrice]);
   };
 
-  const hasActiveFilters = selectedCategory || selectedBrands.length > 0 || searchQuery || priceRange[0] > minPrice || priceRange[1] < maxPrice;
-
-  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
   const handleBookClick = (bookId: string) => {
-    onNavigate("product", { bookId });
+    onNavigate("book-detail", { bookId });
   };
 
-  // Get different book categories
-  const newBooks = sampleBooks.filter(book => book.isNew);
-  const bestsellerBooks = sampleBooks.filter(book => book.isBestseller);
-  const flashSaleBooks = sampleBooks.filter(book => book.isFlashSale);
+  // ============= COMPUTED VALUES =============
+  const hasActiveFilters =
+    selectedCategory ||
+    searchQuery ||
+    selectedBrands.length > 0 ||
+    priceRange[0] > minPrice ||
+    priceRange[1] < maxPrice;
 
   const showProductSections = !searchQuery && !selectedCategory && !hasActiveFilters;
+
 
   return (
     <div className="min-h-screen">
       <main>
         <HeroSection />
-        
+        {/* 👇 THÊM ERROR MESSAGE */}
+        {error && (
+          <div className="container mx-auto px-4 py-4">
+            <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="font-medium">Error</p>
+                <p className="text-sm mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 👇 THÊM LOADING OVERLAY */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-lg p-8 shadow-xl">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600 font-medium">Loading books...</p>
+            </div>
+          </div>
+        )}
+
         {/* 4-Season Price Filter Section */}
         <section className="py-12 bg-gradient-to-r from-rose-50/60 via-emerald-50/60 via-amber-50/60 to-sky-50/60">
           <div className="container mx-auto px-4">
@@ -157,17 +329,16 @@ export function HomePage({
                   Filter by price range to discover books that fit your budget
                 </p>
               </div>
-              
+
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardContent className="p-8">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
                     {/* Spring Price Range */}
-                    <div 
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                        priceRange[0] <= 10 && priceRange[1] >= 10 
-                          ? 'border-rose-300 bg-rose-50/70 shadow-lg' 
-                          : 'border-rose-100 bg-rose-50/30 hover:border-rose-200'
-                      }`}
+                    <div
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${priceRange[0] <= 10 && priceRange[1] >= 10
+                        ? 'border-rose-300 bg-rose-50/70 shadow-lg'
+                        : 'border-rose-100 bg-rose-50/30 hover:border-rose-200'
+                        }`}
                       onClick={() => setPriceRange([0, 14.99])}
                     >
                       <div className="text-center">
@@ -181,12 +352,11 @@ export function HomePage({
                     </div>
 
                     {/* Summer Price Range */}
-                    <div 
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                        priceRange[0] <= 15 && priceRange[1] >= 17.99 
-                          ? 'border-emerald-300 bg-emerald-50/70 shadow-lg' 
-                          : 'border-emerald-100 bg-emerald-50/30 hover:border-emerald-200'
-                      }`}
+                    <div
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${priceRange[0] <= 15 && priceRange[1] >= 17.99
+                        ? 'border-emerald-300 bg-emerald-50/70 shadow-lg'
+                        : 'border-emerald-100 bg-emerald-50/30 hover:border-emerald-200'
+                        }`}
                       onClick={() => setPriceRange([15, 17.99])}
                     >
                       <div className="text-center">
@@ -200,12 +370,11 @@ export function HomePage({
                     </div>
 
                     {/* Autumn Price Range */}
-                    <div 
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                        priceRange[0] <= 18 && priceRange[1] >= 19.99 
-                          ? 'border-amber-300 bg-amber-50/70 shadow-lg' 
-                          : 'border-amber-100 bg-amber-50/30 hover:border-amber-200'
-                      }`}
+                    <div
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${priceRange[0] <= 18 && priceRange[1] >= 19.99
+                        ? 'border-amber-300 bg-amber-50/70 shadow-lg'
+                        : 'border-amber-100 bg-amber-50/30 hover:border-amber-200'
+                        }`}
                       onClick={() => setPriceRange([18, 19.99])}
                     >
                       <div className="text-center">
@@ -219,12 +388,11 @@ export function HomePage({
                     </div>
 
                     {/* Winter Price Range */}
-                    <div 
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                        priceRange[1] >= 20 
-                          ? 'border-sky-300 bg-sky-50/70 shadow-lg' 
-                          : 'border-sky-100 bg-sky-50/30 hover:border-sky-200'
-                      }`}
+                    <div
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${priceRange[1] >= 20
+                        ? 'border-sky-300 bg-sky-50/70 shadow-lg'
+                        : 'border-sky-100 bg-sky-50/30 hover:border-sky-200'
+                        }`}
                       onClick={() => setPriceRange([20, maxPrice])}
                     >
                       <div className="text-center">
@@ -282,7 +450,7 @@ export function HomePage({
             </div>
           </div>
         </section>
-        
+
         <CategorySection onNavigate={onNavigate} />
 
         {/* Product Sections - only show when not searching/filtering */}
@@ -343,24 +511,24 @@ export function HomePage({
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0">
                 <div>
                   <h2 className="text-3xl md:text-4xl mb-2">
-                    {selectedCategory ? `${selectedCategory} Books` : 
-                     searchQuery ? 'Search Results' : 
-                     'Filtered Books'}
+                    {selectedCategory ? `${selectedCategory} Books` :
+                      searchQuery ? 'Search Results' :
+                        'Filtered Books'}
                   </h2>
                   <p className="text-muted-foreground">
                     {filteredBooks.length} books found
                     {searchQuery && ` for "${searchQuery}"`}
-                    {(priceRange[0] > minPrice || priceRange[1] < maxPrice) && 
-                     ` in ${priceRange[0]} - ${priceRange[1]} range`}
+                    {(priceRange[0] > minPrice || priceRange[1] < maxPrice) &&
+                      ` in ${priceRange[0]} - ${priceRange[1]} range`}
                   </p>
-                  
+
                   {/* Active Brand Filters */}
                   {selectedBrands.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {selectedBrands.map(brand => (
-                        <Badge 
-                          key={brand} 
-                          variant="secondary" 
+                        <Badge
+                          key={brand}
+                          variant="secondary"
                           className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
                           onClick={() => setSelectedBrands(selectedBrands.filter(b => b !== brand))}
                         >
@@ -377,7 +545,7 @@ export function HomePage({
                       Clear Filters
                     </Button>
                   )}
-                  
+
                   <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                     {/* Brand Filter */}
                     {availableBrands.length > 0 && (
@@ -399,7 +567,7 @@ export function HomePage({
                         </select>
                       </div>
                     )}
-                    
+
                     {/* Sort Options */}
                     <div className="flex items-center space-x-2">
                       <Filter className="h-4 w-4" />
