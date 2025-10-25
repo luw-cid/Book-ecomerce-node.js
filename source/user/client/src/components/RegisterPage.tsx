@@ -41,7 +41,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
     setIsLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:3000/auth/signup',
+      const response = await axios.post('http://localhost:3000/api/auth/signup',
         formData,
         {
           headers: {
