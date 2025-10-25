@@ -49,7 +49,7 @@ app.use(
 //Routes
 
 // Mount main router under /api
-app.use('/api', indexRouter);
+app.use('/', indexRouter);
 
 // bắt lỗi 404 (nếu không route nào khớp)
 app.use(function (req, res, next) {
