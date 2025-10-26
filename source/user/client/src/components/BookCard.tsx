@@ -1,3 +1,4 @@
+import React, { useEffect, useMemo, useState } from "react";
 import { ShoppingCart, Heart, Star } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -7,116 +8,203 @@ import type { PageType } from "../App";
 
 export interface BookVariant {
   id: string;
-  name: string;
+  name?: string;
   price: number;
   originalPrice?: number;
   stock: number;
-  sku: string;
+  sku?: string;
 }
 
 export interface Book {
   id: string;
   title: string;
-  author: string;
+  author?: string;
   price: number;
   originalPrice?: number;
-  rating: number;
-  reviewCount: number;
-  category: string;
-  brand: string; // Publisher/Brand for filtering
-  coverImage: string;
-  variants: BookVariant[];
+  rating?: number;
+  reviewCount?: number;
+  category?: string;
+  brand?: string;
+  coverImage?: string;
+  variants?: BookVariant[];
   isNew?: boolean;
   isBestseller?: boolean;
   isFlashSale?: boolean;
-  flashSaleEndTime?: string;
+  flashSaleEndTime?: string; // ISO string
 }
 
 interface BookCardProps {
   book: Book;
-  onAddToCart: (book: Book) => void;
-  onToggleWishlist: (bookId: string) => void;
-  isInWishlist: boolean;
-  onNavigate?: (page: PageType, data?: any) => void; // 👈 thêm dòng này
+  onAddToCart?: (payload: { book: Book; variantId?: string }) => void;
+  onToggleWishlist?: (bookId: string) => void;
+  isInWishlist?: boolean;
+  onNavigate?: (page: PageType, data?: any) => void;
 }
 
-export function BookCard({ book, onAddToCart, onToggleWishlist, isInWishlist }: BookCardProps) {
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-3 w-3 ${
-          i < Math.floor(rating) 
-            ? "fill-yellow-400 text-yellow-400" 
-            : "text-gray-300"
-        }`}
-      />
-    ));
+export function BookCard({
+  book,
+  onAddToCart,
+  onToggleWishlist,
+  isInWishlist = false,
+  onNavigate,
+}: BookCardProps) {
+  // Countdown for flash sale
+  const [timeLeftMs, setTimeLeftMs] = useState<number | null>(() => {
+    if (!book.isFlashSale || !book.flashSaleEndTime) return null;
+    const diff = Date.parse(book.flashSaleEndTime) - Date.now();
+    return diff > 0 ? diff : 0;
+  });
+
+  useEffect(() => {
+    if (!book.isFlashSale || !book.flashSaleEndTime) return;
+    const tick = () => {
+      const diff = Date.parse(book.flashSaleEndTime) - Date.now();
+      const left = diff > 0 ? diff : 0;
+      setTimeLeftMs(left);
+      // <-- DEBUG LOG: xem giá trị mỗi giây
+      // console.log("BookCard debug:", {
+      //   id: book.id,
+      //   isFlashSale: book.isFlashSale,
+      //   flashSaleEndTime: book.flashSaleEndTime,
+      //   parsed: Date.parse(book.flashSaleEndTime),
+      //   timeLeftMs: left,
+      // });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [book.isFlashSale, book.flashSaleEndTime]);
+
+  const formattedCountdown = useMemo(() => {
+    if (!timeLeftMs || timeLeftMs <= 0) return null;
+    const total = Math.floor(timeLeftMs / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }, [timeLeftMs]);
+
+  const discountPercent = useMemo(() => {
+    if (!book.originalPrice || book.originalPrice <= book.price) return null;
+    return Math.round(((book.originalPrice - book.price) / book.originalPrice) * 100);
+  }, [book.originalPrice, book.price]);
+
+  const rating = book.rating ?? 0;
+  const reviewCount = book.reviewCount ?? 0;
+
+  const renderStars = (r: number) => {
+    const full = Math.floor(r);
+    return (
+      <div className="flex items-center" aria-hidden>
+        {Array.from({ length: 5 }, (_, i) => (
+          <Star
+            key={i}
+            className={`h-3 w-3 ${i < full ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+          />
+        ))}
+        <span className="sr-only">{r.toFixed(1)} out of 5</span>
+      </div>
+    );
+  };
+
+  // Navigation
+  const handleCardClick = () => onNavigate?.("book-detail", { bookId: book.id });
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
+
+  // Add to cart picks first available variant (if any)
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const variantId = book.variants && book.variants.length > 0 ? book.variants[0].id : undefined;
+    onAddToCart?.({ book, variantId });
+  };
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleWishlist?.(book.id);
   };
 
   return (
-    <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg">
-      <div className="relative aspect-[3/4] overflow-hidden">
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      className="group overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer"
+      aria-label={`Open details for ${book.title}`}
+    >
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-50">
         <ImageWithFallback
-          src={book.coverImage}
+          src={book.coverImage ?? ""}
           alt={`${book.title} cover`}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        
+
         {/* Badges */}
-        <div className="absolute top-2 left-2 space-y-1">
+        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
           {book.isFlashSale && (
-            <Badge className="bg-rose-300 text-rose-800 animate-pulse">FLASH SALE</Badge>
+            <Badge className="bg-rose-300 text-rose-800 text-xs px-2 py-1 rounded">FLASH SALE</Badge>
           )}
-          {book.isNew && (
-            <Badge className="bg-blue-300 text-blue-800">NEW</Badge>
-          )}
+          {book.isNew && <Badge className="bg-blue-300 text-blue-800 text-xs px-2 py-1 rounded">NEW</Badge>}
           {book.isBestseller && (
-            <Badge className="bg-indigo-300 text-indigo-800">BESTSELLER</Badge>
+            <Badge className="bg-indigo-300 text-indigo-800 text-xs px-2 py-1 rounded">BESTSELLER</Badge>
+          )}
+          {discountPercent && (
+            <Badge className="bg-emerald-300 text-emerald-800 text-xs px-2 py-1 rounded">
+              {discountPercent}% OFF
+            </Badge>
           )}
         </div>
 
-        {/* Wishlist button */}
+        {/* Wishlist */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-          onClick={() => onToggleWishlist(book.id)}
+          className="absolute top-2 right-2 bg-white/80 hover:bg-white z-20"
+          onClick={handleWishlist}
+          aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
-          <Heart 
-            className={`h-4 w-4 ${
-              isInWishlist ? "fill-red-500 text-red-500" : "text-gray-600"
-            }`}
-          />
+          <Heart className={`h-4 w-4 ${isInWishlist ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
         </Button>
 
-        {/* Quick add to cart overlay */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center">
-          <Button 
-            onClick={() => onAddToCart(book)}
+        {/* Add to cart overlay */}
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
+          <Button
+            onClick={handleAddToCart}
             className="bg-white text-black hover:bg-gray-100"
+            aria-label={`Add ${book.title} to cart`}
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
             Add to Cart
           </Button>
         </div>
+
+        {/* Countdown */}
+        {formattedCountdown && (
+          <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-20">
+            Ends in {formattedCountdown}
+          </div>
+        )}
       </div>
 
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="space-y-2">
           <div>
-            <h3 className="line-clamp-2 min-h-[2.5rem]">{book.title}</h3>
-            <p className="text-muted-foreground">{book.author}</p>
+            <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-medium">{book.title}</h3>
+            {book.author && <p className="text-muted-foreground text-xs">{book.author}</p>}
           </div>
 
-          <div className="flex items-center space-x-1">
-            {renderStars(book.rating)}
-            <span className="text-sm text-muted-foreground ml-1">
-              ({book.reviewCount})
-            </span>
+          <div className="flex items-center space-x-2">
+            {renderStars(rating)}
+            <span className="text-sm text-muted-foreground ml-1">({reviewCount})</span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-2">
             <div className="flex items-center space-x-2">
               <span className="font-semibold">${book.price.toFixed(2)}</span>
               {book.originalPrice && (
@@ -125,9 +213,7 @@ export function BookCard({ book, onAddToCart, onToggleWishlist, isInWishlist }: 
                 </span>
               )}
             </div>
-            <Badge variant="secondary" className="text-xs">
-              {book.category}
-            </Badge>
+            <Badge className="text-xs px-2 py-1">{book.category ?? "Uncategorized"}</Badge>
           </div>
         </div>
       </CardContent>

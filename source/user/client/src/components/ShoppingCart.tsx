@@ -8,6 +8,7 @@ import { Book } from "./BookCard";
 export interface CartItem {
   book: Book;
   quantity: number;
+  variantId?: string;
 }
 
 interface ShoppingCartProps {
@@ -20,11 +21,11 @@ interface ShoppingCartProps {
   onNavigateToCart?: () => void;
 }
 
-export function ShoppingCart({ 
-  isOpen, 
-  onOpenChange, 
-  cartItems, 
-  onUpdateQuantity, 
+export function ShoppingCart({
+  isOpen,
+  onOpenChange,
+  cartItems,
+  onUpdateQuantity,
   onRemoveItem,
   trigger,
   onNavigateToCart
@@ -67,12 +68,12 @@ export function ShoppingCart({
                           className="w-full h-full object-cover rounded"
                         />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <h4 className="line-clamp-2 text-sm">{item.book.title}</h4>
                         <p className="text-sm text-muted-foreground">{item.book.author}</p>
                         <p className="text-sm font-semibold">${item.book.price.toFixed(2)}</p>
-                        
+
                         <div className="flex items-center space-x-2 mt-2">
                           <Button
                             variant="outline"
@@ -93,7 +94,7 @@ export function ShoppingCart({
                           </Button>
                         </div>
                       </div>
-                      
+
                       <Button
                         variant="ghost"
                         size="icon"
@@ -125,7 +126,7 @@ export function ShoppingCart({
                 </div>
 
                 <div className="space-y-2">
-                  <Button 
+                  <Button
                     className="w-full"
                     onClick={() => {
                       onOpenChange(false);

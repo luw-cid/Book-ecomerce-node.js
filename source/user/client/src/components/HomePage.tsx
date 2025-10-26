@@ -1,5 +1,5 @@
-import axios from "axios";
 import React, { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 import { HeroSection } from "./HeroSection";
 import { CategorySection } from "./CategorySection";
 import { ProductSection } from "./ProductSection";
@@ -98,7 +98,9 @@ export function HomePage({
       isNew: product.isNew,
       isBestseller: product.isBestseller,
       isFlashSale: product.isFlashSale,
-      flashSaleEndTime: product.isFlashSale ? '2025-01-20T23:59:59' : undefined
+      flashSaleEndTime: product.flashSaleEndTime
+        ? new Date(product.flashSaleEndTime).toISOString()
+        : undefined
     };
   };
 
@@ -272,7 +274,7 @@ export function HomePage({
   };
 
   const handleBookClick = (bookId: string) => {
-    onNavigate("product", { bookId });
+    onNavigate("book-detail", { bookId });
   };
 
   // ============= COMPUTED VALUES =============
@@ -433,7 +435,7 @@ export function HomePage({
                     <div className="px-3">
                       <Slider
                         value={priceRange}
-                        onValueChange={(value) => setPriceRange(value as [number, number])}
+                        onValueChange={setPriceRange}
                         max={maxPrice}
                         min={minPrice}
                         step={0.99}
@@ -592,14 +594,17 @@ export function HomePage({
               {filteredBooks.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredBooks.map((book) => (
-                    <div key={book.id} onClick={() => handleBookClick(book.id)} className="cursor-pointer">
-                      <BookCard
-                        book={book}
-                        onAddToCart={onAddToCart}
-                        onToggleWishlist={onToggleWishlist}
-                        isInWishlist={wishlist.has(book.id)}
-                      />
-                    </div>
+                    <BookCard
+                      key={book.id}
+                      book={book}
+                      // onAddToCart={onAddToCart}
+                      // onToggleWishlist={onToggleWishlist}
+                      // onNavigate={onNavigate}
+                      onAddToCart={(p) => console.log("ADD", p)}
+                      onToggleWishlist={(id) => console.log("WISHLIST", id)}
+                      onNavigate={(page, data) => console.log("NAV", page, data)}
+                      isInWishlist={wishlist.has(book.id)}
+                    />
                   ))}
                 </div>
               ) : (
