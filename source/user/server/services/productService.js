@@ -1,4 +1,5 @@
 const Product = require('../models/productModel');
+const Category = require('../models/categoryModel');
 
 /**
  * Lấy danh sách sản phẩm với các tùy chọn lọc, sắp xếp và phân trang
@@ -72,8 +73,8 @@ async function getProducts({
                 .sort(sortOptions)
                 .skip(skip)
                 .limit(limit)
-                .populate("category")
-                .populate("discount"),
+                .populate("category"),
+                // .populate("discount"),
             Product.countDocuments(query)
         ]);
 
@@ -100,8 +101,8 @@ async function getProducts({
 
 async function getProductById (productId) {
     return await Product.findById(productId)
-                        .populate("category")
-                        .populate("discount");
+                        .populate("category");
+                        // .populate("discount");
 }
 
 /**
@@ -121,8 +122,8 @@ async function searchProducts(keyword, page = 1, limit = 10) {
   const products = await Product.find(filter)
     .skip(skip)
     .limit(limit)
-    .populate("category")
-    .populate("discount");
+    .populate("category");
+    // .populate("discount");
 
   const total = await Product.countDocuments(filter);
 
@@ -140,29 +141,38 @@ async function searchProducts(keyword, page = 1, limit = 10) {
 async function getProductsByTag(tag, limit = 10) {
   return await Product.find({ tags: tag })
     .limit(limit)
-    .populate("category")
-    .populate("discount");
+    .populate("category");
+    // .populate("discount");
 }
 
 /**
  * Lấy sản phẩm mới (isNew = true)
  */
 async  function getNewProducts (limit = 10) {
-    return await Product.find({ isNew: true}).limit(limit);
+    return await Product.find({ isNew: true})
+      .limit(limit)
+      .populate("category");
+      // .populate("discount");
 }
 
 /**
  * Lấy sản phẩm bestseller (isBestseller = true)
  */
 async  function getBestSellerProducts (limit = 10) {
-    return await Product.find({ isBestseller: true}).limit(limit);
+    return await Product.find({ isBestseller: true})
+      .limit(limit)
+      .populate("category");
+      // .populate("discount");
 }
 
 /**
  * Lấy sản phẩm flashSale (isFlashSale = true)
  */
 async  function getFlashSaleProducts (limit = 10) {
-    return await Product.find({ isFlashSale: true}).limit(limit);
+    return await Product.find({ isFlashSale: true})
+      .limit(limit) 
+      .populate("category");
+      // .populate("discount");
 }
 
 module.exports = {
