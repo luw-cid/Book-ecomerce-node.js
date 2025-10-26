@@ -4,30 +4,21 @@ const authController = require("../controllers/authController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const passport = require('passport');
 
-// Sửa app.get thành router.get
-router.get("/", (req, res) => {
-    res.send("<a href='/google'>Login with Google</a>");
-});
-
 // Register & login thường
-// router.get("/signup", (req, res) => res.json({message: "Register page (API)"}));
 router.post("/signup", authController.register);
-
-// router.get("/login", (req, res) => res.json({ message: "Login page (API only)" }));
 router.post("/login", authController.login);
 
 // Xem profile (phải login mới xem được)
 router.get("/profile", authMiddleware, authController.profile);
-// Google Login
+
+// Google OAuth
 router.get("/google", 
-    passport.authenticate("google", {scope: ["profile", "email"]})
+    passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 router.get("/google/callback",
-    passport.authenticate("google", {failureRedirect: "/"}),
-    (req, res) => {
-        res.redirect("/profile");
-    }
+    passport.authenticate("google", { failureRedirect: "http://localhost:5173/login" }),
+    authController.googleCallback
 );
 
 module.exports = router;

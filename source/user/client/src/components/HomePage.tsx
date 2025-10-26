@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
 import axios from "axios";
+import React, { useState, useMemo, useEffect } from "react";
 import { HeroSection } from "./HeroSection";
 import { CategorySection } from "./CategorySection";
 import { ProductSection } from "./ProductSection";
@@ -111,15 +111,15 @@ export function HomePage({
 
         // Gọi 3 API song song (giống LoginPage)
         const [newRes, bestsellerRes, flashSaleRes] = await Promise.all([
-          axios.get('http://localhost:3000/api/products/new', {
+          axios.get('http://localhost:3000/products/new', {
             params: { limit: 8 },
             headers: { "Content-Type": "application/json" }
           }),
-          axios.get('http://localhost:3000/api/products/bestseller', {
+          axios.get('http://localhost:3000/products/bestseller', {
             params: { limit: 8 },
             headers: { "Content-Type": "application/json" }
           }),
-          axios.get('http://localhost:3000/api/products/flash-sale', {
+          axios.get('http://localhost:3000/products/flash-sale', {
             params: { limit: 8 },
             headers: { "Content-Type": "application/json" }
           })
@@ -178,7 +178,7 @@ export function HomePage({
     const loadFilteredBooks = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('http://localhost:3000/api/products', {
+        const response = await axios.get('http://localhost:3000/products', {
           params: {
             search: searchQuery || undefined,
             category: selectedCategory || undefined,
@@ -272,7 +272,7 @@ export function HomePage({
   };
 
   const handleBookClick = (bookId: string) => {
-    onNavigate("book-detail", { bookId });
+    onNavigate("product", { bookId });
   };
 
   // ============= COMPUTED VALUES =============
@@ -433,7 +433,7 @@ export function HomePage({
                     <div className="px-3">
                       <Slider
                         value={priceRange}
-                        onValueChange={setPriceRange}
+                        onValueChange={(value) => setPriceRange(value as [number, number])}
                         max={maxPrice}
                         min={minPrice}
                         step={0.99}

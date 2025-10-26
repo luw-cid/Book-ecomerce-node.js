@@ -21,10 +21,7 @@ const login = asyncHandle(async (req, res) => {
         throw new AppError("Account or password incorrect", 401);
     }
     const { user, token } = result;
-    // Nếu dùng session:
-    // req.session.user = user;
-    // res.json({ message: "Đăng nhập thành công!", user });
-    // Nếu dùng JWT, trả về token ở đây
+    
     res.json({
         message: "Login successfully!",
         token,
@@ -53,7 +50,15 @@ const logout = asyncHandle(async (req, res) => {
 
 // Callback Google OAuth
 const googleCallback = asyncHandle(async (req, res) => {
-    res.redirect('/profile');
+    // Gọi service xử lý logic
+    const { token, user } = await authService.handleGoogleCallback(req.user);
+    
+    // Encode data để truyền qua URL
+    const encodedUser = encodeURIComponent(JSON.stringify(user));
+    const encodedToken = encodeURIComponent(token);
+    
+    // Redirect về frontend
+    res.redirect(`http://localhost:5173/auth/callback?token=${encodedToken}&user=${encodedUser}`);
 });
 
 module.exports = {

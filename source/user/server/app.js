@@ -32,24 +32,30 @@ require('./config/passport');
 // connect to database
 connectDB();
 
-
-
 // cấu hình session
 app.use(
     session({
         secret: "secretkey",
         resave: false,
-        saveUninitialized: true,
+        saveUninitialized: false, // Không lưu session chưa được khởi tạo
+        rolling: true, // Reset thời gian hết hạn mỗi khi có request
+        cookie: {
+            maxAge: 30 * 60 * 1000, // 30 phút (tính bằng milliseconds)
+            httpOnly: true, // Bảo vệ khỏi XSS attacks
+            secure: false, // Đặt true nếu dùng HTTPS
+            sameSite: 'lax' // Bảo vệ khỏi CSRF attacks
+        }
     })
 );
 
-// app.use(passport.initialize());
-// app.use(passport.session());
+// Khởi tạo Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 //Routes
 
 // Mount main router under /api
-app.use('/api', indexRouter);
+app.use('/', indexRouter);
 
 // bắt lỗi 404 (nếu không route nào khớp)
 app.use(function (req, res, next) {

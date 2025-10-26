@@ -24,10 +24,13 @@ passport.use(
                 let user = await User.findOne({googleId: profile.id});
                 // Kiểm tra user đã tồn tại chưa
                 if(!user) {
+                    // Tạo user mới với thông tin từ Google
                     user = await User.create({
                         googleId: profile.id,
                         displayName: profile.displayName,
+                        fullName: profile.displayName,
                         email: profile.emails[0].value,
+                        avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : undefined,
                     });
                 }
                 return done(null, user) // lưu thông tin user vào session

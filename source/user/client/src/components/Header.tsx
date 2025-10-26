@@ -1,4 +1,4 @@
-import { Search, ShoppingCart, User, BookOpen, Heart, LogOut, Settings } from "lucide-react";
+import { Search, ShoppingCart, User, BookOpen, Heart, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -7,11 +7,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import  type { PageType } from "../App";
 
 interface User {
-  id: string;
-  name: string;
+  _id: string;
+  fullName: string;
   email: string;
   avatar?: string;
-  joinDate: string;
+  createdAt: string;
 }
 
 interface HeaderProps {
@@ -30,10 +30,13 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo - Left Side */}
-        <div className="flex items-center space-x-2 flex-shrink-0">
+        <button 
+          onClick={() => onNavigate?.("home")}
+          className="flex items-center space-x-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+        >
           <BookOpen className="h-6 w-6" />
           <span className="hidden sm:inline-block font-medium">BookHaven</span>
-        </div>
+        </button>
 
         {/* Centered Navigation & Search */}
         <div className="flex-1 flex items-center justify-center space-x-8 max-w-4xl mx-6">
@@ -97,9 +100,9 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarImage src={user.avatar} alt={user.fullName || 'User'} />
                     <AvatarFallback className="bg-gradient-to-br from-spring to-summer text-white">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user.fullName?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -107,9 +110,9 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
               <DropdownMenuContent className="w-48" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-sm font-medium leading-none">{user.fullName || 'User'}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
+                      {user.email || ''}
                     </p>
                   </div>
                 </DropdownMenuLabel>

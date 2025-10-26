@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "./components/Header";
 import { HomePage } from "./components/HomePage";
 import { LoginPage } from "./components/LoginPage";
@@ -33,6 +33,28 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   // const [user, setUser] = useState<User | null>(null);
+
+  // Xử lý callback từ Google OAuth
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const userStr = urlParams.get('user');
+    
+    if (token && userStr) {
+      try {
+        const userData = JSON.parse(decodeURIComponent(userStr));
+        login(userData, token);
+        
+        // Xóa query params khỏi URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Chuyển về trang home
+        setCurrentPage("home");
+      } catch (error) {
+        console.error('Error processing Google login callback:', error);
+      }
+    }
+  }, [login]);
 
   const handleNavigate = (page: PageType, data?: any) => {
     setCurrentPage(page);

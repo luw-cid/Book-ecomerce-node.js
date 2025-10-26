@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ArrowLeft, User, Mail, Calendar, Heart, ShoppingBag, Settings, Camera, Edit2, Package, Star, CreditCard } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { ArrowLeft, User, Mail, Calendar, Heart, ShoppingBag, Settings, Camera, Package } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -8,17 +9,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
-import { BookCard, Book } from "./BookCard";
-import { CartItem } from "./ShoppingCart";
+import { BookCard, type Book } from "./BookCard";
+import type { CartItem } from "./ShoppingCart";
 import { sampleBooks } from "../data/books";
 import type { PageType } from "../App";
+import { useAuth } from "../context/authContext";
 
 interface User {
-  id: string;
-  name: string;
+  _id: string;
+  fullName: string;
   email: string;
   avatar?: string;
-  joinDate: string;
+  createdAt: string;
+  phoneNumber?: string;
+  address?: string;
+  preferences?: {
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    marketingEmails: boolean;
+  };
 }
 
 interface ProfilePageProps {
@@ -31,6 +40,8 @@ interface ProfilePageProps {
   onAddToCart: (book: Book) => void;
 }
 
+const API_URL = 'http://localhost:3000';
+
 export function ProfilePage({ 
   user, 
   onNavigate, 
@@ -40,8 +51,220 @@ export function ProfilePage({
   onToggleWishlist, 
   onAddToCart 
 }: ProfilePageProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState(user?.name || "");
+  const { updateUser } = useAuth();
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', content: '' });
+
+  // State cho phép cập nhật thông tin người dùng
+  const [profileData, setProfileData] = useState({
+    fullName: user?.fullName || '',
+    phoneNumber: user?.phoneNumber || '',
+    address: user?.address || '',
+  });
+
+  // State cho thay đổi mật khẩu
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  });
+
+  // State cho preferences
+  const [preferences, setPreferences] = useState({
+    emailNotifications: user?.preferences?.emailNotifications || false,
+    smsNotifications: user?.preferences?.smsNotifications || false,
+    marketingEmails: user?.preferences?.marketingEmails || false,
+  });
+
+  // State cho chỉnh sửa avatar
+  const [avatarPreview, setAvatarPreview] = useState<string>(user?.avatar || '');
+
+  // Cập nhật states khi user prop thay đổi
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        fullName: user.fullName || '',
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || '',
+      });
+      setPreferences({
+        emailNotifications: user.preferences?.emailNotifications || false,
+        smsNotifications: user.preferences?.smsNotifications || false,
+        marketingEmails: user.preferences?.marketingEmails || false,
+      });
+      setAvatarPreview(user.avatar || '');
+    }
+  }, [user]);
+
+  // Tự động ản message sau 5 giây
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage({ type: '', content: '' }), 5000);
+      return () => clearTimeout(timer); 
+    }
+  }, [message]);
+
+  // JWT token được lưu trong localStorage sau khi login
+  const getToken = () => localStorage.getItem('token');
+
+  // Hiển thị message và scroll lên đầu trang (smooth animation)
+  const showMessage = (type: 'success' | 'error', content: string) => {
+    setMessage({ type, content });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 1. Xử lý cập nhật thông tin cá nhân
+  const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();     // Ngăn form reload page
+    setLoading(true);
+    
+    try {
+      const response = await axios.put(`${API_URL}/user/profile`, profileData, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,    //JWT token
+          "Content-Type": "application/json"
+        }
+      });
+      
+      if (response.data.user) {
+        updateUser?.(response.data.user);  // Cập nhật user trong context
+        showMessage('success', response.data.message || 'Profile updated successfully.');
+      }
+    } catch (error: any) {
+      showMessage('error', error.response?.data?.message || 'Failed to update profile.');
+    } finally {
+      setLoading(false);    // Tắt loading trong mọi trường hợp
+    }
+  }
+
+  // 2. Xử lý thay đổi mật khẩu
+  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      showMessage('error', 'New password and confirmation do not match.');
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      showMessage('error', 'New password must be at least 6 characters long.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await axios.put(`${API_URL}/user/change-password`,
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            "Content-Type": "application/json"
+          }
+        });
+
+      showMessage('success', response.data.message || 'Password changed successfully.');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: ''
+      });
+    } catch (error: any) {
+      showMessage('error', error.response?.data?.message || 'Failed to change password.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // 3. Xử lý cập nhật avatar
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      showMessage('error', 'Only JPG, PNG, and GIF files are allowed.');
+      return;
+    }
+
+    // Cho phép file size <= 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage('error', 'File size must be less than 5MB.');
+      return;
+    }
+
+    // Nếu tất cả điều kiện đều hợp lệ, tiến hành cập nhật avatar
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_URL}/user/avatar`, formData, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      if (response.data.avatar) {
+        // Fetch updated user profile
+        const profileResponse = await axios.get(`${API_URL}/user/profile`, {
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+          }
+        });
+        
+        if (profileResponse.data.user) {
+          updateUser?.(profileResponse.data.user);
+          setAvatarPreview(response.data.avatar);
+        }
+        showMessage('success', response.data.message || 'Avatar updated successfully.');
+      }
+    } catch (error: any) {
+      showMessage('error', error.response?.data?.message || 'Failed to update avatar.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // 4. Xử lý cập nhật preferences
+  const handleUpdatePreferences = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await axios.put(`${API_URL}/user/preference`, preferences,
+        {
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            "Content-Type": "application/json"
+          }
+        });
+
+      if (response.data.preferences) {
+        // Fetch updated user profile
+        const profileResponse = await axios.get(`${API_URL}/user/profile`, {
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+          }
+        });
+        
+        if (profileResponse.data.user) {
+          updateUser?.(profileResponse.data.user);
+        }
+        showMessage('success', response.data.message || 'Preferences updated successfully.');
+      }
+    } catch (error: any) {
+      showMessage('error', error.response?.data?.message || 'Failed to update preferences.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ==================== UI GUARD ====================
 
   if (!user) {
     return (
@@ -57,11 +280,6 @@ export function ProfilePage({
       </div>
     );
   }
-
-  const handleSaveProfile = () => {
-    // In a real app, this would update the user data via API
-    setIsEditing(false);
-  };
 
   // Mock order history
   const orderHistory = [
@@ -84,7 +302,9 @@ export function ProfilePage({
   ];
 
   const wishlistBooks = sampleBooks.filter(book => wishlist.has(book.id));
-  const memberSince = new Date(user.joinDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  const memberSince = user.createdAt 
+    ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    : 'Recently';
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -94,6 +314,8 @@ export function ProfilePage({
       default: return 'bg-gray-100 text-gray-700 border-gray-300';
     }
   };
+
+  // ==================== RENDER ====================
 
   return (
     <div className="min-h-screen">
@@ -110,8 +332,18 @@ export function ProfilePage({
           </Button>
         </div>
       </div>
-
       <div className="container mx-auto px-4 py-8">
+        {/* Message Alert */}
+        {message && (
+          <div className={`mb-6 p-4 rounded-lg ${
+            message.type === 'success' 
+              ? 'bg-green-50 text-green-800 border border-green-200' 
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            <p className="font-medium">{message.content}</p>
+          </div>
+        )}
+
         {/* Profile Header */}
         <div className="mb-8">
           <Card className="bg-gradient-to-r from-spring-light/30 via-summer-light/30 via-autumn-light/30 to-winter-light/30 border-0 shadow-lg">
@@ -120,60 +352,46 @@ export function ProfilePage({
                 {/* Avatar */}
                 <div className="relative">
                   <Avatar className="h-24 w-24 border-4 border-white shadow-lg">
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarImage 
+                      src={user.avatar || `https://ui-avatars.com/?name=${encodeURIComponent(user.fullName || 'User')}&size=128`}
+                      alt={user.fullName || 'User'} />
                     <AvatarFallback className="bg-gradient-to-br from-spring to-winter text-white text-2xl">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user.fullName?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-white shadow-lg hover:bg-gray-50"
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
+                  <label htmlFor="avatar-upload" className="absolute -bottom-2 -right-2 cursor-pointer">
+                    <div className="h-10 w-10 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+                      <Camera className="h-5 w-5" />
+                    </div>
+                  </label>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
                 </div>
 
                 {/* User Info */}
-                <div className="flex-1">
-                  <div className="flex items-center space-x-4 mb-4">
-                    {isEditing ? (
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          value={editedName}
-                          onChange={(e) => setEditedName(e.target.value)}
-                          className="text-2xl font-bold bg-white"
-                        />
-                        <Button size="sm" onClick={handleSaveProfile}>Save</Button>
-                        <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-                      </div>
-                    ) : (
-                      <>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-winter to-summer bg-clip-text text-transparent">
-                          {user.name}
-                        </h1>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setIsEditing(true)}
-                          className="bg-white/80"
-                        >
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-6 text-gray-600">
+                <div className="flex-1 md:mb-4">
+                  <h1 className="text-3xl font-bold text-gray-900">{user.fullName}</h1>
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-2 text-gray-600">
                     <div className="flex items-center space-x-2">
                       <Mail className="h-4 w-4" />
-                      <span>{user.email}</span>
+                      <span>{user.email || ''}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4" />
                       <span>Member since {memberSince}</span>
                     </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex space-x-2 md:mb-4">
+                    <Button variant="outline" onClick={onLogout}>
+                      Sign Out
+                    </Button>
                   </div>
 
                   {/* Stats */}
@@ -195,11 +413,11 @@ export function ProfilePage({
 
                 {/* Actions */}
                 <div className="flex flex-col space-y-2">
-                  <Button className="bg-gradient-to-r from-summer to-winter text-white hover:opacity-90">
+                  {/* <Button className="bg-gradient-to-r from-summer to-winter text-white hover:opacity-90">
                     <Settings className="h-4 w-4 mr-2" />
                     Edit Profile
-                  </Button>
-                  <Button variant="outline" onClick={onLogout}>
+                  </Button> */}
+                  <Button className="bg-gradient-to-r from-summer to-winter text-white hover:opacity-90" variant="outline" onClick={onLogout}>
                     Sign Out
                   </Button>
                 </div>
@@ -358,52 +576,147 @@ export function ProfilePage({
                   <CardHeader>
                     <CardTitle>Personal Information</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CardContent>
+                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="fullName">Full Name</Label>
+                          <Input 
+                            id="fullName" 
+                            value={profileData.fullName}
+                            onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email">Email</Label>
+                          <Input 
+                            id="email" 
+                            value={user.email || ''} 
+                            disabled
+                            className="bg-gray-100 cursor-not-allowed"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phoneNumber">Phone Number</Label>
+                          <Input 
+                            id="phoneNumber" 
+                            type="tel"
+                            value={profileData.phoneNumber}
+                            onChange={(e) => setProfileData({ ...profileData, phoneNumber: e.target.value })}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label htmlFor="address">Address</Label>
+                          <Input 
+                            id="address" 
+                            value={profileData.address}
+                            onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <Button type="submit" disabled={loading}>
+                        {loading ? 'Updating...' : 'Update Profile'}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Change Password */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Change Password</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleChangePassword} className="space-y-4">
                       <div>
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input id="name" value={user.name} />
+                        <Label htmlFor="currentPassword">Current Password</Label>
+                        <Input 
+                          id="currentPassword" 
+                          type="password"
+                          value={passwordData.currentPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                          required
+                        />
                       </div>
                       <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" value={user.email} />
+                        <Label htmlFor="newPassword">New Password (min 6 characters)</Label>
+                        <Input 
+                          id="newPassword" 
+                          type="password"
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          required
+                          minLength={6}
+                        />
                       </div>
-                    </div>
-                    <Button>Update Profile</Button>
+                      <div>
+                        <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                        <Input 
+                          id="confirmNewPassword" 
+                          type="password"
+                          value={passwordData.confirmNewPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
+                          required
+                          minLength={6}
+                        />
+                      </div>
+                      <Button type="submit" disabled={loading}>
+                        {loading ? 'Changing...' : 'Change Password'}
+                      </Button>
+                    </form>
                   </CardContent>
                 </Card>
 
                 {/* Preferences */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Preferences</CardTitle>
+                    <CardTitle>Notification Preferences</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span>Email notifications</span>
-                        <input type="checkbox" defaultChecked />
+                  <CardContent>
+                    <form onSubmit={handleUpdatePreferences} className="space-y-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 border rounded">
+                          <div>
+                            <h4 className="font-medium">Email Notifications</h4>
+                            <p className="text-sm text-gray-600">Receive order updates via email</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={preferences.emailNotifications}
+                            onChange={(e) => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
+                            className="w-4 h-4"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded">
+                          <div>
+                            <h4 className="font-medium">SMS Notifications</h4>
+                            <p className="text-sm text-gray-600">Receive order updates via SMS</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={preferences.smsNotifications}
+                            onChange={(e) => setPreferences({ ...preferences, smsNotifications: e.target.checked })}
+                            className="w-4 h-4"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded">
+                          <div>
+                            <h4 className="font-medium">Marketing Emails</h4>
+                            <p className="text-sm text-gray-600">Receive promotions and special offers</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={preferences.marketingEmails}
+                            onChange={(e) => setPreferences({ ...preferences, marketingEmails: e.target.checked })}
+                            className="w-4 h-4"
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>SMS notifications</span>
-                        <input type="checkbox" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Marketing emails</span>
-                        <input type="checkbox" defaultChecked />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Security */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Security</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button variant="outline">Change Password</Button>
-                    <Button variant="outline">Two-Factor Authentication</Button>
+                      <Button type="submit" disabled={loading}>
+                        {loading ? 'Saving...' : 'Save Preferences'}
+                      </Button>
+                    </form>
                   </CardContent>
                 </Card>
 
