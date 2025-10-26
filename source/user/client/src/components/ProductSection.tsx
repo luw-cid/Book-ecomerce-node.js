@@ -16,6 +16,7 @@ interface ProductSectionProps {
   onBookClick: (bookId: string) => void;
   wishlist: Set<string>;
   onViewAll?: () => void;
+  onNavigate?: (page: any, data?: any) => void;
 }
 
 export function ProductSection({
@@ -27,15 +28,22 @@ export function ProductSection({
   onToggleWishlist,
   onBookClick,
   wishlist,
-  onViewAll
+  onViewAll,
+  onNavigate
 }: ProductSectionProps) {
   const [timeLeft, setTimeLeft] = useState("");
 
   // Countdown timer for flash sales
   useEffect(() => {
     if (type === "flash-sale") {
+      // Tìm book đầu tiên có flashSaleEndTime
+      const firstFlashSale = books.find(b => b.isFlashSale && b.flashSaleEndTime);
+      if (!firstFlashSale?.flashSaleEndTime) {
+        setTimeLeft("00:00:00");
+        return;
+      }
       const timer = setInterval(() => {
-        const endTime = new Date("2024-01-20T23:59:59");
+        const endTime = new Date(firstFlashSale.flashSaleEndTime);
         const now = new Date();
         const difference = endTime.getTime() - now.getTime();
 
@@ -51,7 +59,7 @@ export function ProductSection({
 
       return () => clearInterval(timer);
     }
-  }, [type]);
+  }, [type, books]);
 
   const getSectionIcon = () => {
     switch (type) {
@@ -145,8 +153,8 @@ export function ProductSection({
           </div>
 
           {onViewAll && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onViewAll}
               className={`mt-4 lg:mt-0 ${colors.borderColor} ${colors.textColor} hover:bg-white/50`}
             >
@@ -165,6 +173,7 @@ export function ProductSection({
                 onAddToCart={onAddToCart}
                 onToggleWishlist={onToggleWishlist}
                 isInWishlist={wishlist.has(book.id)}
+                onNavigate={onNavigate}
               />
             </div>
           ))}

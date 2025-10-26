@@ -127,10 +127,6 @@ export function HomePage({
           })
         ]);
 
-        console.log('✅ New books response:', newRes.data);
-        console.log('✅ Bestseller response:', bestsellerRes.data);
-        console.log('✅ Flash sale response:', flashSaleRes.data);
-
         // Map backend products sang frontend books
         const newBooksData = newRes.data.map(mapProductToBook);
         const bestsellerData = bestsellerRes.data.map(mapProductToBook);
@@ -188,8 +184,6 @@ export function HomePage({
           },
           headers: { "Content-Type": "application/json" }
         });
-
-        console.log('✅ Filtered books response:', response.data);
 
         const books = response.data.products.map(mapProductToBook);
         setAllBooks(books);
@@ -470,6 +464,7 @@ export function HomePage({
                 onBookClick={handleBookClick}
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
+                onNavigate={onNavigate}
               />
             )}
 
@@ -485,6 +480,7 @@ export function HomePage({
                 onBookClick={handleBookClick}
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
+                onNavigate={onNavigate}
               />
             )}
 
@@ -500,6 +496,7 @@ export function HomePage({
                 onBookClick={handleBookClick}
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
+                onNavigate={onNavigate}
               />
             )}
           </>
@@ -597,12 +594,9 @@ export function HomePage({
                     <BookCard
                       key={book.id}
                       book={book}
-                      // onAddToCart={onAddToCart}
-                      // onToggleWishlist={onToggleWishlist}
-                      // onNavigate={onNavigate}
-                      onAddToCart={(p) => console.log("ADD", p)}
-                      onToggleWishlist={(id) => console.log("WISHLIST", id)}
-                      onNavigate={(page, data) => console.log("NAV", page, data)}
+                      onAddToCart={onAddToCart}
+                      onToggleWishlist={onToggleWishlist}
+                      onNavigate={onNavigate}
                       isInWishlist={wishlist.has(book.id)}
                     />
                   ))}
