@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Star, Heart, Share2, ShoppingCart, Truck, Shield, RotateCcw, ThumbsUp, CheckCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Card, CardContent } from "./ui/card";
 import { BookCard, type Book } from "./BookCard";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { sampleBooks } from "../data/books";
+import axios from "axios";
 import { getReviewsForBook, getRatingDistribution } from "../data/reviews";
 import type { PageType } from "../App";
 
@@ -21,38 +21,135 @@ interface ProductDetailPageProps {
   isInWishlist: boolean;
 }
 
-export function ProductDetailPage({ 
-  bookId, 
-  onNavigate, 
-  onAddToCart, 
-  onToggleWishlist, 
-  isInWishlist 
+export function ProductDetailPage({
+  bookId,
+  onNavigate,
+  onAddToCart,
+  onToggleWishlist,
+  isInWishlist
 }: ProductDetailPageProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState("description");
 
-  const book = sampleBooks.find(b => b.id === bookId);
-  if (!book) {
-    return <div>Book not found</div>;
-  }
+  const [book, setBook] = useState<Book | null>(null);
+  const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const relatedBooks = sampleBooks
-    .filter(b => b.category === book.category && b.id !== book.id)
-    .slice(0, 4);
+  // Map backend product → frontend Book (copied/adapted from HomePage)
+  const mapProductToBook = (product: any): Book => {
+    const originalPrice = product.discount
+      ? product.price / (1 - product.discount.percentage / 100)
+      : undefined;
+
+    return {
+      id: product._id,
+      title: product.name,
+      author: product.tags?.[0] || 'Unknown Author',
+      price: product.price,
+      originalPrice,
+      rating: product.rating ?? 4.5,
+      reviewCount: product.reviewCount ?? 0,
+      category: product.category?.name || 'Uncategorized',
+      brand: product.tags?.[1] || 'Unknown Brand',
+      coverImage: product.images?.[0] || '/placeholder-book.jpg',
+      variants: [
+        {
+          id: product._id,
+          name: 'Standard Edition',
+          price: product.price,
+          originalPrice,
+          stock: product.stock,
+          sku: product._id
+        }
+      ],
+      isNew: product.isNew,
+      isBestseller: product.isBestseller,
+      isFlashSale: product.isFlashSale,
+      flashSaleEndTime: product.flashSaleEndTime
+        ? new Date(product.flashSaleEndTime).toISOString()
+        : undefined
+    };
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await axios.get(`http://localhost:3000/products/${bookId}`, {
+          headers: { "Content-Type": "application/json" }
+        });
+        const mapped = mapProductToBook(res.data);
+        if (!cancelled) setBook(mapped);
+
+        // fetch related products by category
+        if (mapped.category) {
+          try {
+            const relRes = await axios.get('http://localhost:3000/products', {
+              params: { category: mapped.category, limit: 8 },
+              headers: { "Content-Type": "application/json" }
+            });
+            const related = relRes.data.products
+              .map(mapProductToBook)
+              .filter((b: Book) => b.id !== mapped.id)
+              .slice(0, 4);
+            if (!cancelled) setRelatedBooks(related);
+          } catch (relErr) {
+            // non-fatal: don't block main product render
+            console.warn('Failed to load related products', relErr);
+          }
+        }
+      } catch (err: any) {
+        console.error('❌ Error loading product detail:', err);
+        if (err.response?.data?.message) setError(err.response.data.message);
+        else setError('Failed to load product.');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [bookId]);
 
   const reviews = getReviewsForBook(bookId);
   const ratingDistribution = getRatingDistribution(bookId);
   const totalReviews = reviews.length;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
+          <p className="mt-4 text-gray-600 font-medium">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p>{error}</p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!book) {
+    return <div className="min-h-screen flex items-center justify-center">Book not found</div>;
+  }
 
   const renderStars = (rating: number, size: string = "h-4 w-4") => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`${size} ${
-          i < Math.floor(rating) 
-            ? "fill-yellow-400 text-yellow-400" 
-            : "text-gray-300"
-        }`}
+        className={`${size} ${i < Math.floor(rating)
+          ? "fill-yellow-400 text-yellow-400"
+          : "text-gray-300"
+          }`}
       />
     ));
   };
@@ -109,7 +206,7 @@ export function ProductDetailPage({
                 className="w-full h-full object-cover"
               />
             </div>
-            
+
             {/* Share Options */}
             <div className="flex justify-center space-x-4">
               <Button variant="outline" size="sm">
@@ -238,22 +335,22 @@ export function ProductDetailPage({
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="description" className="mt-4 space-y-4">
                 <div className="prose max-w-none">
                   <p className="text-gray-700 leading-relaxed">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor 
-                    incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud 
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
+                    incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
                     exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
                   </p>
                   <p className="text-gray-700 leading-relaxed">
-                    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu 
-                    fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in 
+                    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
+                    fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
                     culpa qui officia deserunt mollit anim id est laborum.
                   </p>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="details" className="mt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div className="space-y-2">
@@ -270,7 +367,7 @@ export function ProductDetailPage({
                   </div>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="reviews" className="mt-4">
                 <div className="space-y-6">
                   {/* Reviews Header */}
@@ -302,8 +399,8 @@ export function ProductDetailPage({
                           {[5, 4, 3, 2, 1].map((star) => (
                             <div key={star} className="flex items-center space-x-3">
                               <span className="w-8 text-sm font-medium">{star} ★</span>
-                              <Progress 
-                                value={totalReviews > 0 ? (ratingDistribution[star] / totalReviews) * 100 : 0} 
+                              <Progress
+                                value={totalReviews > 0 ? (ratingDistribution[star] / totalReviews) * 100 : 0}
                                 className="flex-1 h-2"
                               />
                               <span className="w-8 text-sm text-gray-600">{ratingDistribution[star]}</span>
@@ -317,8 +414,8 @@ export function ProductDetailPage({
                   {/* Individual Reviews */}
                   <div className="space-y-4">
                     {reviews.map((review) => (
-                      <Card 
-                        key={review.id} 
+                      <Card
+                        key={review.id}
                         className={`border-l-4 ${getSeasonalColor(review.season)} bg-white/70 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow`}
                       >
                         <CardContent className="p-6">
@@ -349,10 +446,10 @@ export function ProductDetailPage({
                                 <div className="flex items-center space-x-2 mt-1">
                                   {renderStars(review.rating)}
                                   <span className="text-sm text-gray-500">
-                                    {new Date(review.date).toLocaleDateString('en-US', { 
-                                      year: 'numeric', 
-                                      month: 'long', 
-                                      day: 'numeric' 
+                                    {new Date(review.date).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric'
                                     })}
                                   </span>
                                 </div>
