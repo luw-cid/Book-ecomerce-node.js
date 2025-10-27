@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Progress } from "./ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Card, CardContent } from "./ui/card";
-import { BookCard, Book } from "./BookCard";
+import { BookCard, type Book } from "./BookCard";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { sampleBooks } from "../data/books";
 import { getReviewsForBook, getRatingDistribution } from "../data/reviews";

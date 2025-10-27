@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { HeroSection } from "./HeroSection";
 import { CategorySection } from "./CategorySection";
 import { ProductSection } from "./ProductSection";
-import { BookCard, Book } from "./BookCard";
-import { ShoppingCart, CartItem } from "./ShoppingCart";
+import { BookCard, type Book } from "./BookCard";
+import { ShoppingCart, type CartItem } from "./ShoppingCart";
 import { Footer } from "./Footer";
 // import { sampleBooks } from "../data/books";
 import { Button } from "./ui/button";
@@ -217,7 +217,7 @@ export function HomePage({
 
     // 👇 FILTER BY BRANDS
     if (selectedBrands.length > 0) {
-      books = books.filter(book => selectedBrands.includes(book.brand));
+      books = books.filter(book => book.brand && selectedBrands.includes(book.brand));
     }
     // Sort books
     switch (sortBy) {
@@ -228,7 +228,7 @@ export function HomePage({
         books = [...books].sort((a, b) => b.price - a.price);
         break;
       case "rating":
-        books = [...books].sort((a, b) => b.rating - a.rating);
+        books = [...books].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
         break;
       case "name-az":
         books = [...books].sort((a, b) => a.title.localeCompare(b.title));
@@ -268,7 +268,7 @@ export function HomePage({
   };
 
   const handleBookClick = (bookId: string) => {
-    onNavigate("book-detail", { bookId });
+    onNavigate("product-detail", { bookId });
   };
 
   // ============= COMPUTED VALUES =============
@@ -429,7 +429,7 @@ export function HomePage({
                     <div className="px-3">
                       <Slider
                         value={priceRange}
-                        onValueChange={setPriceRange}
+                        onValueChange={(value) => setPriceRange(value as [number, number])}
                         max={maxPrice}
                         min={minPrice}
                         step={0.99}
@@ -594,7 +594,7 @@ export function HomePage({
                     <BookCard
                       key={book.id}
                       book={book}
-                      onAddToCart={onAddToCart}
+                      onAddToCart={(payload) => onAddToCart(payload.book)}
                       onToggleWishlist={onToggleWishlist}
                       onNavigate={onNavigate}
                       isInWishlist={wishlist.has(book.id)}

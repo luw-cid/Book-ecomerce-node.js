@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { BookCard, Book } from "./BookCard";
+import { BookCard, type Book } from "./BookCard";
 import { Footer } from "./Footer";
 import { sampleBooks } from "../data/books";
 import { Button } from "./ui/button";
@@ -67,7 +67,7 @@ export function CategoryPage({
         books = [...books].sort((a, b) => b.price - a.price);
         break;
       case "rating":
-        books = [...books].sort((a, b) => b.rating - a.rating);
+        books = [...books].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
         break;
       case "newest":
         books = [...books].sort((a, b) => {
@@ -289,7 +289,7 @@ export function CategoryPage({
                 <BookCard
                   key={book.id}
                   book={book}
-                  onAddToCart={onAddToCart}
+                  onAddToCart={(payload) => onAddToCart(payload.book)}
                   onToggleWishlist={onToggleWishlist}
                   isInWishlist={wishlist.has(book.id)}
                   onNavigate={onNavigate}

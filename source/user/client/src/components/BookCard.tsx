@@ -58,7 +58,7 @@ export function BookCard({
   useEffect(() => {
     if (!book.isFlashSale || !book.flashSaleEndTime) return;
     const tick = () => {
-      const diff = Date.parse(book.flashSaleEndTime) - Date.now();
+      const diff = Date.parse(book.flashSaleEndTime!) - Date.now();
       const left = diff > 0 ? diff : 0;
       setTimeLeftMs(left);
       // <-- DEBUG LOG: xem giá trị mỗi giây
@@ -108,7 +108,7 @@ export function BookCard({
   };
 
   // Navigation
-  const handleCardClick = () => onNavigate?.("book-detail", { bookId: book.id });
+  const handleCardClick = () => onNavigate?.("product", { bookId: book.id });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {

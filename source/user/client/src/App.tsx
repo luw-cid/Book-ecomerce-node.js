@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "./components/Header";
 import { HomePage } from "./components/HomePage";
 import { LoginPage } from "./components/LoginPage";
@@ -9,20 +9,12 @@ import { CheckoutPage } from "./components/CheckoutPage";
 import { PaymentPage } from "./components/PaymentPage";
 import { ProfilePage } from "./components/ProfilePage";
 import { CategoryPage } from "./components/CategoryPage";
-import { Book } from "./components/BookCard";
-import { CartItem } from "./components/ShoppingCart";
+import { type Book } from "./components/BookCard";
+import { type CartItem } from "./components/ShoppingCart";
 
 import { useAuth } from "./context/authContext";
 
-export type PageType = "home" | "login" | "register" | "product" | "cart" | "checkout" | "payment" | "profile" | "category";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  joinDate: string;
-}
+export type PageType = "home" | "login" | "register" | "product-detail" | "cart" | "checkout" | "payment" | "profile" | "category";
 
 export default function App() {
   const { user, login, logout } = useAuth();
@@ -64,7 +56,6 @@ export default function App() {
   const handleAddToCart = (payload: Book | { book: Book; variantId?: string }) => {
     // Normalize payload: nếu là object có key "book" thì extract book
     const book = "book" in payload ? payload.book : payload;
-    const variantId = "variantId" in payload ? payload.variantId : undefined;
 
     setCartItems(prev => {
       const existingItem = prev.find(item => item.book.id === book.id);
@@ -133,7 +124,7 @@ export default function App() {
         return <LoginPage onNavigate={handleNavigate} />;
       case "register":
         return <RegisterPage onNavigate={handleNavigate} />;
-      case "product":
+      case "product-detail":
         return (
           <ProductDetailPage
             bookId={pageData?.bookId}
@@ -171,7 +162,7 @@ export default function App() {
       case "profile":
         return (
           <ProfilePage
-            user={user}
+            user={user as any}
             onNavigate={handleNavigate}
             onLogout={handleLogout}
             cartItems={cartItems}
@@ -217,7 +208,7 @@ export default function App() {
         onSearchChange={handleSearchChange}
         onNavigate={handleNavigate}
         isAuthenticated={!!user}
-        user={user}
+        user={user as any}
         onLogout={handleLogout}
       />
       {renderCurrentPage()}
