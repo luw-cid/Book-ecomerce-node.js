@@ -24,7 +24,7 @@ const getProducts = asyncHandle(async (req, res) => {
     const filter = {};
     if (category) filter.category = category;
     if (tags) filter.tags = tags.split(',');
-    if (isNew !== undefined) filter.isNew = isNew === 'true';
+    if (isNew !== undefined) filter.newProduct = isNew === 'true'; // Changed: isNew → newProduct
     if (isBestseller !== undefined) filter.isBestseller = isBestseller === 'true';
     if (isFlashSale !== undefined) filter.isFlashSale = isFlashSale === 'true';
 
@@ -83,6 +83,105 @@ const getFlashSaleProducts = asyncHandle(async(req, res) => {
     res.status(201).json(result);
 })
 
+// Tìm kiếm nâng cao
+const advancedSearch = asyncHandle(async(req, res) => {
+    const {
+        keyword,
+        category,
+        author,
+        publisher,
+        minPrice,
+        maxPrice,
+        minRating,
+        tags,
+        newProduct,
+        isBestseller,
+        isFlashSale,
+        inStock,
+        sortBy = 'createdAt',
+        sortOrder = 'desc',
+        page = 1,
+        limit = 10
+    } = req.query;
+
+    const searchParams = {
+        keyword,
+        category,
+        author,
+        publisher,
+        minPrice: minPrice ? Number(minPrice) : null,
+        maxPrice: maxPrice ? Number(maxPrice) : null,
+        minRating: minRating ? Number(minRating) : null,
+        tags: tags ? tags.split(',') : [],
+        newProduct: newProduct === 'true' ? true : newProduct === 'false' ? false : null,
+        isBestseller: isBestseller === 'true' ? true : isBestseller === 'false' ? false : null,
+        isFlashSale: isFlashSale === 'true' ? true : isFlashSale === 'false' ? false : null,
+        inStock: inStock === 'true' ? true : inStock === 'false' ? false : null,
+        sortBy,
+        sortOrder,
+        page: Number(page),
+        limit: Number(limit)
+    };
+
+    const result = await productService.advancedSearch(searchParams);
+    res.status(200).json({
+        success: true,
+        ...result
+    });
+});
+
+// Gợi ý tìm kiếm
+const searchSuggestions = asyncHandle(async(req, res) => {
+    const { keyword, limit = 5 } = req.query;
+    
+    if (!keyword || keyword.trim() === '') {
+        return res.status(200).json({
+            success: true,
+            suggestions: []
+        });
+    }
+
+    const suggestions = await productService.searchSuggestions(keyword, Number(limit));
+    res.status(200).json({
+        success: true,
+        count: suggestions.length,
+        suggestions
+    });
+});
+
+// Lấy sản phẩm liên quan
+const getRelatedProducts = asyncHandle(async(req, res) => {
+    const { id } = req.params;
+    const limit = Number(req.query.limit) || 4;
+
+    const relatedProducts = await productService.getRelatedProducts(id, limit);
+    res.status(200).json({
+        success: true,
+        count: relatedProducts.length,
+        products: relatedProducts
+    });
+});
+
+// Lấy sản phẩm theo khoảng giá
+const getProductsByPriceRange = asyncHandle(async(req, res) => {
+    const { minPrice, maxPrice, limit = 10 } = req.query;
+
+    if (!minPrice || !maxPrice) {
+        throw new AppError('minPrice và maxPrice là bắt buộc', 400);
+    }
+
+    const products = await productService.getProductsByPriceRange(
+        Number(minPrice),
+        Number(maxPrice),
+        Number(limit)
+    );
+
+    res.status(200).json({
+        success: true,
+        count: products.length,
+        products
+    });
+});
 
 module.exports = {
     getProducts,
@@ -91,4 +190,8 @@ module.exports = {
     getNewProducts,
     getBestSellerProducts,
     getFlashSaleProducts,
+    advancedSearch,
+    searchSuggestions,
+    getRelatedProducts,
+    getProductsByPriceRange
 }
