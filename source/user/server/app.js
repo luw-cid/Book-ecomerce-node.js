@@ -54,7 +54,13 @@ app.use(passport.session());
 
 //Routes
 
-// Mount main router under /api
+// Logging middleware
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
+// Mount main router
 app.use('/', indexRouter);
 
 // bắt lỗi 404 (nếu không route nào khớp)

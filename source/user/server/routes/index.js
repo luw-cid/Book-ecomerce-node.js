@@ -6,12 +6,16 @@ const multer = require('multer');
 // import các router con
 const authRoutes = require('./authRoute');
 const productRoutes = require('./productRoute');
+const categoryRoutes = require('./categoryRoute');
+const cartRoutes = require('./cartRoute');
 const userRoute = require('./userRoute');
 
 // ánh xạ các route con
 router.use('/auth', authRoutes);
 router.use('/products', productRoutes);
-router.use('/user', userRoute)
+router.use('/categories', categoryRoutes);
+router.use('/cart', cartRoutes);
+router.use('/user', userRoute);
 
 // Serve static files cho uploads
 router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
