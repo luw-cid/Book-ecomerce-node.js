@@ -70,6 +70,7 @@ export function HomePage({
   }, [minPrice, maxPrice]);
   // ============= HELPER: MAP BACKEND DATA → FRONTEND DATA =============
   const mapProductToBook = (product: any): Book => {
+    console.log('🔍 Product category:', product.category); // 👈 Thêm dòng này
     const originalPrice = product.discount
       ? product.price / (1 - product.discount.percentage / 100)
       : undefined;
@@ -82,7 +83,7 @@ export function HomePage({
       originalPrice,
       rating: 4.5, // Backend chưa có rating field
       reviewCount: 0, // Backend chưa có reviews
-      category: product.category?.name || 'Uncategorized',
+      category: product.category?.name || product.category || 'Uncategorized',
       brand: product.tags?.[1] || 'Unknown Brand',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
       variants: [

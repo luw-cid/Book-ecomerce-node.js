@@ -12,6 +12,8 @@ const productSchema = new mongoose.Schema(
         isNew: { type: Boolean, default: false},
         isBestseller: { type: Boolean, default: false},
         isFlashSale: { type: Boolean, default: false},
+        flashSaleEndTime: { type: Date }, 
+        flashSalePrice: { type: Number },
         tags: [{ type: String}], 
     },
     {timestamps: true}
