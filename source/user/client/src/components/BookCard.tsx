@@ -108,7 +108,7 @@ export function BookCard({
   };
 
   // Navigation
-  const handleCardClick = () => onNavigate?.("product", { bookId: book.id });
+  const handleCardClick = () => onNavigate?.("product-detail", { bookId: book.id });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {

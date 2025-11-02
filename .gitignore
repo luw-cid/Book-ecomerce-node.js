@@ -137,3 +137,8 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Uploaded files
+source/admin/server/uploads/
+source/user/server/uploads/
+uploads/

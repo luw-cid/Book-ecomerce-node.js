@@ -5,12 +5,20 @@ const asyncHandle = require('express-async-handler');
 
 // Đăng ký tài khoản (API REST)
 const register = asyncHandle(async (req, res) => {
-    const { fullName, password, email } = req.body;
-    if (!fullName || !password || !email) {
+    const { fullName, email, address } = req.body;
+    if (!fullName || !address || !email) {
         throw new AppError("Please provide full name, email and password", 400);
     }
-    const user = await authService.registerUser(fullName, password, email);
-    res.status(201).json({ message: "Register successfully", user });
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ 
+            message: 'Please provide a valid email address' 
+        });
+    }
+    const user = await authService.registerUser(fullName, email, address);
+    res.status(201).json({ message: "Register successfully! Please check your email for login credentials.", user });
 });
 
 // Đăng nhập (API REST)
@@ -29,6 +37,8 @@ const login = asyncHandle(async (req, res) => {
             id: user.id,
             name: user.fullName,
             email: user.email,
+            address: user.address,
+            admin: user.admin,
         },
     });
 });

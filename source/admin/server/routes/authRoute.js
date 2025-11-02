@@ -2,32 +2,25 @@ const express = require('express');
 const router = express.Router();
 const authController = require("../controllers/authController");
 const authMiddleware = require("../middlewares/authMiddleware");
-const passport = require('passport');
+const { adminMiddleware } = require("../middlewares/roleMiddleware");
 
-// Sửa app.get thành router.get
+// ==================== ADMIN ROUTES ====================
+// Root endpoint - hiển thị thông tin API
 router.get("/", (req, res) => {
-    res.send("<a href='/google'>Login with Google</a>");
+    res.json({ 
+        message: "Admin Authentication API",
+        endpoints: {
+            login: "POST /auth/login - Admin login endpoint",
+            profile: "GET /auth/profile - Get admin profile (requires auth)"
+        }
+    });
 });
 
-// Register & login thường
-router.get("/register", (req, res) => res.json({message: "Register page (API)"}));
-router.post("/register", authController.register);
+// Admin login endpoint
+router.post("/login", authController.loginAdmin);
 
-router.get("/login", (req, res) => res.json({ message: "Login page (API only)" }));
-router.post("/login", authController.login);
-
-// Xem profile (phải login mới xem được)
-router.get("/profile", authMiddleware, authController.profile);
-// Google Login
-router.get("/google", 
-    passport.authenticate("google", {scope: ["profile", "email"]})
-);
-
-router.get("/google/callback",
-    passport.authenticate("google", {failureRedirect: "/"}),
-    (req, res) => {
-        res.redirect("/profile");
-    }
-);
+// ==================== PROTECTED ROUTES ====================
+// Xem profile admin (phải login và có quyền admin)
+router.get("/profile", authMiddleware, adminMiddleware, authController.profile);
 
 module.exports = router;

@@ -1,0 +1,54 @@
+###############################################
+# ADMIN AUTHENTICATION API TESTS
+# Sử dụng với REST Client (VS Code Extension)
+# hoặc copy sang Postman/Thunder Client
+###############################################
+
+@baseUrl = http://localhost:4000
+@token = <paste_your_token_here>
+
+###############################################
+# 1. ĐĂNG NHẬP ADMIN
+###############################################
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@bookstore.com",
+  "password": "Admin@123"
+}
+
+###############################################
+# 2. XEM ADMIN PROFILE (CẦN TOKEN)
+###############################################
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{token}}
+
+###############################################
+# TEST CASES
+###############################################
+
+### Test: Đăng nhập với email sai
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@email.com",
+  "password": "Admin@123"
+}
+
+### Test: Đăng nhập với password sai
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@bookstore.com",
+  "password": "wrongpassword"
+}
+
+### Test: Truy cập profile không có token
+GET {{baseUrl}}/auth/profile
+
+### Test: Truy cập profile với token không hợp lệ
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer invalid_token_here

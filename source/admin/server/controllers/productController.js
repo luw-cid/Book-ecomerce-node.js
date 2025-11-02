@@ -1,59 +1,149 @@
+// controllers/productController.js
+const asyncHandle = require('express-async-handler');
 const productService = require('../services/productService');
-import asyncHandle from 'express-async-handler';
 const AppError = require('../errors');
 
-// Tạo sản phẩm mới
+// ==================== CRUD OPERATIONS ====================
+
+// CREATE - Tạo sản phẩm mới
 const createProduct = asyncHandle(async (req, res) => {
     const product = await productService.createProduct(req.body);
-    res.status(201).json(product);
-
+    res.status(201).json({
+        success: true,
+        message: 'Tạo sản phẩm thành công!',
+        product
+    });
 });
 
-// Lấy danh sách sản phẩm (có filter và phân trang)
+// READ - Lấy danh sách sản phẩm
 const getProducts = asyncHandle(async (req, res) => {
-    const { page = 1, limit = 10, ...filter } = req.query;
-    const result = await productService.getProducts({
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    
+    // Build filter từ query params
+    const filter = {};
+    if (req.query.category) filter.category = req.query.category;
+    if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
+    if (req.query.newProduct !== undefined) filter.newProduct = req.query.newProduct === 'true';
+    if (req.query.isBestseller !== undefined) filter.isBestseller = req.query.isBestseller === 'true';
+    if (req.query.isFlashSale !== undefined) filter.isFlashSale = req.query.isFlashSale === 'true';
+    
+    try {
+        const result = await productService.getProducts({
         filter,
         page: Number(page),
-        limit : Number(limit)
-    });
-    res.status(201).json(result);
+        limit: Number(limit),
+        sortBy,
+        sortOrder
+        });
+    
+        console.log('Products fetched successfully:', result.products.length); // Debug log
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error in getProducts:', error); // Log lỗi chi tiết
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error fetching products'
+        });
+    }
+    
 });
 
-// Lấy chi tiết sản phẩm theo ID
-const getProductById = asyncHandle(async(req, res) => {
+// READ - Lấy chi tiết sản phẩm theo ID
+const getProductById = asyncHandle(async (req, res) => {
     const product = await productService.getProductById(req.params.id);
-    if(!product) throw new AppError("Không tìm thấy sản phẩm", 404);
-    res.status(201).json(product);
+    if (!product) {
+        throw new AppError('Không tìm thấy sản phẩm!', 404);
+    }
+    res.status(200).json({
+        success: true,
+        product
+    });
 });
 
-// Lấy chi tiết sản phẩm theo ID
-const searchProducts = asyncHandle(async (req, res) => {
-    const { keyword = "", page = 1, limit = 10} = req.query;
-    const result = await productService.searchProducts(keyword, Number(page), Number(limit));
-    res.status(201).json(result);
-})
-
-// Cập nhật sản phẩm
-const updateProduct = asyncHandle(async(req, res) => {
-    const updatedProduct = await productService.updateProduct(req.params.id);
-    if(!updatedProduct) throw new AppError("Sản phẩm không tồn tại!", 404);
-    res.status(201).json(updatedProduct);
+// UPDATE - Cập nhật sản phẩm
+const updateProduct = asyncHandle(async (req, res) => {
+    const updatedProduct = await productService.updateProduct(req.params.id, req.body);
+    if (!updatedProduct) {
+        throw new AppError('Sản phẩm không tồn tại!', 404);
+    }
+    res.status(200).json({
+        success: true,
+        message: 'Cập nhật sản phẩm thành công!',
+        product: updatedProduct
+    });
 });
 
-// Xóa sản phẩm
-const deleteProduct = asyncHandle(async(req, res) => {
+// DELETE - Xóa sản phẩm (soft delete)
+const deleteProduct = asyncHandle(async (req, res) => {
     const deletedProduct = await productService.deleteProduct(req.params.id);
-    if(!deletedProduct) throw new AppError("Sản phẩm không tồn tại!", 404);
-    res.status(201).json(deletedProduct);
-}); 
+    if (!deletedProduct) {
+        throw new AppError('Sản phẩm không tồn tại!', 404);
+    }
+    res.status(200).json({
+        success: true,
+        message: 'Xóa sản phẩm thành công!',
+        product: deletedProduct
+    });
+});
+
+// SEARCH - Tìm kiếm sản phẩm
+const searchProducts = asyncHandle(async (req, res) => {
+    const { keyword = '', page = 1, limit = 10 } = req.query;
+    
+    if (!keyword.trim()) {
+        throw new AppError('Vui lòng nhập từ khóa tìm kiếm!', 400);
+    }
+    
+    const result = await productService.searchProducts(keyword, Number(page), Number(limit));
+    res.status(200).json(result);
+});
+
+// EXPORT - Xuất tất cả sản phẩm ra Excel
+const exportProducts = asyncHandle(async (req, res) => {
+    const buffer = await productService.exportProductsToExcel();
+    
+    const filename = `products_${new Date().toISOString().split('T')[0]}.xlsx`;
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+});
+
+// IMPORT - Nhập nhiều sản phẩm từ JSON
+const importProducts = asyncHandle(async (req, res) => {
+    const { products } = req.body;
+    
+    if (!products || !Array.isArray(products) || products.length === 0) {
+        throw new AppError('Dữ liệu không hợp lệ! Vui lòng gửi mảng products.', 400);
+    }
+    
+    const result = await productService.importProductsFromJSON(products);
+    res.status(201).json(result);
+});
+
+// IMPORT - Nhập nhiều sản phẩm từ file Excel
+const importProductsFromExcel = asyncHandle(async (req, res) => {
+    if (!req.file) {
+        throw new AppError('Vui lòng upload file Excel!', 400);
+    }
+    
+    const result = await productService.importProductsFromExcel(req.file.path);
+    
+    // Xóa file sau khi import xong
+    const fs = require('fs');
+    fs.unlinkSync(req.file.path);
+    
+    res.status(201).json(result);
+});
 
 module.exports = {
     createProduct,
     getProducts,
     getProductById,
-    searchProducts,
     updateProduct,
     deleteProduct,
-    
-}
+    searchProducts,
+    exportProducts,
+    importProducts,
+    importProductsFromExcel
+};

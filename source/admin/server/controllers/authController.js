@@ -1,62 +1,46 @@
 // controllers/authController.js
-const asyncHandle = require ('express-async-handler');
+const asyncHandle = require('express-async-handler');
 const authService = require('../services/authService');
 const AppError = require('../errors');
 
-// Đăng ký tài khoản (API REST)
-const register = asyncHandle(async (req, res) => {
-    const { fullName, password, email } = req.body;
-    const user = await authService.registerUser(fullName, password, email);
-    res.status(201).json({ message: "Đăng ký thành công", user });
-});
-
-// Đăng nhập (API REST)
-const login = asyncHandle(async (req, res) => {
+// Đăng nhập Admin (API REST)
+const loginAdmin = asyncHandle(async (req, res) => {
     const { email, password } = req.body;
-    const result = await authService.loginUser(email, password);
-    if (!result) {
-        throw new AppError("Tài khoản hoặc mật khẩu không đúng!", 401);
+    
+    if (!email || !password) {
+        throw new AppError("Vui lòng điền email và mật khẩu!", 400);
     }
+    
+    const result = await authService.loginAdmin(email, password);
+    
+    if (!result.success) {
+        throw new AppError(result.message, 401);
+    }
+    
     const { user, token } = result;
-    // Nếu dùng session:
-    // req.session.user = user;
-    // res.json({ message: "Đăng nhập thành công!", user });
-    // Nếu dùng JWT, trả về token ở đây
+    
     res.json({
-        message: "Đăng nhập thành công!",
+        success: true,
+        message: "Đăng nhập admin thành công!",
         token,
         user: {
-            id: user.id,
+            id: user._id,
             name: user.fullName,
             email: user.email,
+            admin: true
         },
     });
 });
 
 // Lấy thông tin profile (API REST)
 const profile = asyncHandle(async (req, res) => {
-    res.json({ user: req.user });
-});
-
-// Đăng xuất (API REST)
-const logout = asyncHandle(async (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            throw new AppError("Lỗi khi đăng xuất!", 500);
-        }
-        res.json({ message: "Đăng xuất thành công!" });
+    res.json({ 
+        success: true,
+        user: req.user 
     });
 });
 
-// Callback Google OAuth
-const googleCallback = asyncHandle(async (req, res) => {
-    res.redirect('/profile');
-});
-
 module.exports = {
-    register,
-    login,
+    loginAdmin,
     profile,
-    logout,
-    googleCallback,
 };

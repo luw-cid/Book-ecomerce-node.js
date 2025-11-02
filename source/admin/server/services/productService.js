@@ -1,126 +1,329 @@
+// services/productService.js
 const Product = require('../models/productModel');
+const Category = require('../models/categoryModel'); // Import Category model
+const Discount = require('../models/discountModel'); // Import Discount model
+const ExcelJS = require('exceljs');
+
+// ==================== HELPER FUNCTIONS ====================
 
 /**
- * Tạo sản phẩm
+ * Generate slug từ tên sản phẩm
  */
-async function createProduct (data) {
+const generateSlug = (name) => {
+    return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Loại bỏ dấu
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+};
+
+// ==================== CRUD OPERATIONS ====================
+
+/**
+ * CREATE - Tạo sản phẩm mới
+ */
+const createProduct = async (data) => {
+    // Tự động tạo slug nếu không có
+    if (!data.slug && data.name) {
+        data.slug = generateSlug(data.name);
+    }
+    
+    // Kiểm tra slug đã tồn tại chưa
+    const existingProduct = await Product.findOne({ slug: data.slug });
+    if (existingProduct) {
+        // Thêm timestamp vào slug để tránh trùng
+        data.slug = `${data.slug}-${Date.now()}`;
+    }
+    
     const product = new Product(data);
     return await product.save();
 };
 
 /**
- * Lấy danh sách sản phẩm (có filter và phân trang)
+ * READ - Lấy danh sách sản phẩm (có filter và phân trang)
  */
-async function getProducts ({ filter = {}, page = 1, limit = 10}) {
+const getProducts = async ({ filter = {}, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' }) => {
     const skip = (page - 1) * limit;
+    
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
     const products = await Product.find(filter)
-                    .skip(skip)
-                    .limit(limit)
-                    .populate("category")
-                    .populate("discount");
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate('category', 'name slug')
+        .populate('discount', 'name value type');
+        
     const total = await Product.countDocuments(filter);
 
     return {
+        success: true,
         products,
         total,
-        page,
+        page: Number(page),
+        limit: Number(limit),
         totalPages: Math.ceil(total / limit),
     };
-}
+};
 
 /**
- * Lấy chi tiết sản phẩm theo ID
+ * READ - Lấy chi tiết sản phẩm theo ID
  */
-
-async function getProductById (productId) {
+const getProductById = async (productId) => {
     return await Product.findById(productId)
-                        .populate("category")
-                        .populate("discount");
-}
+        .populate('category', 'name slug description')
+        .populate('discount', 'name value type startDate endDate');
+};
 
 /**
- * Tìm sản phẩm theo keyword (name, description)
+ * UPDATE - Cập nhật sản phẩm
  */
-async function searchProducts(keyword, page = 1, limit = 10) {
-  const skip = (page - 1) * limit;
-
-  // Regex search (case-insensitive)
-  const filter = {
-    $or: [
-      { name: { $regex: keyword, $options: "i" } },
-      { description: { $regex: keyword, $options: "i" } },
-    ]
-  };
-
-  const products = await Product.find(filter)
-    .skip(skip)
-    .limit(limit)
-    .populate("category")
-    .populate("discount");
-
-  const total = await Product.countDocuments(filter);
-
-  return {
-    products,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
-  };
-}
+const updateProduct = async (productId, data) => {
+    // Nếu update name, tự động update slug
+    if (data.name && !data.slug) {
+        data.slug = generateSlug(data.name);
+        
+        // Kiểm tra slug mới có trùng không (trừ chính nó)
+        const existingProduct = await Product.findOne({ 
+            slug: data.slug, 
+            _id: { $ne: productId } 
+        });
+        if (existingProduct) {
+            data.slug = `${data.slug}-${Date.now()}`;
+        }
+    }
+    
+    return await Product.findByIdAndUpdate(
+        productId, 
+        data, 
+        { new: true, runValidators: true }
+    ).populate('category discount');
+};
 
 /**
- * Cập nhật sản phẩm
+ * DELETE - Xóa sản phẩm (soft delete - set isActive = false)
  */
-async function updateProduct(productId, data) {
-    return await Product.findByIdAndUpdate(productId, data, {new: true });
-}
-/**
- * Xóa sản phẩm
- */
-async function deleteProduct(productId) {
-  return await Product.findByIdAndDelete(productId);
-}
+const deleteProduct = async (productId) => {
+    return await Product.findByIdAndUpdate(
+        productId,
+        { isActive: false },
+        { new: true }
+    );
+};
+
+// ==================== SEARCH ====================
 
 /**
- * Lấy sản phẩm theo tag
+ * SEARCH - Tìm kiếm sản phẩm theo keyword
  */
-async function getProductsByTag(tag, limit = 10) {
-  return await Product.find({ tags: tag })
-    .limit(limit)
-    .populate("category")
-    .populate("discount");
-}
+const searchProducts = async (keyword, page = 1, limit = 10) => {
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        $or: [
+            { name: { $regex: keyword, $options: 'i' } },
+            { description: { $regex: keyword, $options: 'i' } },
+            { author: { $regex: keyword, $options: 'i' } },
+            { publisher: { $regex: keyword, $options: 'i' } },
+        ]
+    };
+
+    const products = await Product.find(filter)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .populate('category', 'name slug')
+        .populate('discount', 'name value type');
+
+    const total = await Product.countDocuments(filter);
+
+    return {
+        success: true,
+        products,
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit),
+        keyword
+    };
+};
+
+// ==================== EXPORT/IMPORT ====================
 
 /**
- * Lấy sản phẩm mới (isNew = true)
+ * EXPORT - Xuất tất cả sản phẩm ra file Excel
  */
-async  function getNewProducts (limit = 10) {
-    return await Product.find({ isNew: true}).limit(limit);
-}
+const exportProductsToExcel = async () => {
+    const products = await Product.find()
+        .populate('category', 'name')
+        .populate('discount', 'name value type')
+        .sort({ createdAt: -1 });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Products');
+
+    // Định nghĩa các cột
+    worksheet.columns = [
+        { header: 'ID', key: '_id', width: 25 },
+        { header: 'Tên sản phẩm', key: 'name', width: 40 },
+        { header: 'Slug', key: 'slug', width: 40 },
+        { header: 'Tác giả', key: 'author', width: 25 },
+        { header: 'Nhà xuất bản', key: 'publisher', width: 25 },
+        { header: 'Danh mục', key: 'category', width: 20 },
+        { header: 'Giá bán', key: 'price', width: 15 },
+        { header: 'Giá gốc', key: 'originalPrice', width: 15 },
+        { header: 'Tồn kho', key: 'stock', width: 12 },
+        { header: 'Đã bán', key: 'sold', width: 12 },
+        { header: 'Đánh giá', key: 'rating', width: 12 },
+        { header: 'Số đánh giá', key: 'reviewCount', width: 12 },
+        { header: 'Sản phẩm mới', key: 'newProduct', width: 15 },
+        { header: 'Bestseller', key: 'isBestseller', width: 15 },
+        { header: 'Flash Sale', key: 'isFlashSale', width: 15 },
+        { header: 'Đang hoạt động', key: 'isActive', width: 15 },
+        { header: 'Ngày tạo', key: 'createdAt', width: 20 },
+    ];
+
+    // Style cho header
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' }
+    };
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    // Thêm dữ liệu
+    products.forEach(product => {
+        worksheet.addRow({
+            _id: product._id.toString(),
+            name: product.name,
+            slug: product.slug,
+            author: product.author,
+            publisher: product.publisher || '',
+            category: product.category?.name || '',
+            price: product.price,
+            originalPrice: product.originalPrice || '',
+            stock: product.stock,
+            sold: product.sold,
+            rating: product.rating,
+            reviewCount: product.reviewCount,
+            newProduct: product.newProduct ? 'Có' : 'Không',
+            isBestseller: product.isBestseller ? 'Có' : 'Không',
+            isFlashSale: product.isFlashSale ? 'Có' : 'Không',
+            isActive: product.isActive ? 'Có' : 'Không',
+            createdAt: product.createdAt.toLocaleDateString('vi-VN'),
+        });
+    });
+
+    // Tạo buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
+};
 
 /**
- * Lấy sản phẩm bestseller (isBestseller = true)
+ * IMPORT - Nhập nhiều sản phẩm từ file JSON
  */
-async  function getBestSellerProducts (limit = 10) {
-    return await Product.find({ isBestseller: true}).limit(limit);
-}
+const importProductsFromJSON = async (productsData) => {
+    const results = {
+        success: [],
+        errors: [],
+        total: productsData.length
+    };
+
+    for (let i = 0; i < productsData.length; i++) {
+        try {
+            const productData = productsData[i];
+            
+            // Tự động tạo slug nếu không có
+            if (!productData.slug && productData.name) {
+                productData.slug = generateSlug(productData.name);
+            }
+            
+            // Kiểm tra slug đã tồn tại chưa
+            const existingProduct = await Product.findOne({ slug: productData.slug });
+            if (existingProduct) {
+                // Thêm timestamp vào slug để tránh trùng
+                productData.slug = `${productData.slug}-${Date.now()}`;
+            }
+            
+            const product = new Product(productData);
+            await product.save();
+            
+            results.success.push({
+                index: i,
+                name: product.name,
+                id: product._id
+            });
+        } catch (error) {
+            results.errors.push({
+                index: i,
+                name: productsData[i]?.name || 'Unknown',
+                error: error.message
+            });
+        }
+    }
+
+    return {
+        success: true,
+        message: `Import thành công ${results.success.length}/${results.total} sản phẩm`,
+        results
+    };
+};
 
 /**
- * Lấy sản phẩm flashSale (isFlashSale = true)
+ * IMPORT - Nhập nhiều sản phẩm từ file Excel
  */
-async  function getFlashSaleProducts (limit = 10) {
-    return await Product.find({ isFlashSale: true}).limit(limit);
-}
+const importProductsFromExcel = async (filePath) => {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    
+    const worksheet = workbook.getWorksheet(1); // Lấy sheet đầu tiên
+    const productsData = [];
+    
+    // Bỏ qua dòng header (dòng 1)
+    worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header
+        
+        const productData = {
+            name: row.getCell(1).value,
+            author: row.getCell(2).value,
+            publisher: row.getCell(3).value,
+            description: row.getCell(4).value,
+            price: row.getCell(5).value,
+            originalPrice: row.getCell(6).value,
+            stock: row.getCell(7).value || 0,
+            category: row.getCell(8).value, // Category ID
+            images: row.getCell(9).value ? row.getCell(9).value.split(',').map(url => url.trim()) : [],
+            tags: row.getCell(10).value ? row.getCell(10).value.split(',').map(tag => tag.trim()) : [],
+            newProduct: row.getCell(11).value === 'Có' || row.getCell(11).value === true,
+            isBestseller: row.getCell(12).value === 'Có' || row.getCell(12).value === true,
+            isFlashSale: row.getCell(13).value === 'Có' || row.getCell(13).value === true,
+            isActive: row.getCell(14).value === 'Có' || row.getCell(14).value === true || row.getCell(14).value === undefined
+        };
+        
+        // Bỏ qua dòng trống
+        if (productData.name) {
+            productsData.push(productData);
+        }
+    });
+    
+    // Sử dụng lại logic import từ JSON
+    return await importProductsFromJSON(productsData);
+};
 
 module.exports = {
     createProduct,
     getProducts,
     getProductById,
-    searchProducts,
     updateProduct,
     deleteProduct,
-    getProductsByTag,
-    getNewProducts,
-    getBestSellerProducts,
-    getFlashSaleProducts
-}
+    searchProducts,
+    exportProductsToExcel,
+    importProductsFromJSON,
+    importProductsFromExcel
+};
