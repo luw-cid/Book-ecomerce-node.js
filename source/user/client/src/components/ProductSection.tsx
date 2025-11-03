@@ -17,6 +17,7 @@ interface ProductSectionProps {
   wishlist: Set<string>;
   onViewAll?: () => void;
   onNavigate?: (page: any, data?: any) => void;
+  isAuthenticated?: boolean;
 }
 
 export function ProductSection({
@@ -29,7 +30,8 @@ export function ProductSection({
   onBookClick,
   wishlist,
   onViewAll,
-  onNavigate
+  onNavigate,
+  isAuthenticated = false
 }: ProductSectionProps) {
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -42,8 +44,9 @@ export function ProductSection({
         setTimeLeft("00:00:00");
         return;
       }
+      const endTimeStr = firstFlashSale.flashSaleEndTime!;
       const timer = setInterval(() => {
-        const endTime = new Date(firstFlashSale.flashSaleEndTime);
+        const endTime = new Date(endTimeStr);
         const now = new Date();
         const difference = endTime.getTime() - now.getTime();
 
@@ -170,10 +173,11 @@ export function ProductSection({
             <div key={book.id} onClick={() => onBookClick(book.id)} className="cursor-pointer">
               <BookCard
                 book={book}
-                onAddToCart={onAddToCart}
+                onAddToCart={(payload) => onAddToCart(payload.book)}
                 onToggleWishlist={onToggleWishlist}
                 isInWishlist={wishlist.has(book.id)}
                 onNavigate={onNavigate}
+                isAuthenticated={isAuthenticated}
               />
             </div>
           ))}

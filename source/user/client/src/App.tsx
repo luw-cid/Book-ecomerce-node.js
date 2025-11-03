@@ -11,10 +11,14 @@ import { ProfilePage } from "./components/ProfilePage";
 import { CategoryPage } from "./components/CategoryPage";
 import { type Book } from "./components/BookCard";
 import { type CartItem } from "./components/ShoppingCart";
+import axios from "axios";
 
 import { useAuth } from "./context/authContext";
 
 export type PageType = "home" | "login" | "register" | "product-detail" | "cart" | "checkout" | "payment" | "profile" | "category";
+
+const API_URL = 'http://localhost:3000';
+const CART_STORAGE_KEY = 'bookstore_cart';
 
 export default function App() {
   const { user, login, logout } = useAuth();
@@ -23,8 +27,101 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState<string>("");
-  // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  // const [user, setUser] = useState<User | null>(null);
+  const [isCartSyncing, setIsCartSyncing] = useState(false);
+  
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        setCartItems(parsedCart);
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } else {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    }
+  }, [cartItems]);
+
+  // Sync cart with backend when user logs in
+  useEffect(() => {
+    if (user && !isCartSyncing) {
+      syncCartWithBackend();
+    }
+  }, [user]);
+
+  const syncCartWithBackend = async () => {
+    if (!user || isCartSyncing) return;
+
+    setIsCartSyncing(true);
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      // 1. Fetch cart from backend
+      const response = await axios.get(`${API_URL}/cart`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const backendCart = response.data.cart?.items || [];
+      const localCart = cartItems;
+
+      // 2. Merge carts - priority to local cart (newer)
+      const mergedCart = [...localCart];
+      
+      backendCart.forEach((backendItem: any) => {
+        const existingIndex = mergedCart.findIndex(
+          item => item.book.id === backendItem.productId
+        );
+        
+        if (existingIndex === -1) {
+          // Item only in backend, add to merged cart
+          // Note: You may need to fetch product details
+          // For now, we'll skip items not in local cart
+        } else {
+          // Item in both, use max quantity
+          mergedCart[existingIndex].quantity = Math.max(
+            mergedCart[existingIndex].quantity,
+            backendItem.quantity
+          );
+        }
+      });
+
+      // 3. Update backend with merged cart
+      const syncPromises = mergedCart.map(item =>
+        axios.post(
+          `${API_URL}/cart/items`,
+          {
+            productId: item.book.id,
+            quantity: item.quantity
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).catch(err => {
+          console.warn(`Failed to sync item ${item.book.id}:`, err);
+        })
+      );
+
+      await Promise.all(syncPromises);
+
+      // 4. Update local state
+      setCartItems(mergedCart);
+
+      console.log('Cart synced with backend successfully');
+    } catch (error: any) {
+      console.error('Error syncing cart with backend:', error);
+      // Don't block user, continue with local cart
+    } finally {
+      setIsCartSyncing(false);
+    }
+  };
+  
   // Xử lý callback từ Google OAuth
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -112,9 +209,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    // setUser(null);
-    // setIsAuthenticated(false);
     logout();
+    // Keep cart in localStorage for guest mode
+    // User can continue shopping as guest
     handleNavigate("home");
   };
 
@@ -194,6 +291,7 @@ export default function App() {
             wishlist={wishlist}
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
+            isAuthenticated={!!user}
           />
         );
     }

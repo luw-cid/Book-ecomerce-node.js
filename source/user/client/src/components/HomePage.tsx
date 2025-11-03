@@ -24,6 +24,7 @@ interface HomePageProps {
   wishlist: Set<string>;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  isAuthenticated?: boolean;
 }
 
 export function HomePage({
@@ -35,13 +36,16 @@ export function HomePage({
   onToggleWishlist,
   wishlist,
   searchQuery,
-  onSearchChange
+  onSearchChange,
+  isAuthenticated = false
 }: HomePageProps) {
   // ============= STATE =============
   const [allBooks, setAllBooks] = useState<Book[]>([]);
   const [newBooks, setNewBooks] = useState<Book[]>([]);
   const [bestsellerBooks, setBestsellerBooks] = useState<Book[]>([]);
   const [flashSaleBooks, setFlashSaleBooks] = useState<Book[]>([]);
+  const [categoryBooks, setCategoryBooks] = useState<Record<string, Book[]>>({});
+  const [categories, setCategories] = useState<string[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +116,21 @@ export function HomePage({
       try {
         setError(null);
 
-        // Gọi 3 API song song (giống LoginPage)
+        // 1. Fetch categories trước
+        const categoriesRes = await axios.get('http://localhost:3000/categories', {
+          headers: { "Content-Type": "application/json" }
+        });
+        
+        // Backend trả về { success: true, count: N, categories: [...] }
+        const categoriesData = categoriesRes.data.categories || [];
+        const activeCategories = categoriesData
+          .filter((cat: any) => cat.isActive)
+          .map((cat: any) => cat.name);
+          // Lấy TẤT CẢ categories (không giới hạn số lượng)
+        
+        setCategories(activeCategories);
+
+        // 2. Gọi API song song cho New, Bestseller, Flash Sale
         const [newRes, bestsellerRes, flashSaleRes] = await Promise.all([
           axios.get('http://localhost:3000/products/new', {
             params: { limit: 8 },
@@ -137,8 +155,36 @@ export function HomePage({
         setBestsellerBooks(bestsellerData);
         setFlashSaleBooks(flashSaleData);
 
+        // 3. Fetch products cho mỗi category
+        const categoryBooksData: Record<string, Book[]> = {};
+        
+        await Promise.all(
+          activeCategories.map(async (categoryName: string) => {
+            try {
+              const res = await axios.get('http://localhost:3000/products', {
+                params: { 
+                  category: categoryName,
+                  limit: 8 
+                },
+                headers: { "Content-Type": "application/json" }
+              });
+              categoryBooksData[categoryName] = res.data.products.map(mapProductToBook);
+            } catch (err) {
+              console.error(`Error loading ${categoryName} books:`, err);
+              categoryBooksData[categoryName] = [];
+            }
+          })
+        );
+
+        setCategoryBooks(categoryBooksData);
+
         // Gộp tất cả books để filter
-        const combined = [...newBooksData, ...bestsellerData, ...flashSaleData];
+        const combined = [
+          ...newBooksData, 
+          ...bestsellerData, 
+          ...flashSaleData,
+          ...Object.values(categoryBooksData).flat()
+        ];
         // Loại bỏ duplicate bằng Map
         const uniqueBooks = Array.from(
           new Map(combined.map(book => [book.id, book])).values()
@@ -466,6 +512,7 @@ export function HomePage({
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
                 onNavigate={onNavigate}
+                isAuthenticated={isAuthenticated}
               />
             )}
 
@@ -482,6 +529,7 @@ export function HomePage({
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
                 onNavigate={onNavigate}
+                isAuthenticated={isAuthenticated}
               />
             )}
 
@@ -498,8 +546,42 @@ export function HomePage({
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
                 onNavigate={onNavigate}
+                isAuthenticated={isAuthenticated}
               />
             )}
+
+            {/* Category Sections */}
+            {categories.map((categoryName, index) => {
+              const books = categoryBooks[categoryName] || [];
+              if (books.length === 0) return null;
+
+              // Định nghĩa màu sắc cho từng category (4 mùa)
+              const categoryColors = [
+                'spring',    // Category 1: Pink/Rose
+                'summer',    // Category 2: Green/Emerald
+                'autumn',    // Category 3: Orange/Amber
+                'winter'     // Category 4: Blue/Sky
+              ];
+              
+              const colorTheme = categoryColors[index % 4];
+
+              return (
+                <ProductSection
+                  key={categoryName}
+                  title={categoryName}
+                  subtitle={`Explore our collection of ${categoryName.toLowerCase()} books`}
+                  books={books}
+                  type={colorTheme as any}
+                  onAddToCart={onAddToCart}
+                  onToggleWishlist={onToggleWishlist}
+                  onBookClick={handleBookClick}
+                  wishlist={wishlist}
+                  onViewAll={() => handleCategorySelect(categoryName)}
+                  onNavigate={onNavigate}
+                  isAuthenticated={isAuthenticated}
+                />
+              );
+            })}
           </>
         )}
 
@@ -599,6 +681,7 @@ export function HomePage({
                       onToggleWishlist={onToggleWishlist}
                       onNavigate={onNavigate}
                       isInWishlist={wishlist.has(book.id)}
+                      isAuthenticated={isAuthenticated}
                     />
                   ))}
                 </div>

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ShoppingCart, Heart, Star } from "lucide-react";
+import { ShoppingCart, Heart, Star, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import type { PageType } from "../App";
+import axios from "axios";
 
 export interface BookVariant {
   id: string;
@@ -39,7 +40,10 @@ interface BookCardProps {
   onToggleWishlist?: (bookId: string) => void;
   isInWishlist?: boolean;
   onNavigate?: (page: PageType, data?: any) => void;
+  isAuthenticated?: boolean;
 }
+
+const API_URL = 'http://localhost:3000';
 
 export function BookCard({
   book,
@@ -47,7 +51,12 @@ export function BookCard({
   onToggleWishlist,
   isInWishlist = false,
   onNavigate,
+  isAuthenticated = false,
 }: BookCardProps) {
+  // Add to cart states
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+  
   // Countdown for flash sale
   const [timeLeftMs, setTimeLeftMs] = useState<number | null>(() => {
     if (!book.isFlashSale || !book.flashSaleEndTime) return null;
@@ -118,10 +127,57 @@ export function BookCard({
   };
 
   // Add to cart picks first available variant (if any)
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const variantId = book.variants && book.variants.length > 0 ? book.variants[0].id : undefined;
-    onAddToCart?.({ book, variantId });
+    
+    setIsAddingToCart(true);
+    setAddedToCart(false);
+
+    try {
+      // Optional: Sync with backend only if authenticated
+      // Guest users can still add to cart without login
+      if (isAuthenticated) {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        
+        // Try to sync with backend, but don't block if it fails
+        try {
+          await axios.post(
+            `${API_URL}/cart/items`,
+            {
+              productId: book.id,
+              quantity: 1,
+              variantId: book.variants && book.variants.length > 0 ? book.variants[0].id : undefined
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+        } catch (backendError) {
+          // Backend sync failed, but continue with local cart update
+          console.warn('Backend cart sync failed, using local cart only:', backendError);
+        }
+      }
+
+      // Always update local state (works for both guest and authenticated users)
+      const variantId = book.variants && book.variants.length > 0 ? book.variants[0].id : undefined;
+      onAddToCart?.({ book, variantId });
+
+      // Show success feedback
+      setAddedToCart(true);
+      
+      // Reset success state after 2 seconds
+      setTimeout(() => {
+        setAddedToCart(false);
+      }, 2000);
+
+    } catch (error: any) {
+      console.error('Error adding to cart:', error);
+      // Don't show error to user, just update local cart
+      const variantId = book.variants && book.variants.length > 0 ? book.variants[0].id : undefined;
+      onAddToCart?.({ book, variantId });
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -176,11 +232,30 @@ export function BookCard({
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
           <Button
             onClick={handleAddToCart}
-            className="bg-white text-black hover:bg-gray-100"
+            className={`${
+              addedToCart 
+                ? 'bg-green-500 hover:bg-green-600 text-white' 
+                : 'bg-white text-black hover:bg-gray-100'
+            } transition-all duration-300`}
             aria-label={`Add ${book.title} to cart`}
+            disabled={isAddingToCart}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart
+            {isAddingToCart ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Adding...
+              </>
+            ) : addedToCart ? (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Added!
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add to Cart
+              </>
+            )}
           </Button>
         </div>
 

@@ -37,7 +37,7 @@ interface ProfilePageProps {
   cartItems: CartItem[];
   wishlist: Set<string>;
   onToggleWishlist: (bookId: string) => void;
-  onAddToCart: (book: Book) => void;
+  onAddToCart: (payload: { book: Book; variantId?: string }) => void;
 }
 
 const API_URL = 'http://localhost:3000';
@@ -513,10 +513,10 @@ export function ProfilePage({
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {wishlistBooks.map((book) => (
-                    <div key={book.id} onClick={() => onNavigate("product", { bookId: book.id })} className="cursor-pointer">
+                    <div key={book.id} onClick={() => onNavigate("product-detail", { bookId: book.id })} className="cursor-pointer">
                       <BookCard
                         book={book}
-                        onAddToCart={onAddToCart}
+                        onAddToCart={(payload) => onAddToCart(payload)}
                         onToggleWishlist={onToggleWishlist}
                         isInWishlist={true}
                       />

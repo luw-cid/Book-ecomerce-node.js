@@ -137,7 +137,7 @@ const handleGoogleCallback = async (user) => {
     // Format thông tin user để gửi về frontend
     const userData = {
         id: user._id,
-        name: user.displayName || user.fullName,
+        fullName: user.displayName || user.fullName,
         email: user.email,
         avatar: user.avatar
     };

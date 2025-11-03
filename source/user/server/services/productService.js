@@ -26,7 +26,14 @@ async function getProducts({
 
         // 1. Thêm điều kiện filter cơ bản
         if (filter.category) {
-          query.category = filter.category;
+          // Nếu filter.category là tên category (string), tìm category ID trước
+          const category = await Category.findOne({ name: filter.category });
+          if (category) {
+            query.category = category._id;
+          } else {
+            // Nếu không tìm thấy category, vẫn có thể là ObjectId
+            query.category = filter.category;
+          }
         }
         if (filter.tags && filter.tags.length > 0) {
           query.tags = { $in: filter.tags };
@@ -210,7 +217,16 @@ async function advancedSearch({
     }
 
     // 2. Filter theo category
-    if (category) query.category = category;
+    if (category) {
+      // Nếu category là tên (string), tìm category ID trước
+      const categoryDoc = await Category.findOne({ name: category });
+      if (categoryDoc) {
+        query.category = categoryDoc._id;
+      } else {
+        // Nếu không tìm thấy, có thể là ObjectId
+        query.category = category;
+      }
+    }
 
     // 3. Filter theo author
     if (author) query.author = { $regex: author, $options: 'i' };
