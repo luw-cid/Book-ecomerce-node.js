@@ -106,7 +106,9 @@ const productSchema = new mongoose.Schema(
             isbn: String,
             weight: Number,
             dimensions: String
-        }
+        },
+        flashSaleEndTime: { type: Date },
+        flashSalePrice: { type: Number },
     },
     { 
         timestamps: true,

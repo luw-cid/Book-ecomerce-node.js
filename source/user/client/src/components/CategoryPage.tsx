@@ -34,12 +34,12 @@ export function CategoryPage({
   const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating" | "newest">("featured");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
-  
+
   // Get min and max prices from books in this category
-  const categoryBooks = sampleBooks.filter(book => 
+  const categoryBooks = sampleBooks.filter(book =>
     category === "" || book.category.toLowerCase() === category.toLowerCase()
   );
-  
+
   const minPrice = Math.min(...categoryBooks.map(book => book.price));
   const maxPrice = Math.max(...categoryBooks.map(book => book.price));
 
@@ -49,7 +49,7 @@ export function CategoryPage({
 
     // Apply search query if provided
     if (searchQuery) {
-      books = books.filter(book => 
+      books = books.filter(book =>
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         book.author.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -73,6 +73,8 @@ export function CategoryPage({
         books = [...books].sort((a, b) => {
           if (a.isNew && !b.isNew) return -1;
           if (!a.isNew && b.isNew) return 1;
+          // if (a.newProduct && !b.newProduct) return -1;
+          // if (!a.newProduct && b.newProduct) return 1;
           return 0;
         });
         break;
@@ -133,10 +135,10 @@ export function CategoryPage({
   const renderPaginationItems = () => {
     const items = [];
     const maxVisiblePages = 5;
-    
+
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
@@ -174,7 +176,7 @@ export function CategoryPage({
               Back to Home
             </Button>
           </div>
-          
+
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <span className="text-4xl">{getCategoryIcon(category)}</span>
@@ -182,11 +184,11 @@ export function CategoryPage({
                 {getCategoryDisplayName(category)}
               </h1>
             </div>
-            
+
             <p className="text-xl text-white/90 mb-6 max-w-2xl mx-auto drop-shadow-md">
               {category === "" ? "Explore our complete collection of books" : `Discover amazing ${category.toLowerCase()} books`}
             </p>
-            
+
             <div className="flex items-center justify-center gap-6 text-white/80">
               <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
                 {filteredBooks.length} books found
@@ -308,9 +310,9 @@ export function CategoryPage({
                         className={currentPage === 1 ? "pointer-events-none opacity-50" : "hover:bg-winter-light cursor-pointer"}
                       />
                     </PaginationItem>
-                    
+
                     {renderPaginationItems()}
-                    
+
                     <PaginationItem>
                       <PaginationNext
                         onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}

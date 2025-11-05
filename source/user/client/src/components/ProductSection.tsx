@@ -5,6 +5,7 @@ import { BookCard, type Book } from "./BookCard";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
+import type { PageType } from "../App";
 
 interface ProductSectionProps {
   title: string;
@@ -13,10 +14,10 @@ interface ProductSectionProps {
   type: "new" | "bestseller" | "flash-sale";
   onAddToCart: (book: Book) => void;
   onToggleWishlist: (bookId: string) => void;
-  onBookClick: (bookId: string) => void;
+  // onBookClick: (bookId: string) => void;
   wishlist: Set<string>;
   onViewAll?: () => void;
-  onNavigate?: (page: any, data?: any) => void;
+  onNavigate?: (page: PageType, data?: any) => void;
   isAuthenticated?: boolean;
 }
 
@@ -27,10 +28,10 @@ export function ProductSection({
   type,
   onAddToCart,
   onToggleWishlist,
-  onBookClick,
+  // onBookClick,
+  onNavigate,
   wishlist,
   onViewAll,
-  onNavigate,
   isAuthenticated = false
 }: ProductSectionProps) {
   const [timeLeft, setTimeLeft] = useState("");

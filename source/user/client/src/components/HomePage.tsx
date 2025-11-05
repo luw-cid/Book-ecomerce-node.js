@@ -82,13 +82,13 @@ export function HomePage({
     return {
       id: product._id,
       title: product.name,
-      author: product.tags?.[0] || 'Unknown Author',
+      author: product.author || 'Unknown Author',
       price: product.price,
       originalPrice,
-      rating: 4.5, // Backend chưa có rating field
-      reviewCount: 0, // Backend chưa có reviews
+      rating: product.rating ?? 4.5,
+      reviewCount: product.reviewCount ?? 0,
       category: product.category?.name || product.category || 'Uncategorized',
-      brand: product.tags?.[1] || 'Unknown Brand',
+      brand: product.publisher || product.tags?.[1] || 'Unknown Brand',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
       variants: [
         {
@@ -100,7 +100,7 @@ export function HomePage({
           sku: product._id
         }
       ],
-      isNew: product.isNew,
+      isNew: product.newProduct,
       isBestseller: product.isBestseller,
       isFlashSale: product.isFlashSale,
       flashSaleEndTime: product.flashSaleEndTime
@@ -120,14 +120,14 @@ export function HomePage({
         const categoriesRes = await axios.get('http://localhost:3000/categories', {
           headers: { "Content-Type": "application/json" }
         });
-        
+
         // Backend trả về { success: true, count: N, categories: [...] }
         const categoriesData = categoriesRes.data.categories || [];
         const activeCategories = categoriesData
           .filter((cat: any) => cat.isActive)
           .map((cat: any) => cat.name);
-          // Lấy TẤT CẢ categories (không giới hạn số lượng)
-        
+        // Lấy TẤT CẢ categories (không giới hạn số lượng)
+
         setCategories(activeCategories);
 
         // 2. Gọi API song song cho New, Bestseller, Flash Sale
@@ -157,14 +157,14 @@ export function HomePage({
 
         // 3. Fetch products cho mỗi category
         const categoryBooksData: Record<string, Book[]> = {};
-        
+
         await Promise.all(
           activeCategories.map(async (categoryName: string) => {
             try {
               const res = await axios.get('http://localhost:3000/products', {
-                params: { 
+                params: {
                   category: categoryName,
-                  limit: 8 
+                  limit: 8
                 },
                 headers: { "Content-Type": "application/json" }
               });
@@ -180,8 +180,8 @@ export function HomePage({
 
         // Gộp tất cả books để filter
         const combined = [
-          ...newBooksData, 
-          ...bestsellerData, 
+          ...newBooksData,
+          ...bestsellerData,
           ...flashSaleData,
           ...Object.values(categoryBooksData).flat()
         ];
@@ -314,9 +314,9 @@ export function HomePage({
     setPriceRange([minPrice, maxPrice]);
   };
 
-  const handleBookClick = (bookId: string) => {
-    onNavigate("product-detail", { bookId });
-  };
+  // const handleBookClick = (bookId: string) => {
+  //   onNavigate("product-detail", { bookId });
+  // };
 
   // ============= COMPUTED VALUES =============
   const hasActiveFilters =
@@ -508,7 +508,7 @@ export function HomePage({
                 type="new"
                 onAddToCart={onAddToCart}
                 onToggleWishlist={onToggleWishlist}
-                onBookClick={handleBookClick}
+                // onBookClick={handleBookClick}
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
                 onNavigate={onNavigate}
@@ -525,7 +525,7 @@ export function HomePage({
                 type="bestseller"
                 onAddToCart={onAddToCart}
                 onToggleWishlist={onToggleWishlist}
-                onBookClick={handleBookClick}
+                // onBookClick={handleBookClick}
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
                 onNavigate={onNavigate}
@@ -542,7 +542,7 @@ export function HomePage({
                 type="flash-sale"
                 onAddToCart={onAddToCart}
                 onToggleWishlist={onToggleWishlist}
-                onBookClick={handleBookClick}
+                // onBookClick={handleBookClick}
                 wishlist={wishlist}
                 onViewAll={() => handleCategorySelect("")}
                 onNavigate={onNavigate}
@@ -562,7 +562,7 @@ export function HomePage({
                 'autumn',    // Category 3: Orange/Amber
                 'winter'     // Category 4: Blue/Sky
               ];
-              
+
               const colorTheme = categoryColors[index % 4];
 
               return (
@@ -574,7 +574,7 @@ export function HomePage({
                   type={colorTheme as any}
                   onAddToCart={onAddToCart}
                   onToggleWishlist={onToggleWishlist}
-                  onBookClick={handleBookClick}
+                  // onBookClick={handleBookClick}
                   wishlist={wishlist}
                   onViewAll={() => handleCategorySelect(categoryName)}
                   onNavigate={onNavigate}

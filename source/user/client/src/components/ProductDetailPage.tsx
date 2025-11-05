@@ -45,13 +45,13 @@ export function ProductDetailPage({
     return {
       id: product._id,
       title: product.name,
-      author: product.tags?.[0] || 'Unknown Author',
+      author: product.author || 'Unknown Author',
       price: product.price,
       originalPrice,
       rating: product.rating ?? 4.5,
       reviewCount: product.reviewCount ?? 0,
       category: product.category?.name || 'Uncategorized',
-      brand: product.tags?.[1] || 'Unknown Brand',
+      brand: product.publisher || product.tags?.[1] || 'Unknown Brand',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
       variants: [
         {
@@ -63,7 +63,8 @@ export function ProductDetailPage({
           sku: product._id
         }
       ],
-      isNew: product.isNew,
+      isNew: product.newProduct,
+      description: product.description,
       isBestseller: product.isBestseller,
       isFlashSale: product.isFlashSale,
       flashSaleEndTime: product.flashSaleEndTime
@@ -91,7 +92,9 @@ export function ProductDetailPage({
               params: { category: mapped.category, limit: 8 },
               headers: { "Content-Type": "application/json" }
             });
-            const related = relRes.data.products
+            const rawData: any = relRes.data;
+            const productsArray = rawData.products || rawData;
+            const related = (Array.isArray(productsArray) ? productsArray : [])
               .map(mapProductToBook)
               .filter((b: Book) => b.id !== mapped.id)
               .slice(0, 4);
@@ -338,7 +341,7 @@ export function ProductDetailPage({
 
               <TabsContent value="description" className="mt-4 space-y-4">
                 <div className="prose max-w-none">
-                  <p className="text-gray-700 leading-relaxed">
+                  {/* <p className="text-gray-700 leading-relaxed">
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
                     incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
                     exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
@@ -347,6 +350,9 @@ export function ProductDetailPage({
                     Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
                     fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
                     culpa qui officia deserunt mollit anim id est laborum.
+                  </p> */}
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {book.description || 'No description available.'}
                   </p>
                 </div>
               </TabsContent>
@@ -508,6 +514,7 @@ export function ProductDetailPage({
                   onAddToCart={onAddToCart}
                   onToggleWishlist={onToggleWishlist}
                   isInWishlist={false}
+                  onNavigate={onNavigate}
                 />
               ))}
             </div>

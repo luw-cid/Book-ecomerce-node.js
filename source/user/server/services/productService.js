@@ -156,7 +156,7 @@ async function getProductsByTag(tag, limit = 10) {
  * Lấy sản phẩm mới (newProduct = true)
  */
 async  function getNewProducts (limit = 10) {
-    return await Product.find({ newProduct: true}) // Changed: isNew → newProduct
+    return await Product.find({ newProduct: true, isActive: true})
       .limit(limit)
       .populate("category");
       // .populate("discount");
@@ -166,7 +166,7 @@ async  function getNewProducts (limit = 10) {
  * Lấy sản phẩm bestseller (isBestseller = true)
  */
 async  function getBestSellerProducts (limit = 10) {
-    return await Product.find({ isBestseller: true})
+    return await Product.find({ isBestseller: true, isActive: true})
       .limit(limit)
       .populate("category");
       // .populate("discount");
@@ -176,7 +176,7 @@ async  function getBestSellerProducts (limit = 10) {
  * Lấy sản phẩm flashSale (isFlashSale = true)
  */
 async  function getFlashSaleProducts (limit = 10) {
-    return await Product.find({ isFlashSale: true})
+    return await Product.find({ isFlashSale: true, isActive: true})
       .limit(limit) 
       .populate("category");
       // .populate("discount");

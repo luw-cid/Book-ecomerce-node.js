@@ -20,6 +20,7 @@ export interface Book {
   id: string;
   title: string;
   author?: string;
+  description?: string;
   price: number;
   originalPrice?: number;
   rating?: number;
@@ -56,7 +57,7 @@ export function BookCard({
   // Add to cart states
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
-  
+
   // Countdown for flash sale
   const [timeLeftMs, setTimeLeftMs] = useState<number | null>(() => {
     if (!book.isFlashSale || !book.flashSaleEndTime) return null;
@@ -129,7 +130,7 @@ export function BookCard({
   // Add to cart picks first available variant (if any)
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     setIsAddingToCart(true);
     setAddedToCart(false);
 
@@ -138,7 +139,7 @@ export function BookCard({
       // Guest users can still add to cart without login
       if (isAuthenticated) {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        
+
         // Try to sync with backend, but don't block if it fails
         try {
           await axios.post(
@@ -164,7 +165,7 @@ export function BookCard({
 
       // Show success feedback
       setAddedToCart(true);
-      
+
       // Reset success state after 2 seconds
       setTimeout(() => {
         setAddedToCart(false);
@@ -232,11 +233,10 @@ export function BookCard({
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
           <Button
             onClick={handleAddToCart}
-            className={`${
-              addedToCart 
-                ? 'bg-green-500 hover:bg-green-600 text-white' 
+            className={`${addedToCart
+                ? 'bg-green-500 hover:bg-green-600 text-white'
                 : 'bg-white text-black hover:bg-gray-100'
-            } transition-all duration-300`}
+              } transition-all duration-300`}
             aria-label={`Add ${book.title} to cart`}
             disabled={isAddingToCart}
           >
