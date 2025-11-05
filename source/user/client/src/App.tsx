@@ -19,15 +19,41 @@ export type PageType = "home" | "login" | "register" | "product-detail" | "cart"
 
 const API_URL = 'http://localhost:3000';
 const CART_STORAGE_KEY = 'bookstore_cart';
+const PAGE_STORAGE_KEY = 'bookstore_current_page'; // ✅ Thêm key cho page
+const PAGE_DATA_STORAGE_KEY = 'bookstore_page_data'; // ✅ Thêm key cho page data
 
 export default function App() {
   const { user, login, logout } = useAuth();
-  const [currentPage, setCurrentPage] = useState<PageType>("home");
-  const [pageData, setPageData] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState<PageType>(() => {
+    const savedPage = localStorage.getItem(PAGE_STORAGE_KEY);
+    return (savedPage as PageType) || "home";
+  });
+  const [pageData, setPageData] = useState<any>(() => {
+    const savedData = localStorage.getItem(PAGE_DATA_STORAGE_KEY);
+    try {
+      return savedData ? JSON.parse(savedData) : null;
+    } catch (error) {
+      return null;
+    }
+  });
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isCartSyncing, setIsCartSyncing] = useState(false);
+
+    // ✅ Save currentPage to localStorage khi thay đổi
+  useEffect(() => {
+    localStorage.setItem(PAGE_STORAGE_KEY, currentPage);
+  }, [currentPage]);
+
+    // ✅ Save pageData to localStorage khi thay đổi
+  useEffect(() => {
+    if (pageData) {
+      localStorage.setItem(PAGE_DATA_STORAGE_KEY, JSON.stringify(pageData));
+    } else {
+      localStorage.removeItem(PAGE_DATA_STORAGE_KEY);
+    }
+  }, [pageData]);
   
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -148,6 +174,8 @@ export default function App() {
   const handleNavigate = (page: PageType, data?: any) => {
     setCurrentPage(page);
     setPageData(data);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAddToCart = (payload: Book | { book: Book; variantId?: string }) => {

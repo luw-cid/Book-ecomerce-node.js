@@ -171,7 +171,11 @@ export function ProductSection({
         {/* Books Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {books.slice(0, 8).map((book) => (
-            <div key={book.id} onClick={() => onBookClick(book.id)} className="cursor-pointer">
+                <div 
+                  key={book.id} 
+                  onClick={() => onNavigate?.('product-detail', { bookId: book.id })} 
+                  className="cursor-pointer"
+                >
               <BookCard
                 book={book}
                 onAddToCart={(payload) => onAddToCart(payload.book)}

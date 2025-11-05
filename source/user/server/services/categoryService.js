@@ -1,8 +1,24 @@
 const categoryModel = require('../models/categoryModel');
+const productModel = require('../models/productModel');
 
 const getAllCategories = async () => {
     const categories = await categoryModel.find({ isActive: true}).sort({ name: 1}).select('-__v');
-    return categories;
+    
+    // Thêm productCount cho mỗi category (dùng aggregate để tối ưu hiệu suất)
+    const categoriesWithCount = await Promise.all(
+        categories.map(async (category) => {
+            const productCount = await productModel.countDocuments({ 
+                category: category._id,
+                isActive: true 
+            });
+            return {
+                ...category.toObject(),
+                productCount
+            };
+        })
+    );
+    
+    return categoriesWithCount;
 }
 
 const getCategoryById = async (categoryId) => {

@@ -107,42 +107,15 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
       setLoading(true);
       setError(null);
       
-      // Lấy danh sách categories từ API
+      // Lấy danh sách categories từ API (đã bao gồm productCount từ backend)
       const categoriesResponse = await axios.get(`${API_BASE_URL}/categories`);
 
       if (!categoriesResponse.data.success) {
         throw new Error(categoriesResponse.data.message || 'Failed to load categories');
       }
 
-      const fetchedCategories: Category[] = categoriesResponse.data.categories;
-
-      // Lấy số lượng products cho mỗi category
-      const categoriesWithCount = await Promise.all(
-        fetchedCategories.map(async (category: Category) => {
-          try {
-            const productsResponse = await axios.get(`${API_BASE_URL}/products`, {
-              params: {
-                category: category._id,
-                limit: 1,
-                page: 1
-              }
-            });
-
-            return {
-              ...category,
-              productCount: productsResponse.data.total || productsResponse.data.count || 0
-            };
-          } catch (error) {
-            console.error(`Error fetching products for category ${category.name}:`, error);
-            return {
-              ...category,
-              productCount: 0
-            };
-          }
-        })
-      );
-
-      setCategories(categoriesWithCount);
+      const fetchedCategories: CategoryWithCount[] = categoriesResponse.data.categories;
+      setCategories(fetchedCategories);
     } catch (err: any) {
       console.error('Error loading categories:', err);
       setError(
