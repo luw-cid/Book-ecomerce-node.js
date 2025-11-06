@@ -45,7 +45,7 @@ export function ProductDetailPage({
     return {
       id: product._id,
       title: product.name,
-      author: product.author || 'Unknown Author',
+      author: product.author || product.tags?.[0] || 'Unknown Author',
       price: product.price,
       originalPrice,
       rating: product.rating ?? 4.5,

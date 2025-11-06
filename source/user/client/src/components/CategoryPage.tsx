@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 import { BookCard, type Book } from "./BookCard";
 import { Footer } from "./Footer";
-import { sampleBooks } from "../data/books";
 import { Button } from "./ui/button";
 import { Filter, DollarSign, X, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
@@ -30,78 +30,266 @@ export function CategoryPage({
   wishlist,
   searchQuery = ""
 }: CategoryPageProps) {
+  // ============= DATA STATE =============
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalBooks, setTotalBooks] = useState(0);
+
+  // ============= FILTER STATE =============
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating" | "newest">("featured");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
 
   // Get min and max prices from books in this category
-  const categoryBooks = sampleBooks.filter(book =>
-    category === "" || book.category.toLowerCase() === category.toLowerCase()
-  );
+  // const categoryBooks = sampleBooks.filter(book =>
+  //   category === "" || book.category.toLowerCase() === category.toLowerCase()
+  // );
 
-  const minPrice = Math.min(...categoryBooks.map(book => book.price));
-  const maxPrice = Math.max(...categoryBooks.map(book => book.price));
+  // const minPrice = Math.min(...categoryBooks.map(book => book.price));
+  // const maxPrice = Math.max(...categoryBooks.map(book => book.price));
+  // ============= MAP BACKEND → FRONTEND =============
+  const mapProductToBook = (product: any): Book => {
+    const originalPrice = product.originalPrice ?? (
+      product.discount
+        ? product.price / (1 - product.discount.percentage / 100)
+        : undefined
+    );
 
-  // Filter and search books
-  const filteredBooks = useMemo(() => {
-    let books = categoryBooks;
+    return {
+      id: product._id,
+      title: product.name,
+      author: product.author || product.tags?.[0] || 'Unknown Author',
+      description: product.description,
+      price: product.price,
+      originalPrice,
+      rating: product.rating ?? 4.5,
+      reviewCount: product.reviewCount ?? 0,
+      category: product.category?.name || product.category || 'Uncategorized',
+      brand: product.publisher || 'Unknown Brand',
+      coverImage: product.images?.[0] || '/placeholder-book.jpg',
+      variants: [
+        {
+          id: product._id,
+          name: 'Standard Edition',
+          price: product.price,
+          originalPrice,
+          stock: product.stock,
+          sku: product._id
+        }
+      ],
+      isNew: product.newProduct,
+      isBestseller: product.isBestseller,
+      isFlashSale: product.isFlashSale,
+      flashSaleEndTime: product.flashSaleEndTime
+        ? new Date(product.flashSaleEndTime).toISOString()
+        : undefined
+    };
+  };
+  // ============= DEBOUNCED PRICE RANGE =============
+  const [debouncedPriceRange, setDebouncedPriceRange] = useState<[number, number]>([0, 50]);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(100);
+  // ============= FETCH MIN/MAX PRICE =============
+  useEffect(() => {
+    const fetchPriceRange = async () => {
+      try {
+        const params: any = {};
+        if (category && category !== "") params.category = category;
 
-    // Apply search query if provided
-    if (searchQuery) {
-      books = books.filter(book =>
-        book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.author.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by price range
-    books = books.filter(book => book.price >= priceRange[0] && book.price <= priceRange[1]);
-
-    // Sort books
-    switch (sortBy) {
-      case "price-low":
-        books = [...books].sort((a, b) => a.price - b.price);
-        break;
-      case "price-high":
-        books = [...books].sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        books = [...books].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-        break;
-      case "newest":
-        books = [...books].sort((a, b) => {
-          if (a.isNew && !b.isNew) return -1;
-          if (!a.isNew && b.isNew) return 1;
-          // if (a.newProduct && !b.newProduct) return -1;
-          // if (!a.newProduct && b.newProduct) return 1;
-          return 0;
+        const response = await axios.get('http://localhost:3000/products/price-range', {
+          params,
+          headers: { "Content-Type": "application/json" }
         });
-        break;
-      default:
-        // Featured (prioritize bestsellers and flash sales)
-        books = [...books].sort((a, b) => {
-          if (a.isBestseller && !b.isBestseller) return -1;
-          if (!a.isBestseller && b.isBestseller) return 1;
-          if (a.isFlashSale && !b.isFlashSale) return -1;
-          if (!a.isFlashSale && b.isFlashSale) return 1;
-          return 0;
-        });
-    }
 
-    return books;
-  }, [categoryBooks, searchQuery, sortBy, priceRange]);
+        setMinPrice(response.data.minPrice || 0);
+        setMaxPrice(response.data.maxPrice || 100);
+        setPriceRange([response.data.minPrice || 0, response.data.maxPrice || 100]);
+      } catch (err) {
+        console.warn('Failed to fetch price range:', err);
+      }
+    };
+
+    fetchPriceRange();
+  }, [category]);
+
+
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPriceRange(priceRange);
+    }, 500); // Chờ 500ms sau khi user dừng kéo
+
+    return () => clearTimeout(timer);
+  }, [priceRange]);
+  // ============= FETCH DATA =============
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchBooks = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // 1. Tạo query params từ filters
+        const params: any = {
+          page: currentPage,
+          limit: BOOKS_PER_PAGE,
+          minPrice: debouncedPriceRange[0],
+          maxPrice: debouncedPriceRange[1]
+        };
+        // 2. Thêm category nếu không phải "All Books"
+        if (category && category !== "") {
+          params.category = category;
+        }
+
+        // 3. Thêm search query nếu có
+        if (searchQuery) {
+          params.search = searchQuery;
+        }
+
+        // 4. Map sortBy frontend → backend
+        switch (sortBy) {
+          case "price-low":
+            params.sortBy = "price";
+            params.sortOrder = "asc";
+            break;
+          case "price-high":
+            params.sortBy = "price";
+            params.sortOrder = "desc";
+            break;
+          case "rating":
+            params.sortBy = "rating";
+            params.sortOrder = "desc";
+            break;
+          case "newest":
+            params.sortBy = "createdAt";
+            params.sortOrder = "desc";
+            break;
+          default:
+            // featured: backend tự xử lý
+            break;
+        }
+
+        // 5. Gọi API
+        const response = await axios.get('http://localhost:3000/products', {
+          params,
+          headers: { "Content-Type": "application/json" }
+        });
+
+        // 6. Transform data
+        if (!cancelled) {
+          const data: any = response.data;
+          const productsArray = data.products || data;
+          const mappedBooks = (Array.isArray(productsArray) ? productsArray : []).map(mapProductToBook);
+
+          setBooks(mappedBooks);
+          setTotalBooks(data.total || mappedBooks.length);
+        }
+      } catch (err: any) {
+        console.error('❌ Error fetching books:', err);
+        if (!cancelled) {
+          setError(err.response?.data?.message || 'Failed to load books.');
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    fetchBooks();
+
+    // Cleanup: hủy request nếu component unmount trước khi fetch xong
+    return () => { cancelled = true; };
+  }, [category, currentPage, sortBy, debouncedPriceRange, searchQuery]);
+
+  // Filter and search books (backend đã filter)
+  // const filteredBooks = useMemo(() => {
+  //   let books = categoryBooks;
+
+  //   // Apply search query if provided
+  //   if (searchQuery) {
+  //     books = books.filter(book =>
+  //       book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       book.author.toLowerCase().includes(searchQuery.toLowerCase())
+  //     );
+  //   }
+
+  //   // Filter by price range
+  //   books = books.filter(book => book.price >= priceRange[0] && book.price <= priceRange[1]);
+
+  //   // Sort books
+  //   switch (sortBy) {
+  //     case "price-low":
+  //       books = [...books].sort((a, b) => a.price - b.price);
+  //       break;
+  //     case "price-high":
+  //       books = [...books].sort((a, b) => b.price - a.price);
+  //       break;
+  //     case "rating":
+  //       books = [...books].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+  //       break;
+  //     case "newest":
+  //       books = [...books].sort((a, b) => {
+  //         if (a.isNew && !b.isNew) return -1;
+  //         if (!a.isNew && b.isNew) return 1;
+  //         // if (a.newProduct && !b.newProduct) return -1;
+  //         // if (!a.newProduct && b.newProduct) return 1;
+  //         return 0;
+  //       });
+  //       break;
+  //     default:
+  //       // Featured (prioritize bestsellers and flash sales)
+  //       books = [...books].sort((a, b) => {
+  //         if (a.isBestseller && !b.isBestseller) return -1;
+  //         if (!a.isBestseller && b.isBestseller) return 1;
+  //         if (a.isFlashSale && !b.isFlashSale) return -1;
+  //         if (!a.isFlashSale && b.isFlashSale) return 1;
+  //         return 0;
+  //       });
+  //   }
+
+  //   return books;
+  // }, [categoryBooks, searchQuery, sortBy, priceRange]);
 
   // Calculate pagination
-  const totalPages = Math.ceil(filteredBooks.length / BOOKS_PER_PAGE);
-  const startIndex = (currentPage - 1) * BOOKS_PER_PAGE;
-  const endIndex = startIndex + BOOKS_PER_PAGE;
-  const currentBooks = filteredBooks.slice(startIndex, endIndex);
+  // const totalPages = Math.ceil(filteredBooks.length / BOOKS_PER_PAGE);
+  // const startIndex = (currentPage - 1) * BOOKS_PER_PAGE;
+  // const endIndex = startIndex + BOOKS_PER_PAGE;
+  // const currentBooks = filteredBooks.slice(startIndex, endIndex);
 
+
+
+  // ============= PAGINATION =============
+  const totalPages = Math.ceil(totalBooks / BOOKS_PER_PAGE);
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
   }, [sortBy, priceRange, searchQuery]);
+
+  // ============= LOADING STATE =============
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-winter mx-auto" />
+          <p className="mt-4 text-gray-600 font-medium">Loading books...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ============= ERROR STATE =============
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   const clearFilters = () => {
     setPriceRange([minPrice, maxPrice]);
@@ -191,7 +379,8 @@ export function CategoryPage({
 
             <div className="flex items-center justify-center gap-6 text-white/80">
               <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
-                {filteredBooks.length} books found
+                {/* {filteredBooks.length} books found */}
+                {totalBooks} books found
               </Badge>
               {currentPage > 1 && (
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
@@ -284,10 +473,11 @@ export function CategoryPage({
         )}
 
         {/* Books Grid */}
-        {currentBooks.length > 0 ? (
+        {books.length > 0 ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-              {currentBooks.map((book) => (
+              {/* {currentBooks.map((book) => ( */}
+              {books.map((book) => (
                 <BookCard
                   key={book.id}
                   book={book}

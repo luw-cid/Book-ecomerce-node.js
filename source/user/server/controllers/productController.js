@@ -1,6 +1,9 @@
 const productService = require("../services/productService");
 const asyncHandle = require('express-async-handler');
 const AppError = require('../errors');
+const Product = require('../models/productModel');
+const Category = require('../models/categoryModel');
+const mongoose = require('mongoose');
 
 // Lấy danh sách sản phẩm với các tùy chọn lọc, tìm kiếm và sắp xếp
 const getProducts = asyncHandle(async (req, res) => {
@@ -183,6 +186,39 @@ const getProductsByPriceRange = asyncHandle(async(req, res) => {
     });
 });
 
+// Thêm hàm lấy range giá
+const getPriceRange = asyncHandle(async (req, res) => {
+  const { category } = req.query;
+  const filter = { isActive: true };
+
+  if (category) {
+    // Nếu category là ObjectId hợp lệ -> dùng trực tiếp
+    if (mongoose.Types.ObjectId.isValid(category)) {
+      filter.category = mongoose.Types.ObjectId(category);
+    } else {
+      // Nếu category là tên -> tìm Category và dùng _id
+      const catDoc = await Category.findOne({ name: category });
+      if (!catDoc) {
+        return res.status(200).json({ minPrice: 0, maxPrice: 0 });
+      }
+      filter.category = catDoc._id;
+    }
+  }
+
+  const result = await Product.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        minPrice: { $min: "$price" },
+        maxPrice: { $max: "$price" }
+      }
+    }
+  ]);
+
+  return res.status(200).json(result[0] || { minPrice: 0, maxPrice: 100 });
+});
+
 module.exports = {
     getProducts,
     getProductById,
@@ -190,6 +226,7 @@ module.exports = {
     getNewProducts,
     getBestSellerProducts,
     getFlashSaleProducts,
+    getPriceRange,
     advancedSearch,
     searchSuggestions,
     getRelatedProducts,
