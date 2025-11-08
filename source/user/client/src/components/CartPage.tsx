@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, Tag, Gift, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, Tag, Gift, CheckCircle, AlertCircle, Loader2, Sparkles, Clock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
@@ -8,6 +8,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { type CartItem } from "./ShoppingCart";
 import type { PageType } from "../App";
 import axios from "axios";
+import { Checkbox } from "./ui/checkbox";
 
 interface CartPageProps {
   cartItems: CartItem[];
@@ -21,12 +22,13 @@ interface CartPageProps {
 interface DiscountCode {
   _id: string;
   code: string;
+  name: string;
   description: string;
   discountType: "percentage" | "fixed";
-  discountValue: number;
-  minPurchase?: number;
-  maxDiscount?: number;
-  isActive: boolean;
+  percentage?: number;
+  fixedAmount?: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
   expiresAt?: string;
 }
 
@@ -44,11 +46,14 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [couponMessage, setCouponMessage] = useState("");
   const [loyaltyPointsToUse, setLoyaltyPointsToUse] = useState(0);
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
   const [isLoadingCoupon, setIsLoadingCoupon] = useState(false);
   const [isLoadingLoyalty, setIsLoadingLoyalty] = useState(false);
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
+  const [availableDiscounts, setAvailableDiscounts] = useState<DiscountCode[]>([]);
+  const [isLoadingDiscounts, setIsLoadingDiscounts] = useState(false);
 
   const getToken = () => {
     return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
@@ -61,17 +66,45 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
     }
   }, [isAuthenticated, userId]);
 
+  // Fetch available discounts
+  useEffect(() => {
+    fetchAvailableDiscounts();
+  }, []);
+
   // Reset loyalty points when discount changes
   useEffect(() => {
     if (appliedDiscount) {
       setLoyaltyPointsToUse(0);
+      setUseLoyaltyPoints(false);
     }
   }, [appliedDiscount]);
 
+  const fetchAvailableDiscounts = async () => {
+    try {
+      setIsLoadingDiscounts(true);
+      
+      const response = await axios.get(`${API_URL}/discounts/public`);
+      
+      if (response.data.success) {
+        setAvailableDiscounts(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching discounts:', error);
+      // Không hiển thị lỗi cho user, chỉ để trống danh sách
+    } finally {
+      setIsLoadingDiscounts(false);
+    }
+  };
+
   const fetchLoyaltyAccount = async () => {
+    if (!isAuthenticated || !userId) {
+      return;
+    }
+    
     try {
       setIsLoadingLoyalty(true);
       const token = getToken();
+      
       const response = await axios.get(`${API_URL}/loyalty/account`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -81,7 +114,15 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
       }
     } catch (error: any) {
       console.error('Error fetching loyalty account:', error);
-      // Không hiện lỗi cho user nếu không có loyalty account
+      // Nếu không có loyalty account, tạo một account mặc định với 0 điểm
+      if (error.response?.status === 404) {
+        setLoyaltyAccount({
+          userId: userId || '',
+          totalPoints: 0,
+          tier: 'bronze',
+          tierBenefits: 'Earn 10% points on purchases'
+        });
+      }
     } finally {
       setIsLoadingLoyalty(false);
     }
@@ -98,16 +139,16 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
     if (!discount) return 0;
     
     // Check minimum purchase requirement
-    if (discount.minPurchase && amount < discount.minPurchase) {
+    if (discount.minOrderAmount && amount < discount.minOrderAmount) {
       return 0;
     }
     
     if (discount.discountType === 'percentage') {
-      const discountAmount = (amount * discount.discountValue) / 100;
-      return discount.maxDiscount ? Math.min(discountAmount, discount.maxDiscount) : discountAmount;
+      const discountAmount = (amount * (discount.percentage || 0)) / 100;
+      return discount.maxDiscountAmount ? Math.min(discountAmount, discount.maxDiscountAmount) : discountAmount;
     } else {
       // Fixed amount discount
-      return Math.min(discount.discountValue, amount);
+      return Math.min(discount.fixedAmount || 0, amount);
     }
   };
 
@@ -116,7 +157,7 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
   
   // Calculate loyalty points discount (1 point = $1)
   const maxLoyaltyPoints = loyaltyAccount ? Math.min(loyaltyAccount.totalPoints, subtotalAfterDiscount) : 0;
-  const loyaltyDiscount = loyaltyPointsToUse;
+  const loyaltyDiscount = useLoyaltyPoints ? Math.min(loyaltyPointsToUse, maxLoyaltyPoints) : 0;
   
   const taxableAmount = subtotalAfterDiscount - loyaltyDiscount;
   const tax = Math.max(0, taxableAmount * 0.08); // 8% tax
@@ -133,23 +174,28 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
       setIsLoadingCoupon(true);
       setCouponMessage("");
       
-      const response = await axios.post(`${API_URL}/discounts/validate`, {
+      const response = await axios.post(`${API_URL}/discounts/apply`, {
         code: couponCode.toUpperCase(),
-        orderAmount: subtotal
+        subtotal: subtotal
       });
 
-      if (response.data.success && response.data.discount) {
-        const discount = response.data.discount;
+      if (response.data.success && response.data.data.discount) {
+        const discount = response.data.data.discount;
         
-        // Check minimum purchase requirement
-        if (discount.minPurchase && subtotal < discount.minPurchase) {
-          setCouponMessage(`Minimum purchase of $${discount.minPurchase} required for this code`);
-          setAppliedDiscount(null);
-        } else {
-          setAppliedDiscount(discount);
-          setCouponMessage(`✓ ${discount.description}`);
-          setCouponCode("");
-        }
+        // Convert API response to DiscountCode format
+        const discountCode: DiscountCode = {
+          _id: discount._id,
+          code: discount.code,
+          name: discount.name || discount.code,
+          description: `${discount.type === 'percentage' ? `${discount.value}% OFF` : `$${discount.value} OFF`}`,
+          discountType: discount.type,
+          percentage: discount.type === 'percentage' ? discount.value : undefined,
+          fixedAmount: discount.type === 'fixed' ? discount.value : undefined,
+        };
+        
+        setAppliedDiscount(discountCode);
+        setCouponMessage(`✓ Discount applied: ${discountCode.description}`);
+        setCouponCode("");
       }
     } catch (error: any) {
       const message = error.response?.data?.message || "Invalid or expired coupon code";
@@ -234,17 +280,6 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
         return newSet;
       });
     }
-  };
-
-  const handleUseLoyaltyPoints = (points: number) => {
-    if (!loyaltyAccount) return;
-    
-    const validPoints = Math.min(
-      Math.max(0, points),
-      maxLoyaltyPoints
-    );
-    
-    setLoyaltyPointsToUse(validPoints);
   };
 
   const handleCheckout = () => {
@@ -456,7 +491,8 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
                 </h3>
                 
                 {!appliedDiscount ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {/* Input field */}
                     <div className="flex space-x-2">
                       <Input 
                         placeholder="Enter discount code" 
@@ -485,10 +521,73 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
                         )}
                       </Button>
                     </div>
+                    
+                    {/* Error message */}
                     {couponMessage && !appliedDiscount && (
                       <div className="flex items-center space-x-2 text-sm text-red-600 animate-in fade-in">
                         <AlertCircle className="h-4 w-4" />
                         <span>{couponMessage}</span>
+                      </div>
+                    )}
+
+                    {/* Available discounts */}
+                    {availableDiscounts.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-700 flex items-center">
+                            <Sparkles className="h-4 w-4 mr-1 text-yellow-500" />
+                            Available Offers
+                          </p>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {availableDiscounts.map((discount) => (
+                            <div
+                              key={discount._id}
+                              className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 hover:border-purple-300 transition-all cursor-pointer"
+                              onClick={() => {
+                                setCouponCode(discount.code);
+                                setTimeout(() => handleApplyCoupon(), 100);
+                              }}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm font-mono font-bold text-purple-700 bg-white px-2 py-0.5 rounded">
+                                      {discount.code}
+                                    </span>
+                                    {discount.expiresAt && (
+                                      <span className="flex items-center text-xs text-gray-500">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        Expires {new Date(discount.expiresAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-700 mt-1">
+                                    {discount.name || discount.description}
+                                  </p>
+                                  <p className="text-xs text-gray-600 mt-1">
+                                    {discount.discountType === 'percentage' 
+                                      ? `${discount.percentage}% OFF` 
+                                      : `$${discount.fixedAmount} OFF`}
+                                    {discount.minOrderAmount && ` • Min. $${discount.minOrderAmount}`}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-purple-600 hover:text-purple-700 hover:bg-purple-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCouponCode(discount.code);
+                                    setTimeout(() => handleApplyCoupon(), 100);
+                                  }}
+                                >
+                                  Apply
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -511,52 +610,85 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
               </Card>
 
               {/* Loyalty Points */}
-              {isAuthenticated && loyaltyAccount && loyaltyAccount.totalPoints > 0 && (
+              {isAuthenticated && loyaltyAccount && (
                 <Card className="p-6">
                   <h3 className="font-semibold mb-4 flex items-center">
-                    <Gift className="h-4 w-4 mr-2" />
+                    <Gift className="h-4 w-4 mr-2 text-amber-500" />
                     Loyalty Points
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex justify-between text-sm">
-                      <span>Available Points:</span>
-                      <span className="font-medium">{loyaltyAccount.totalPoints.toFixed(2)} pts</span>
+                      <span className="text-gray-600">Available Points:</span>
+                      <span className={`font-semibold ${loyaltyAccount.totalPoints > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                        {loyaltyAccount.totalPoints.toFixed(2)} pts
+                      </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Your Tier:</span>
-                      <span className="font-medium capitalize">{loyaltyAccount.tier}</span>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Use Points (1 pt = $1):</label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max={maxLoyaltyPoints}
-                        step="0.01"
-                        value={loyaltyPointsToUse}
-                        onChange={(e) => handleUseLoyaltyPoints(parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        disabled={maxLoyaltyPoints === 0}
-                      />
-                      <div className="flex justify-between items-center">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleUseLoyaltyPoints(maxLoyaltyPoints)}
-                          disabled={maxLoyaltyPoints === 0}
-                        >
-                          Use All ({maxLoyaltyPoints.toFixed(2)})
-                        </Button>
-                        <span className="text-sm font-medium text-green-600">
-                          Save: ${loyaltyDiscount.toFixed(2)}
-                        </span>
-                      </div>
-                      {maxLoyaltyPoints === 0 && (
-                        <p className="text-xs text-gray-500">
-                          No points available after discount
+                    
+                    <Separator />
+                    
+                    {loyaltyAccount.totalPoints > 0 ? (
+                      <>
+                        {/* Checkbox to use loyalty points */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="use-loyalty-points"
+                              checked={useLoyaltyPoints}
+                              onCheckedChange={(checked) => {
+                                setUseLoyaltyPoints(checked as boolean);
+                                if (!checked) {
+                                  setLoyaltyPointsToUse(0);
+                                }
+                              }}
+                              disabled={appliedDiscount !== null || maxLoyaltyPoints === 0}
+                            />
+                            <label
+                              htmlFor="use-loyalty-points"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Use loyalty points as discount (1 pt = $1)
+                            </label>
+                          </div>
+                          
+                          {useLoyaltyPoints && (
+                            <div className="space-y-2 animate-in fade-in">
+                              <p className="text-sm font-medium text-gray-700">Points to use:</p>
+                              <Input
+                                type="number"
+                                min="0"
+                                max={maxLoyaltyPoints}
+                                step="0.01"
+                                value={loyaltyPointsToUse}
+                                onChange={(e) => {
+                                  const value = parseFloat(e.target.value) || 0;
+                                  setLoyaltyPointsToUse(Math.min(value, maxLoyaltyPoints));
+                                }}
+                                placeholder="0.00"
+                                disabled={maxLoyaltyPoints === 0}
+                                className="text-right"
+                              />
+                              <p className="text-xs text-gray-500">
+                                Maximum: {maxLoyaltyPoints.toFixed(2)} pts (${maxLoyaltyPoints.toFixed(2)})
+                              </p>
+                            </div>
+                          )}
+                          
+                          {appliedDiscount && (
+                            <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                              ⚠️ Remove discount code to use loyalty points
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-4 px-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
+                        <Gift className="h-8 w-8 mx-auto text-amber-400 mb-2" />
+                        <p className="text-sm font-medium text-gray-700 mb-1">No points yet!</p>
+                        <p className="text-xs text-gray-600">
+                          Complete your first purchase to start earning loyalty points. You'll get 10% of your order total as points!
                         </p>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               )}
