@@ -2,7 +2,7 @@ const cartService = require('../services/cartService');
 const AppError = require('../errors');
 
 const getCart = async (req, res) => {
-    const userId = req.params._id;
+    const userId = req.user._id;
 
     const cart = await cartService.getOrCreateCart(userId);
     res.status(200).json({
@@ -12,7 +12,7 @@ const getCart = async (req, res) => {
 };
 
 const addToCart = async (req, res) => {
-    const userId = req.params._id;
+    const userId = req.user._id;
     const { productId, quantity } = req.body;
 
     if (!productId) {
@@ -34,7 +34,7 @@ const addToCart = async (req, res) => {
 };
 
 const updateCartItem = async (req, res) => {
-    const userId = req.params._id;
+    const userId = req.user._id;
     const { itemId } = req.params;
     const { quantity } = req.body;
 

@@ -7,9 +7,14 @@ const passport = require('passport');
 // Register & login thường
 router.post("/signup", authController.register);
 router.post("/login", authController.login);
+router.post("/logout", authController.logout);
+router.post("/refresh", authController.refreshToken);
 
 // Xem profile (phải login mới xem được)
 router.get("/profile", authMiddleware, authController.profile);
+
+// Logout all devices (phải login)
+router.post("/logout-all", authMiddleware, authController.logoutAllDevices);
 
 // Google OAuth
 router.get("/google", 

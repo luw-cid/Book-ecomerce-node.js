@@ -14,6 +14,8 @@ import { type CartItem } from "./components/ShoppingCart";
 import axios from "axios";
 
 import { useAuth } from "./context/authContext";
+import { setupActivityTracker } from "./utils/activityTracker";
+import { setupAxiosInterceptor } from "./utils/axiosInterceptor";
 
 export type PageType = "home" | "login" | "register" | "product-detail" | "cart" | "checkout" | "payment" | "profile" | "category";
 
@@ -40,6 +42,7 @@ export default function App() {
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isCartSyncing, setIsCartSyncing] = useState(false);
+  const [isCartLoaded, setIsCartLoaded] = useState(false);
 
     // ✅ Save currentPage to localStorage khi thay đổi
   useEffect(() => {
@@ -54,6 +57,25 @@ export default function App() {
       localStorage.removeItem(PAGE_DATA_STORAGE_KEY);
     }
   }, [pageData]);
+
+  // Setup Axios Interceptor khi app mount
+  useEffect(() => {
+    console.log('🔧 Setting up Axios interceptor');
+    setupAxiosInterceptor(handleLogout);
+  }, []);
+
+  // Setup Activity Tracker khi user authenticated
+  useEffect(() => {
+    if (user) {
+      console.log('🎯 User authenticated - starting activity tracker (15min idle timeout)');
+      
+      // Setup activity tracker với 15 phút idle timeout
+      const cleanup = setupActivityTracker(handleLogout);
+      
+      // Cleanup khi unmount hoặc logout
+      return cleanup;
+    }
+  }, [user]);
   
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -66,6 +88,7 @@ export default function App() {
         console.error('Error loading cart from localStorage:', error);
       }
     }
+    setIsCartLoaded(true); // Đánh dấu đã load xong
   }, []);
 
   // Save cart to localStorage whenever it changes
@@ -77,12 +100,12 @@ export default function App() {
     }
   }, [cartItems]);
 
-  // Sync cart with backend when user logs in
+  // Sync cart with backend when user logs in AND cart is loaded
   useEffect(() => {
-    if (user && !isCartSyncing) {
+    if (user && isCartLoaded && !isCartSyncing) {
       syncCartWithBackend();
     }
-  }, [user]);
+  }, [user, isCartLoaded]);
 
   const syncCartWithBackend = async () => {
     if (!user || isCartSyncing) return;
@@ -91,55 +114,49 @@ export default function App() {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       
-      // 1. Fetch cart from backend
-      const response = await axios.get(`${API_URL}/cart`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const backendCart = response.data.cart?.items || [];
-      const localCart = cartItems;
-
-      // 2. Merge carts - priority to local cart (newer)
-      const mergedCart = [...localCart];
-      
-      backendCart.forEach((backendItem: any) => {
-        const existingIndex = mergedCart.findIndex(
-          item => item.book.id === backendItem.productId
-        );
+      // Nếu có items trong local cart, sync lên backend
+      if (cartItems.length > 0) {
+        console.log('🔄 Syncing local cart to backend...');
         
-        if (existingIndex === -1) {
-          // Item only in backend, add to merged cart
-          // Note: You may need to fetch product details
-          // For now, we'll skip items not in local cart
-        } else {
-          // Item in both, use max quantity
-          mergedCart[existingIndex].quantity = Math.max(
-            mergedCart[existingIndex].quantity,
-            backendItem.quantity
-          );
+        // Clear backend cart first
+        await axios.delete(`${API_URL}/cart/clear`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Add all local items to backend
+        const syncPromises = cartItems.map(item =>
+          axios.post(
+            `${API_URL}/cart/add`,
+            {
+              productId: item.book.id,
+              quantity: item.quantity
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          ).catch(err => {
+            console.warn(`Failed to sync item ${item.book.id}:`, err);
+          })
+        );
+
+        await Promise.all(syncPromises);
+        console.log('✅ Cart synced to backend successfully');
+      } else {
+        // Nếu local cart empty, fetch từ backend
+        console.log('🔄 Loading cart from backend...');
+        const response = await axios.get(`${API_URL}/cart`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const backendCart = response.data.cart?.items || [];
+        
+        // Convert backend format to local format
+        // Note: Bạn cần fetch product details nếu cần
+        // For now, chỉ log
+        if (backendCart.length > 0) {
+          console.log('📦 Backend cart has items:', backendCart);
+          // TODO: Convert backend items to local CartItem format
         }
-      });
+      }
 
-      // 3. Update backend with merged cart
-      const syncPromises = mergedCart.map(item =>
-        axios.post(
-          `${API_URL}/cart/items`,
-          {
-            productId: item.book.id,
-            quantity: item.quantity
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        ).catch(err => {
-          console.warn(`Failed to sync item ${item.book.id}:`, err);
-        })
-      );
-
-      await Promise.all(syncPromises);
-
-      // 4. Update local state
-      setCartItems(mergedCart);
-
-      console.log('Cart synced with backend successfully');
     } catch (error: any) {
       console.error('Error syncing cart with backend:', error);
       // Don't block user, continue with local cart
@@ -151,13 +168,20 @@ export default function App() {
   // Xử lý callback từ Google OAuth
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    const accessToken = urlParams.get('accessToken');
+    const refreshToken = urlParams.get('refreshToken');
     const userStr = urlParams.get('user');
 
-    if (token && userStr) {
+    if (accessToken && refreshToken && userStr) {
       try {
+        // URLSearchParams đã tự decode, chỉ cần parse user data
         const userData = JSON.parse(decodeURIComponent(userStr));
-        login(userData, token);
+        
+        // Save tokens to localStorage (Google OAuth users are considered "remembered")
+        localStorage.setItem('token', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        
+        login(userData, accessToken);
 
         // Xóa query params khỏi URL
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -238,6 +262,9 @@ export default function App() {
 
   const handleLogout = () => {
     logout();
+    // Remove refresh token
+    localStorage.removeItem("refreshToken");
+    sessionStorage.removeItem("refreshToken");
     // Keep cart in localStorage for guest mode
     // User can continue shopping as guest
     handleNavigate("home");

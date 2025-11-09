@@ -646,7 +646,7 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
                               htmlFor="use-loyalty-points"
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              Use loyalty points as discount (1 pt = $1)
+                              Use loyalty points as discount (1 pt = 1000đ)
                             </label>
                           </div>
                           
@@ -768,7 +768,7 @@ export function CartPage({ cartItems, onNavigate, onUpdateQuantity, onRemoveItem
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Free returns within 30 days</span>
+                    <span>Free returns within 7 days</span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>

@@ -28,18 +28,22 @@ const login = asyncHandle(async (req, res) => {
     if (!result) {
         throw new AppError("Account or password incorrect", 401);
     }
-    const { user, token } = result;
+    const { user, accessToken, refreshToken } = result;
     
     res.json({
+        success: true,
         message: "Login successfully!",
-        token,
-        user: {
-            id: user.id,
-            fullName: user.fullName,
-            email: user.email,
-            address: user.address,
-            admin: user.admin,
-        },
+        data: {
+            accessToken,
+            refreshToken,
+            user: {
+                id: user.id,
+                fullName: user.fullName,
+                email: user.email,
+                address: user.address,
+                admin: user.admin,
+            },
+        }
     });
 });
 
@@ -50,25 +54,61 @@ const profile = asyncHandle(async (req, res) => {
 
 // Đăng xuất (API REST)
 const logout = asyncHandle(async (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            throw new AppError("Lỗi khi đăng xuất!", 500);
+    const { refreshToken } = req.body;
+    
+    if (refreshToken) {
+        await authService.logout(refreshToken);
+    }
+    
+    res.json({ 
+        success: true,
+        message: "Logout successfully!" 
+    });
+});
+
+// Refresh Token
+const refreshToken = asyncHandle(async (req, res) => {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+        throw new AppError('Refresh token is required', 400);
+    }
+    
+    const result = await authService.refreshAccessToken(refreshToken);
+    
+    res.json({
+        success: true,
+        data: {
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken
         }
-        res.json({ message: "Logout successfully!" });
+    });
+});
+
+// Logout All Devices
+const logoutAllDevices = asyncHandle(async (req, res) => {
+    const userId = req.user.id;
+    
+    await authService.logoutAllDevices(userId);
+    
+    res.json({
+        success: true,
+        message: 'Logged out from all devices'
     });
 });
 
 // Callback Google OAuth
 const googleCallback = asyncHandle(async (req, res) => {
     // Gọi service xử lý logic
-    const { token, user } = await authService.handleGoogleCallback(req.user);
+    const { accessToken, refreshToken, user } = await authService.handleGoogleCallback(req.user);
     
     // Encode data để truyền qua URL
     const encodedUser = encodeURIComponent(JSON.stringify(user));
-    const encodedToken = encodeURIComponent(token);
+    const encodedAccessToken = encodeURIComponent(accessToken);
+    const encodedRefreshToken = encodeURIComponent(refreshToken);
     
     // Redirect về frontend
-    res.redirect(`http://localhost:5173/auth/callback?token=${encodedToken}&user=${encodedUser}`);
+    res.redirect(`http://localhost:5173/auth/callback?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}&user=${encodedUser}`);
 });
 
 module.exports = {
@@ -76,5 +116,7 @@ module.exports = {
     login,
     profile,
     logout,
+    refreshToken,
+    logoutAllDevices,
     googleCallback,
 };

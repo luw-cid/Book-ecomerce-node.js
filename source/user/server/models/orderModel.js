@@ -1,4 +1,3 @@
-// source/user/server/models/orderModel.js
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
@@ -13,28 +12,60 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
   items: [{
-    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-    quantity: Number,
-    price: Number,
+    product: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'Product',
+      required: true
+    },
+    quantity: { 
+      type: Number,
+      required: true,
+      min: 1
+    },
+    price: { 
+      type: Number,
+      required: true,
+      min: 0
+    },
     name: String,
     image: String
   }],
   shippingAddress: {
-    fullName: String,
-    email: String,
-    phone: String,
-    address: String,
-    city: String,
-    zipCode: String
+    fullName: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String, required: true },
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    zipCode: { type: String, required: true }
   },
-  subtotal: Number,
+  subtotal: {
+    type: Number,
+    required: true,
+    min: 0
+  },
   discount: {
     code: String,
-    amount: Number
+    amount: {
+      type: Number,
+      default: 0,
+      min: 0
+    }
   },
-  shipping: Number,
-  tax: Number,
-  total: Number,
+  shipping: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  tax: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  total: {
+    type: Number,
+    required: true,
+    min: 0
+  },
   paymentMethod: {
     type: String,
     enum: ['COD', 'Card', 'Banking'],
@@ -52,15 +83,14 @@ const orderSchema = new mongoose.Schema({
   },
   trackingNumber: String,
   notes: String
-}, { timestamps: true });
-
-// Auto-generate order number
-orderSchema.pre('save', async function(next) {
-  if (!this.orderNumber) {
-    const count = await mongoose.model('Order').countDocuments();
-    this.orderNumber = `ORD${Date.now()}${count + 1}`;
-  }
-  next();
+}, { 
+  timestamps: true 
 });
+
+// Indexes for better query performance
+orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ orderStatus: 1 });
+orderSchema.index({ paymentStatus: 1 });
 
 module.exports = mongoose.model('Order', orderSchema);

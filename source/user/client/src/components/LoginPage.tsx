@@ -39,8 +39,22 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         }
       );
       if(response.status === 200) {
-        const { user, token } = response.data;
-        login(user, token); // Lưu vào context
+        const { user, accessToken, refreshToken } = response.data.data;
+        
+        // Check if "Remember me" is checked
+        const rememberMe = (document.getElementById('remember') as HTMLInputElement)?.checked;
+        
+        if (rememberMe) {
+          // Save to localStorage for persistent login
+          localStorage.setItem('token', accessToken);
+          localStorage.setItem('refreshToken', refreshToken);
+        } else {
+          // Save to sessionStorage for session-only login
+          sessionStorage.setItem('token', accessToken);
+          sessionStorage.setItem('refreshToken', refreshToken);
+        }
+        
+        login(user, accessToken); // Lưu vào context với accessToken
         onNavigate("home");
       } else {
         alert (response.data.message || "Login failed");

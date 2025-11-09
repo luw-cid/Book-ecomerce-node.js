@@ -8,16 +8,20 @@ const authRoutes = require('./authRoute');
 const productRoutes = require('./productRoute');
 const categoryRoutes = require('./categoryRoute');
 const cartRoutes = require('./cartRoute');
-const userRoute = require('./userRoute');
-const discountRoute = require('./discountRoute');
+const userRoutes = require('./userRoute');
+const discountRoutes = require('./discountRoute');
+const loyaltyRoutes = require('./loyaltyRoute');
+const orderRoutes = require('./orderRote');
 
 // ánh xạ các route con
 router.use('/auth', authRoutes);
 router.use('/products', productRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/cart', cartRoutes);
-router.use('/user', userRoute);
-router.use('/discounts', discountRoute);
+router.use('/user', userRoutes);
+router.use('/discounts', discountRoutes);
+router.use('/loyalty', loyaltyRoutes);
+router.use('/orders', orderRoutes);
 
 // Serve static files cho uploads
 router.use('/uploads', express.static(path.join(__dirname, 'uploads')));

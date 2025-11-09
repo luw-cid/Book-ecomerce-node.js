@@ -1,4 +1,5 @@
 const userModel = require('../models/userModel');
+const RefreshToken = require('../models/refreshTokenModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -93,6 +94,38 @@ const registerUser = async (fullName, email, address) => {
     }
 }
 
+/**
+ * Generate Access Token (ngắn hạn - 15 phút)
+ */
+const generateAccessToken = (user) => {
+  return jwt.sign(
+    { id: user._id, email: user.email, admin: user.admin },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" }
+  );
+};
+
+/**
+ * Generate Refresh Token (random string)
+ */
+const generateRefreshToken = () => {
+  return crypto.randomBytes(64).toString('hex');
+};
+
+/**
+ * Save Refresh Token to database
+ */
+const saveRefreshToken = async (userId, token) => {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30); // 30 ngày
+
+  await RefreshToken.create({
+    user: userId,
+    token,
+    expiresAt
+  });
+};
+
 // Đăng nhập user
 // Kiểm tra password (so sánh mật khẩu user nhập với mật khẩu đã hash)
 const loginUser = async (email, password) => {
@@ -101,13 +134,16 @@ const loginUser = async (email, password) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if(!isMatch) return null;
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email, admin: user.admin },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    // Tạo access token (15 phút)
+    const accessToken = generateAccessToken(user);
+    
+    // Tạo refresh token (30 ngày)
+    const refreshToken = generateRefreshToken();
+    
+    // Lưu refresh token vào database
+    await saveRefreshToken(user._id, refreshToken);
 
-    return { user, token};
+    return { user, accessToken, refreshToken };
 };
 
 // Tìm hoặc tạo Google user
@@ -127,12 +163,14 @@ const findOrCreateGoogleUser = async (profile) => {
 
 // Xử lý Google OAuth callback - tạo token và format user data
 const handleGoogleCallback = async (user) => {
-    // Tạo JWT token cho user
-    const token = jwt.sign(
-        { id: user._id, email: user.email, admin: user.admin },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" }
-    );
+    // Tạo access token (15 phút)
+    const accessToken = generateAccessToken(user);
+    
+    // Tạo refresh token (30 ngày)
+    const refreshToken = generateRefreshToken();
+    
+    // Lưu refresh token vào database
+    await saveRefreshToken(user._id, refreshToken);
     
     // Format thông tin user để gửi về frontend
     const userData = {
@@ -142,7 +180,62 @@ const handleGoogleCallback = async (user) => {
         avatar: user.avatar
     };
     
-    return { token, user: userData };
+    return { accessToken, refreshToken, user: userData };
+};
+
+/**
+ * Refresh Access Token
+ * Token Rotation: Tạo cả access token và refresh token mới
+ */
+const refreshAccessToken = async (refreshToken) => {
+  try {
+    // Tìm refresh token trong database
+    const tokenDoc = await RefreshToken.findOne({ token: refreshToken })
+      .populate('user');
+
+    if (!tokenDoc) {
+      throw new Error('Invalid refresh token');
+    }
+
+    // Check expiration
+    if (new Date() > tokenDoc.expiresAt) {
+      await RefreshToken.deleteOne({ _id: tokenDoc._id });
+      throw new Error('Refresh token expired');
+    }
+
+    const user = tokenDoc.user;
+
+    // Token Rotation: Tạo cả 2 tokens mới
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken();
+
+    // Xóa refresh token cũ
+    await RefreshToken.deleteOne({ _id: tokenDoc._id });
+
+    // Lưu refresh token mới
+    await saveRefreshToken(user._id, newRefreshToken);
+
+    return { 
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken 
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Logout - Xóa refresh token khỏi database
+ */
+const logout = async (refreshToken) => {
+  await RefreshToken.deleteOne({ token: refreshToken });
+};
+
+/**
+ * Logout All Devices - Xóa tất cả refresh tokens của user
+ */
+const logoutAllDevices = async (userId) => {
+  await RefreshToken.deleteMany({ user: userId });
 };
 
 module.exports = {
@@ -150,4 +243,7 @@ module.exports = {
     loginUser,
     findOrCreateGoogleUser,
     handleGoogleCallback,
+    refreshAccessToken,
+    logout,
+    logoutAllDevices,
 };
