@@ -12,7 +12,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import axios from "axios";
 import { getReviewsForBook, getRatingDistribution } from "../data/reviews";
 import type { PageType } from "../App";
-
+import { convertUSDtoVND, formatVND } from "../utils/currency";
 interface ProductDetailPageProps {
   bookId: string;
   onNavigate: (page: PageType, data?: any) => void;
@@ -38,15 +38,16 @@ export function ProductDetailPage({
 
   // Map backend product → frontend Book (copied/adapted from HomePage)
   const mapProductToBook = (product: any): Book => {
+    const priceVND = product.price;
     const originalPrice = product.discount
-      ? product.price / (1 - product.discount.percentage / 100)
+      ? priceVND / (1 - product.discount.percentage / 100)
       : undefined;
 
     return {
       id: product._id,
       title: product.name,
       author: product.author || product.tags?.[0] || 'Unknown Author',
-      price: product.price,
+      price: priceVND,
       originalPrice,
       rating: product.rating ?? 4.5,
       reviewCount: product.reviewCount ?? 0,
@@ -57,7 +58,7 @@ export function ProductDetailPage({
         {
           id: product._id,
           name: 'Standard Edition',
-          price: product.price,
+          price: priceVND,
           originalPrice,
           stock: product.stock,
           sku: product._id
@@ -252,11 +253,11 @@ export function ProductDetailPage({
             {/* Price */}
             <div className="flex items-center space-x-3">
               <span className="text-3xl font-bold bg-gradient-to-r from-winter to-summer bg-clip-text text-transparent">
-                ${book.price.toFixed(2)}
+                {formatVND(book.price)}
               </span>
               {book.originalPrice && (
                 <span className="text-xl text-gray-500 line-through">
-                  ${book.originalPrice.toFixed(2)}
+                  {formatVND(book.originalPrice)}
                 </span>
               )}
               {book.originalPrice && (

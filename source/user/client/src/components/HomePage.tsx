@@ -13,6 +13,7 @@ import { Card, CardContent } from "./ui/card";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
 import type { PageType } from "../App";
+import { convertUSDtoVND, formatVND } from "../utils/currency";
 
 interface HomePageProps {
   onNavigate: (page: PageType, data?: any) => void;
@@ -75,15 +76,17 @@ export function HomePage({
   // ============= HELPER: MAP BACKEND DATA → FRONTEND DATA =============
   const mapProductToBook = (product: any): Book => {
     console.log('🔍 Product category:', product.category); // 👈 Thêm dòng này
+    const priceVND = product.price;
+
     const originalPrice = product.discount
-      ? product.price / (1 - product.discount.percentage / 100)
+      ? priceVND / (1 - product.discount.percentage / 100)
       : undefined;
 
     return {
       id: product._id,
       title: product.name,
       author: product.author || product.tags?.[0] || 'Unknown Author',
-      price: product.price,
+      price: priceVND,
       originalPrice,
       rating: product.rating ?? 4.5,
       reviewCount: product.reviewCount ?? 0,
@@ -94,7 +97,7 @@ export function HomePage({
         {
           id: product._id,
           name: 'Standard Edition',
-          price: product.price,
+          price: priceVND,
           originalPrice,
           stock: product.stock,
           sku: product._id
@@ -382,14 +385,14 @@ export function HomePage({
                         ? 'border-rose-300 bg-rose-50/70 shadow-lg'
                         : 'border-rose-100 bg-rose-50/30 hover:border-rose-200'
                         }`}
-                      onClick={() => setPriceRange([0, 14.99])}
+                      onClick={() => setPriceRange([0, 360000])}
                     >
                       <div className="text-center">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-300 to-pink-400 mx-auto mb-3 flex items-center justify-center">
                           <span className="text-white font-bold">🌸</span>
                         </div>
                         <h3 className="font-semibold text-rose-700 mb-1">Spring Reads</h3>
-                        <p className="text-sm text-rose-600 mb-2">$0 - $14.99</p>
+                        <p className="text-sm text-rose-600 mb-2">{formatVND(0)} - {formatVND(360000)}</p>
                         <p className="text-xs text-gray-500">Budget-friendly picks</p>
                       </div>
                     </div>
@@ -400,14 +403,14 @@ export function HomePage({
                         ? 'border-emerald-300 bg-emerald-50/70 shadow-lg'
                         : 'border-emerald-100 bg-emerald-50/30 hover:border-emerald-200'
                         }`}
-                      onClick={() => setPriceRange([15, 17.99])}
+                      onClick={() => setPriceRange([360000, 432000])}
                     >
                       <div className="text-center">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-300 to-teal-400 mx-auto mb-3 flex items-center justify-center">
                           <span className="text-white font-bold">☀️</span>
                         </div>
                         <h3 className="font-semibold text-emerald-700 mb-1">Summer Vibes</h3>
-                        <p className="text-sm text-emerald-600 mb-2">$15 - $17.99</p>
+                        <p className="text-sm text-emerald-600 mb-2">{formatVND(360000)} - {formatVND(432000)}</p>
                         <p className="text-xs text-gray-500">Popular choices</p>
                       </div>
                     </div>
@@ -418,14 +421,14 @@ export function HomePage({
                         ? 'border-amber-300 bg-amber-50/70 shadow-lg'
                         : 'border-amber-100 bg-amber-50/30 hover:border-amber-200'
                         }`}
-                      onClick={() => setPriceRange([18, 19.99])}
+                      onClick={() => setPriceRange([432000, 480000])}
                     >
                       <div className="text-center">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 mx-auto mb-3 flex items-center justify-center">
                           <span className="text-white font-bold">🍂</span>
                         </div>
                         <h3 className="font-semibold text-amber-700 mb-1">Autumn Tales</h3>
-                        <p className="text-sm text-amber-600 mb-2">$18 - $19.99</p>
+                        <p className="text-sm text-amber-600 mb-2">{formatVND(432000)} - {formatVND(480000)}</p>
                         <p className="text-xs text-gray-500">Premium selection</p>
                       </div>
                     </div>
@@ -436,14 +439,14 @@ export function HomePage({
                         ? 'border-sky-300 bg-sky-50/70 shadow-lg'
                         : 'border-sky-100 bg-sky-50/30 hover:border-sky-200'
                         }`}
-                      onClick={() => setPriceRange([20, maxPrice])}
+                      onClick={() => setPriceRange([480000, maxPrice])}
                     >
                       <div className="text-center">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-300 to-blue-400 mx-auto mb-3 flex items-center justify-center">
                           <span className="text-white font-bold">❄️</span>
                         </div>
                         <h3 className="font-semibold text-sky-700 mb-1">Winter Classics</h3>
-                        <p className="text-sm text-sky-600 mb-2">$20+</p>
+                        <p className="text-sm text-sky-600 mb-2">{formatVND(480000)}+</p>
                         <p className="text-xs text-gray-500">Luxury editions</p>
                       </div>
                     </div>
@@ -458,7 +461,7 @@ export function HomePage({
                       </div>
                       <div className="flex items-center space-x-4">
                         <span className="text-sm font-medium bg-gradient-to-r from-emerald-600 to-sky-600 bg-clip-text text-transparent">
-                          ${priceRange[0]} - ${priceRange[1]}
+                          {formatVND(priceRange[0])} - {formatVND(priceRange[1])}
                         </span>
                         {hasActiveFilters && (
                           <Button
@@ -483,8 +486,8 @@ export function HomePage({
                         className="w-full"
                       />
                       <div className="flex justify-between text-xs text-gray-500 mt-2">
-                        <span>${minPrice}</span>
-                        <span>${maxPrice}</span>
+                        <span>{formatVND(minPrice)}</span>
+                        <span>{formatVND(maxPrice)}</span>
                       </div>
                     </div>
                   </div>
@@ -601,7 +604,7 @@ export function HomePage({
                     {filteredBooks.length} books found
                     {searchQuery && ` for "${searchQuery}"`}
                     {(priceRange[0] > minPrice || priceRange[1] < maxPrice) &&
-                      ` in ${priceRange[0]} - ${priceRange[1]} range`}
+                      ` in ${formatVND(priceRange[0])} - ${formatVND(priceRange[1])} range`}
                   </p>
 
                   {/* Active Brand Filters */}

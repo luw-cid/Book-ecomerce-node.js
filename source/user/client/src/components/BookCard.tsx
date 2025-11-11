@@ -6,6 +6,7 @@ import { Badge } from "./ui/badge";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import type { PageType } from "../App";
 import axios from "axios";
+import { formatVND } from "../utils/currency";
 
 export interface BookVariant {
   id: string;
@@ -234,8 +235,8 @@ export function BookCard({
           <Button
             onClick={handleAddToCart}
             className={`${addedToCart
-                ? 'bg-green-500 hover:bg-green-600 text-white'
-                : 'bg-white text-black hover:bg-gray-100'
+              ? 'bg-green-500 hover:bg-green-600 text-white'
+              : 'bg-white text-black hover:bg-gray-100'
               } transition-all duration-300`}
             aria-label={`Add ${book.title} to cart`}
             disabled={isAddingToCart}
@@ -281,10 +282,10 @@ export function BookCard({
 
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center space-x-2">
-              <span className="font-semibold">${book.price.toFixed(2)}</span>
+              <span className="font-semibold">{formatVND(book.price)}</span>
               {book.originalPrice && (
                 <span className="text-sm text-muted-foreground line-through">
-                  ${book.originalPrice.toFixed(2)}
+                  {formatVND(book.originalPrice)}
                 </span>
               )}
             </div>

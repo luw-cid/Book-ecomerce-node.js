@@ -10,7 +10,7 @@ import { Badge } from "./ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import type { PageType } from "../App";
-
+import { convertUSDtoVND, formatVND } from "../utils/currency";
 interface CategoryPageProps {
   category: string;
   onNavigate: (page: PageType, data?: any) => void;
@@ -38,22 +38,21 @@ export function CategoryPage({
 
   // ============= FILTER STATE =============
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating" | "newest">("featured");
+  const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating" | "newest" | "name-asc" | "name-desc">("featured");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
 
-  // Get min and max prices from books in this category
-  // const categoryBooks = sampleBooks.filter(book =>
-  //   category === "" || book.category.toLowerCase() === category.toLowerCase()
-  // );
+  // Brand & Rating filters
+  const [brands, setBrands] = useState<string[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<string>("__all__"); // publisher
+  const [minRating, setMinRating] = useState<number | null>(null);
 
-  // const minPrice = Math.min(...categoryBooks.map(book => book.price));
-  // const maxPrice = Math.max(...categoryBooks.map(book => book.price));
   // ============= MAP BACKEND → FRONTEND =============
   const mapProductToBook = (product: any): Book => {
+    const priceVND = product.price;
     const originalPrice = product.originalPrice ?? (
       product.discount
-        ? product.price / (1 - product.discount.percentage / 100)
+        ? priceVND / (1 - product.discount.percentage / 100)
         : undefined
     );
 
@@ -62,7 +61,7 @@ export function CategoryPage({
       title: product.name,
       author: product.author || product.tags?.[0] || 'Unknown Author',
       description: product.description,
-      price: product.price,
+      price: priceVND,
       originalPrice,
       rating: product.rating ?? 4.5,
       reviewCount: product.reviewCount ?? 0,
@@ -91,6 +90,7 @@ export function CategoryPage({
   const [debouncedPriceRange, setDebouncedPriceRange] = useState<[number, number]>([0, 50]);
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(100);
+
   // ============= FETCH MIN/MAX PRICE =============
   useEffect(() => {
     const fetchPriceRange = async () => {
@@ -103,18 +103,42 @@ export function CategoryPage({
           headers: { "Content-Type": "application/json" }
         });
 
-        setMinPrice(response.data.minPrice || 0);
-        setMaxPrice(response.data.maxPrice || 100);
-        setPriceRange([response.data.minPrice || 0, response.data.maxPrice || 100]);
+        const min = data.minPrice ?? 0;
+        const max = data.maxPrice ?? 1000000; // 1 triệu VND default
+
+        setMinPrice(min);
+        setMaxPrice(max);
+        setPriceRange([min, max]);
+        setDebouncedPriceRange([min, max]);
       } catch (err) {
-        console.warn('Failed to fetch price range:', err);
+        console.warn('⚠️ Failed to fetch price range:', err);
+        // Fallback values
+        setMinPrice(0);
+        setMaxPrice(1000000);
+        setPriceRange([0, 1000000]);
+        setDebouncedPriceRange([0, 1000000]);
       }
     };
 
     fetchPriceRange();
   }, [category]);
 
-
+  // ============= FETCH AVAILABLE BRANDS =============
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const params: any = {};
+        if (category && category !== "") params.category = category;
+        const res = await axios.get('http://localhost:3000/products/brands', { params });
+        const list: string[] = Array.isArray(res.data) ? res.data : res.data.brands || [];
+        setBrands(list);
+      } catch (err) {
+        console.warn('⚠️ Failed to fetch brands:', err);
+        setBrands([]);
+      }
+    };
+    fetchBrands();
+  }, [category]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -144,6 +168,11 @@ export function CategoryPage({
           params.category = category;
         }
 
+        // Brand filter (publisher)
+        if (selectedBrand && selectedBrand !== "__all__") {
+          params.publisher = selectedBrand;
+        }
+
         // 3. Thêm search query nếu có
         if (searchQuery) {
           params.search = searchQuery;
@@ -159,6 +188,14 @@ export function CategoryPage({
             params.sortBy = "price";
             params.sortOrder = "desc";
             break;
+          case "name-asc":
+            params.sortBy = "name";
+            params.sortOrder = "asc";
+            break;
+          case "name-desc":
+            params.sortBy = "name";
+            params.sortOrder = "desc";
+            break;
           case "rating":
             params.sortBy = "rating";
             params.sortOrder = "desc";
@@ -172,6 +209,11 @@ export function CategoryPage({
             break;
         }
 
+        // Rating filter (minRating)
+        if (minRating != null && minRating > 0) {
+          params.minRating = minRating;
+        }
+        console.log('🔍 Fetching books with params:', params);
         // 5. Gọi API
         const response = await axios.get('http://localhost:3000/products', {
           params,
@@ -183,7 +225,7 @@ export function CategoryPage({
           const data: any = response.data;
           const productsArray = data.products || data;
           const mappedBooks = (Array.isArray(productsArray) ? productsArray : []).map(mapProductToBook);
-
+          console.log(`✅ Loaded ${mappedBooks.length} books`);
           setBooks(mappedBooks);
           setTotalBooks(data.total || mappedBooks.length);
         }
@@ -201,7 +243,7 @@ export function CategoryPage({
 
     // Cleanup: hủy request nếu component unmount trước khi fetch xong
     return () => { cancelled = true; };
-  }, [category, currentPage, sortBy, debouncedPriceRange, searchQuery]);
+  }, [category, currentPage, sortBy, debouncedPriceRange, searchQuery, selectedBrand, minRating]);
 
   // Filter and search books (backend đã filter)
   // const filteredBooks = useMemo(() => {
@@ -265,7 +307,7 @@ export function CategoryPage({
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [sortBy, priceRange, searchQuery]);
+  }, [sortBy, debouncedPriceRange, searchQuery, selectedBrand, minRating]);
 
   // ============= LOADING STATE =============
   if (isLoading) {
@@ -294,6 +336,8 @@ export function CategoryPage({
   const clearFilters = () => {
     setPriceRange([minPrice, maxPrice]);
     setSortBy("featured");
+    setSelectedBrand("__all__");
+    setMinRating(null);
     setCurrentPage(1);
   };
 
@@ -405,10 +449,42 @@ export function CategoryPage({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="featured">Featured</SelectItem>
+                  <SelectItem value="name-asc">Name: A - Z</SelectItem>
+                  <SelectItem value="name-desc">Name: Z - A</SelectItem>
                   <SelectItem value="price-low">Price: Low to High</SelectItem>
                   <SelectItem value="price-high">Price: High to Low</SelectItem>
                   <SelectItem value="rating">Highest Rated</SelectItem>
                   <SelectItem value="newest">Newest First</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Brand Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Brand:</span>
+              <Select value={selectedBrand} onValueChange={(v: any) => setSelectedBrand(v)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All</SelectItem>
+                  {brands.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Rating Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Min Rating:</span>
+              <Select value={String(minRating ?? "__any__")} onValueChange={(v: any) => setMinRating(v === "__any__" ? null : Number(v))}>
+                <SelectTrigger className="w-28">
+                  <SelectValue placeholder="Any" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__any__">Any</SelectItem>
+                  <SelectItem value="4">4★+</SelectItem>
+                  <SelectItem value="3">3★+</SelectItem>
+                  <SelectItem value="2">2★+</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -463,8 +539,8 @@ export function CategoryPage({
                     className="w-full"
                   />
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>${priceRange[0].toFixed(2)}</span>
-                    <span>${priceRange[1].toFixed(2)}</span>
+                    <span>{formatVND(priceRange[0])}</span>
+                    <span>{formatVND(priceRange[1])}</span>
                   </div>
                 </div>
               </div>
@@ -489,30 +565,28 @@ export function CategoryPage({
               ))}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "hover:bg-winter-light cursor-pointer"}
-                      />
-                    </PaginationItem>
+            {/* Always render pagination control (requirement: show pages even if 1) */}
+            <div className="flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "hover:bg-winter-light cursor-pointer"}
+                    />
+                  </PaginationItem>
 
-                    {renderPaginationItems()}
+                  {renderPaginationItems()}
 
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "hover:bg-winter-light cursor-pointer"}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "hover:bg-winter-light cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           </>
         ) : (
           <div className="text-center py-16">
