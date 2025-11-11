@@ -191,32 +191,93 @@ const getPriceRange = asyncHandle(async (req, res) => {
   const { category } = req.query;
   const filter = { isActive: true };
 
-  if (category) {
-    // Nếu category là ObjectId hợp lệ -> dùng trực tiếp
-    if (mongoose.Types.ObjectId.isValid(category)) {
-      filter.category = mongoose.Types.ObjectId(category);
-    } else {
-      // Nếu category là tên -> tìm Category và dùng _id
-      const catDoc = await Category.findOne({ name: category });
-      if (!catDoc) {
-        return res.status(200).json({ minPrice: 0, maxPrice: 0 });
+  if (category && category.trim() !== "") {
+    try {
+      // Nếu category là ObjectId hợp lệ -> dùng trực tiếp
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        filter.category = new mongoose.Types.ObjectId(category);
+      } else {
+        // Nếu category là tên -> tìm Category và dùng _id
+        const catDoc = await Category.findOne({ 
+          name: { $regex: new RegExp(`^${category}$`, 'i') } // Case-insensitive
+        });
+        
+        if (!catDoc) {
+          // Không tìm thấy category -> trả range của tất cả products
+          console.warn(`⚠️ Category not found: ${category}`);
+          // Không thêm filter.category -> query tất cả products
+        } else {
+          filter.category = catDoc._id;
+        }
       }
-      filter.category = catDoc._id;
+    } catch (err) {
+      console.error('❌ Error parsing category:', err);
+      // Không throw error, chỉ log và tiếp tục
     }
   }
 
-  const result = await Product.aggregate([
-    { $match: filter },
-    {
-      $group: {
-        _id: null,
-        minPrice: { $min: "$price" },
-        maxPrice: { $max: "$price" }
+  try {
+    const result = await Product.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          minPrice: { $min: "$price" },
+          maxPrice: { $max: "$price" }
+        }
       }
-    }
-  ]);
+    ]);
 
-  return res.status(200).json(result[0] || { minPrice: 0, maxPrice: 100 });
+    const priceRange = result[0] || { minPrice: 0, maxPrice: 100 };
+    
+    return res.status(200).json({
+      minPrice: priceRange.minPrice || 0,
+      maxPrice: priceRange.maxPrice || 100
+    });
+  } catch (err) {
+    console.error('❌ Error in getPriceRange:', err);
+    return res.status(500).json({ 
+      message: 'Failed to fetch price range',
+      minPrice: 0,
+      maxPrice: 100
+    });
+  }
+});
+// Trả danh sách publishers (distinct)
+const getBrands = asyncHandle(async (req, res) => {
+  const { category } = req.query;
+  const filter = { isActive: true };
+
+  if (category && category.trim() !== "") {
+    try {
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        filter.category = new mongoose.Types.ObjectId(category);
+      } else {
+        const catDoc = await Category.findOne({ 
+          name: { $regex: new RegExp(`^${category}$`, 'i') }
+        });
+        
+        if (catDoc) {
+          filter.category = catDoc._id;
+        } else {
+          console.warn(`⚠️ Category not found for brands: ${category}`);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Error parsing category for brands:', err);
+    }
+  }
+
+  try {
+    // Lấy distinct publishers (không null/empty)
+    const brands = await Product.distinct('publisher', filter);
+    const validBrands = brands.filter(b => b && b.trim() !== '');
+    
+    return res.status(200).json(validBrands);
+  } catch (err) {
+    console.error('❌ Error fetching brands:', err);
+    return res.status(200).json([]); // Trả array rỗng thay vì error
+  }
 });
 
 module.exports = {
@@ -230,5 +291,6 @@ module.exports = {
     advancedSearch,
     searchSuggestions,
     getRelatedProducts,
+    getBrands,
     getProductsByPriceRange
 }
