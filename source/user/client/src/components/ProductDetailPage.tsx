@@ -12,6 +12,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import axios from "axios";
 import { getReviewsForBook, getRatingDistribution } from "../data/reviews";
 import type { PageType } from "../App";
+import { formatCurrency } from "../utils/formatCurrency";
 
 interface ProductDetailPageProps {
   bookId: string;
@@ -252,11 +253,11 @@ export function ProductDetailPage({
             {/* Price */}
             <div className="flex items-center space-x-3">
               <span className="text-3xl font-bold bg-gradient-to-r from-winter to-summer bg-clip-text text-transparent">
-                ${book.price.toFixed(2)}
+                {formatCurrency(book.price)}
               </span>
               {book.originalPrice && (
                 <span className="text-xl text-gray-500 line-through">
-                  ${book.originalPrice.toFixed(2)}
+                  {formatCurrency(book.originalPrice)}
                 </span>
               )}
               {book.originalPrice && (

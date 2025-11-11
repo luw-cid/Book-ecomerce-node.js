@@ -66,13 +66,13 @@ const getPublicDiscounts = async (req, res) => {
 };
 
 
-const getHomepageDiscounts = async (req, res) => {
-  const discounts = await discountService.getHomepageDiscounts();
+const getDiscounts = async (req, res) => {
+  const discounts = await discountService.getActiveDiscounts();
 
   res.status(200).json({
     success: true,
     count: discounts.length,
-    data: discounts
+    discounts: discounts
   });
 };
 
@@ -80,5 +80,5 @@ module.exports = {
     applyDiscount,
     validateDiscountCode,
     getPublicDiscounts,
-    getHomepageDiscounts
+    getDiscounts
 }

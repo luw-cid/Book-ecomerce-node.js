@@ -14,6 +14,7 @@ import type { CartItem } from "./ShoppingCart";
 import { sampleBooks } from "../data/books";
 import type { PageType } from "../App";
 import { useAuth } from "../context/authContext";
+import { formatCurrency } from "../utils/formatCurrency";
 
 interface User {
   _id: string;
@@ -478,7 +479,7 @@ export function ProfilePage({
                             <Badge variant="outline" className={getStatusColor(order.status)}>
                               {order.status}
                             </Badge>
-                            <p className="font-semibold text-lg mt-1">${order.total.toFixed(2)}</p>
+                            <p className="font-semibold text-lg mt-1">{formatCurrency(order.total)}</p>
                           </div>
                         </div>
                         
@@ -551,7 +552,7 @@ export function ProfilePage({
                         <div className="flex-1">
                           <h4 className="font-semibold">{item.book.title}</h4>
                           <p className="text-gray-600">{item.book.author}</p>
-                          <p className="font-semibold">${item.book.price.toFixed(2)} x {item.quantity}</p>
+                          <p className="font-semibold">{formatCurrency(item.book.price)} x {item.quantity}</p>
                         </div>
                       </div>
                     </Card>

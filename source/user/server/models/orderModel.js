@@ -36,7 +36,7 @@ const orderSchema = new mongoose.Schema({
     phone: { type: String, required: true },
     address: { type: String, required: true },
     city: { type: String, required: true },
-    zipCode: { type: String, required: true }
+    zipCode: { type: String, required: false }
   },
   subtotal: {
     type: Number,
@@ -68,7 +68,7 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['COD', 'Card', 'Banking'],
+    enum: ['COD', 'Card', 'Banking', 'Bank Transfer', 'Cash on Delivery'],
     required: true
   },
   paymentStatus: {
@@ -80,6 +80,21 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
     default: 'Pending'
+  },
+  paidAt: {
+    type: Date,
+    default: null
+  },
+  transactionId: {
+    type: String,
+    default: null
+  },
+  paymentDetails: {
+    transactionId: String,
+    transactionContent: String,
+    transactionDate: Date,
+    amount: Number,
+    bankCode: String
   },
   trackingNumber: String,
   notes: String

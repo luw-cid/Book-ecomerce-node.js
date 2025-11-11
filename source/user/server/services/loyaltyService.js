@@ -9,7 +9,7 @@ const TIER_THRESHOLDS = {
 };
 
 // Earn rate: 10% of order total
-const EARN_RATE = 0.10;
+const EARN_RATE = 0.00010;
 
 /**
  * Calculate tier based on lifetime points

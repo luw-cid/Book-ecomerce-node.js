@@ -302,6 +302,8 @@ export default function App() {
           <CheckoutPage
             cartItems={cartItems}
             onNavigate={handleNavigate}
+            user={user}
+            onClearCart={() => setCartItems([])}
           />
         );
       case "payment":

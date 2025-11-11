@@ -10,6 +10,7 @@ import { Badge } from "./ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import type { PageType } from "../App";
+import { formatCurrency } from "../utils/formatCurrency";
 
 interface CategoryPageProps {
   category: string;
@@ -463,8 +464,8 @@ export function CategoryPage({
                     className="w-full"
                   />
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>${priceRange[0].toFixed(2)}</span>
-                    <span>${priceRange[1].toFixed(2)}</span>
+                    <span>{formatCurrency(priceRange[0])}</span>
+                    <span>{formatCurrency(priceRange[1])}</span>
                   </div>
                 </div>
               </div>

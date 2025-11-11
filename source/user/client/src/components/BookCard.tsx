@@ -6,6 +6,7 @@ import { Badge } from "./ui/badge";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import type { PageType } from "../App";
 import axios from "axios";
+import { formatCurrency } from "../utils/formatCurrency";
 
 export interface BookVariant {
   id: string;
@@ -281,10 +282,10 @@ export function BookCard({
 
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center space-x-2">
-              <span className="font-semibold">${book.price.toFixed(2)}</span>
+              <span className="font-semibold">{formatCurrency(book.price)}</span>
               {book.originalPrice && (
                 <span className="text-sm text-muted-foreground line-through">
-                  ${book.originalPrice.toFixed(2)}
+                  {formatCurrency(book.originalPrice)}
                 </span>
               )}
             </div>

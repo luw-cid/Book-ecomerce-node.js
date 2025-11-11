@@ -7,6 +7,6 @@ const router = express.Router();
 router.post('/apply', asyncHandle(discountController.applyDiscount));
 router.get('/validate/:code', asyncHandle(discountController.validateDiscountCode));
 router.get('/public', asyncHandle(discountController.getPublicDiscounts));
-router.get('/homepage', asyncHandle(discountController.getHomepageDiscounts));
+router.get('/active', asyncHandle(discountController.getDiscounts));
 
 module.exports = router;

@@ -6,7 +6,8 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
-import { PageType } from "../App";
+import { type PageType } from "../App";
+import { formatCurrency } from "../utils/formatCurrency";
 
 interface PaymentPageProps {
   onNavigate: (page: PageType) => void;
@@ -225,7 +226,7 @@ export function PaymentPage({ onNavigate, checkoutData }: PaymentPageProps) {
                           <span>Processing Payment...</span>
                         </div>
                       ) : (
-                        `Pay $${total.toFixed(2)}`
+                        `Pay ${formatCurrency(total)}`
                       )}
                     </Button>
                   </form>
@@ -272,7 +273,7 @@ export function PaymentPage({ onNavigate, checkoutData }: PaymentPageProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${(total * 0.9259).toFixed(2)}</span>
+                    <span>{formatCurrency(total * 0.9259)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
@@ -280,12 +281,12 @@ export function PaymentPage({ onNavigate, checkoutData }: PaymentPageProps) {
                   </div>
                   <div className="flex justify-between">
                     <span>Tax</span>
-                    <span>${(total * 0.0741).toFixed(2)}</span>
+                    <span>{formatCurrency(total * 0.0741)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>{formatCurrency(total)}</span>
                   </div>
                 </div>
 

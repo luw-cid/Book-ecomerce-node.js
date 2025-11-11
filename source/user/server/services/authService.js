@@ -101,7 +101,7 @@ const generateAccessToken = (user) => {
   return jwt.sign(
     { id: user._id, email: user.email, admin: user.admin },
     process.env.JWT_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: "1h" }
   );
 };
 
@@ -134,7 +134,7 @@ const loginUser = async (email, password) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if(!isMatch) return null;
 
-    // Tạo access token (15 phút)
+    // Tạo access token (1h)
     const accessToken = generateAccessToken(user);
     
     // Tạo refresh token (30 ngày)
@@ -163,7 +163,7 @@ const findOrCreateGoogleUser = async (profile) => {
 
 // Xử lý Google OAuth callback - tạo token và format user data
 const handleGoogleCallback = async (user) => {
-    // Tạo access token (15 phút)
+    // Tạo access token (1h)
     const accessToken = generateAccessToken(user);
     
     // Tạo refresh token (30 ngày)

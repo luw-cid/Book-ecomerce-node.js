@@ -131,7 +131,9 @@ const applyDiscountToCart = async (code, subtotal, userId = null) => {
         value: discount.discountType === 'percentage' 
           ? discount.percentage 
           : discount.fixedAmount,
-        amount: discountAmount
+        amount: discountAmount,
+        minOrderAmount: discount.minOrderAmount,
+        maxDiscountAmount: discount.maxDiscountAmount
       },
       subtotal,
       discountAmount,
@@ -154,15 +156,17 @@ const getPublicDiscounts = async () =>{
     .limit(10);
 };
 
-const getHomepageDiscounts = async () => {
+const getActiveDiscounts = async () => {
     const now = new Date();
     return await discountModel.find({
         isActive: true,
         isPublic: true,
-        displayOnHomepage: true,
         startAt: { $lte: now},
-        expiresAt: { $gte: now},
-    }).limit(3);
+        $or: [
+            { expiresAt: { $gte: now } },
+            { expiresAt: null }
+        ]
+    }).sort({ createdAt: -1 });
 };
 
 /**
@@ -185,7 +189,7 @@ module.exports = {
     canUserUseDiscount,
     calculateDiscountAmount,
     applyDiscountToCart,
-    getHomepageDiscounts,
+    getActiveDiscounts,
     incrementUsage,
     getPublicDiscounts
 }

@@ -12,6 +12,7 @@ const userRoutes = require('./userRoute');
 const discountRoutes = require('./discountRoute');
 const loyaltyRoutes = require('./loyaltyRoute');
 const orderRoutes = require('./orderRote');
+const paymentRoutes = require('./paymentRoute');
 
 // ánh xạ các route con
 router.use('/auth', authRoutes);
@@ -22,6 +23,7 @@ router.use('/user', userRoutes);
 router.use('/discounts', discountRoutes);
 router.use('/loyalty', loyaltyRoutes);
 router.use('/orders', orderRoutes);
+router.use('/payments', paymentRoutes);
 
 // Serve static files cho uploads
 router.use('/uploads', express.static(path.join(__dirname, 'uploads')));

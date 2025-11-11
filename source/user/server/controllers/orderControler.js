@@ -4,7 +4,7 @@ const orderService = require('../services/orderService');
 const createOrder = async (req, res) => {
     const orderData = req.body;
 
-    if (!orderData || orderData.item.length === 0) {
+    if (!orderData || !orderData.items || orderData.items.length === 0) {
         throw new AppError('Order must contain at least one item', 400);
     }
 
@@ -21,8 +21,8 @@ const createOrder = async (req, res) => {
     }
     
     // Validate shipping address fields
-    const { fullName, email, phone, address, city, zipCode } = orderData.shippingAddress;
-    if (!fullName || !email || !phone || !address || !city || !zipCode) {
+    const { fullName, email, phone, address, city } = orderData.shippingAddress;
+    if (!fullName || !email || !phone || !address || !city) {
         throw new AppError('Complete shipping address is required', 400);
     }
     
@@ -45,7 +45,7 @@ const createOrder = async (req, res) => {
     res.status(201).json({
         success: true,
         message: 'Order created successfully',
-        data: order
+        order: order
     });
 };
 

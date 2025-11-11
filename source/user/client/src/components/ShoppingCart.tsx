@@ -3,7 +3,8 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { Separator } from "./ui/separator";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Book } from "./BookCard";
+import { type Book } from "./BookCard";
+import { formatCurrency } from "../utils/formatCurrency";
 
 export interface CartItem {
   book: Book;
@@ -72,7 +73,7 @@ export function ShoppingCart({
                       <div className="flex-1 min-w-0">
                         <h4 className="line-clamp-2 text-sm">{item.book.title}</h4>
                         <p className="text-sm text-muted-foreground">{item.book.author}</p>
-                        <p className="text-sm font-semibold">${item.book.price.toFixed(2)}</p>
+                        <p className="text-sm font-semibold">{formatCurrency(item.book.price)}</p>
 
                         <div className="flex items-center space-x-2 mt-2">
                           <Button
@@ -112,7 +113,7 @@ export function ShoppingCart({
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>{formatCurrency(totalPrice)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
@@ -121,7 +122,7 @@ export function ShoppingCart({
                   <Separator />
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>{formatCurrency(totalPrice)}</span>
                   </div>
                 </div>
 
