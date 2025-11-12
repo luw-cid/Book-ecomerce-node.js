@@ -12,6 +12,7 @@ const indexRouter = require("./routes/index");
 
 const errorHandle = require('./middlewares/errorHandler');
 const connectDB = require('./config/connectDB');
+const { cleanupUnpaidOrders } = require('./jobs/clearupOrders');
 
 const app = express();
 
@@ -70,6 +71,8 @@ app.use(function (req, res, next) {
 
 // xử lý lỗi
 app.use(errorHandle);
+
+cleanupUnpaidOrders();
 
 app.listen(3000, () => console.log('Server is running on http://localhost:3000'));
 

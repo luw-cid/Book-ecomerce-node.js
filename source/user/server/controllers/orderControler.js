@@ -99,7 +99,7 @@ const cancelOrder = async (req, res) => {
     throw new AppError('Order ID is required', 400);
   }
   
-  const order = await orderService.cancelOrder(id, userId);
+  const order = await orderService.cancelledOrders(id, userId);
   
   res.status(200).json({
     success: true,

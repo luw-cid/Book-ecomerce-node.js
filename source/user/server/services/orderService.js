@@ -180,7 +180,7 @@ const getUserOrders = async (userId, options = {}) => {
 }
 
 const cancelledOrders = async (orderId, userId) => {
-    const order = await orderModel.findOne({ _id, user: userId});
+    const order = await orderModel.findOne({ _id: orderId, user: userId});
 
     if (!order) { 
         throw new Error('Order not found');

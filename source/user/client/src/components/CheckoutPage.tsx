@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Loader2, Tag, Gift, X, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Loader2, Tag, Gift, X, CheckCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -9,10 +9,11 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Separator } from "./ui/separator";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { type CartItem } from "./ShoppingCart";
-import type { PageType } from "../App";
+import { type PageType } from "../App";
 import { formatCurrency } from "../utils/formatCurrency";
 import { Checkbox } from "./ui/checkbox";
-import { PaymentModal } from "./PaymentModal";
+import { PaymentModal } from "./paymentModal";
+import { OrderSuccessModal } from "./OrderSuccessModal";
 
 interface CheckoutPageProps {
   cartItems: CartItem[];
@@ -54,7 +55,6 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
 
   const [paymentMethod, setPaymentMethod] = useState("bank-transfer");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
   
   // Promo code states
   const [couponCode, setCouponCode] = useState("");
@@ -68,11 +68,14 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
   const [loyaltyPointsToUse, setLoyaltyPointsToUse] = useState(0);
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
-  const [isLoadingLoyalty, setIsLoadingLoyalty] = useState(false);
 
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
+
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successOrderData, setSuccessOrderData] = useState<any>(null);
 
   const getToken = () => {
     return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
@@ -109,7 +112,6 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
     if (!user) return;
     
     try {
-      setIsLoadingLoyalty(true);
       const token = getToken();
       
       const response = await axios.get(`${API_URL}/loyalty/account`, {
@@ -128,8 +130,6 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
           tier: 'Bronze'
         });
       }
-    } finally {
-      setIsLoadingLoyalty(false);
     }
   };
 
@@ -227,11 +227,9 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError("");
-
     try {
       if (!formData.email || !formData.fullName || !formData.phone || !formData.address || !formData.city) {
-        setError("Please fill in all required fields.");
+        alert("Please fill in all required fields.");
         setIsSubmitting(false);
         return;
       }
@@ -284,9 +282,10 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
               orderId: order._id,
               orderNumber: order.orderNumber,
               total: order.total,
-              recipientName: formData.fullName,
-              recipientEmail: formData.email,
-              recipientPhone: formData.phone,
+              yourName: formData.fullName,
+              yourEmail: formData.email,
+              yourPhone: formData.phone,
+              yourAddress: formData.address,
               paymentMethod: "Bank Transfer"
             };
             
@@ -295,22 +294,38 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
             setShowPaymentModal(true);
             console.log("Modal should be showing now");
           } else {
-            alert(`✅ Order placed successfully!\n\nOrder Number: ${order.orderNumber}\nTotal: ${formatCurrency(order.total)}\n\nYou will pay when you receive the order.`);
+            // COD - Show success modal
+            setSuccessOrderData({
+              orderNumber: order.orderNumber,
+              total: order.total,
+              paymentMethod: "Cash on Delivery"
+            });
+            setShowSuccessModal(true);
             onClearCart();
-            onNavigate("home");
           }
         }
     } catch (error: any) {
       console.error("Error creating order:", error);
-      setError(error.response?.data?.message || "An error occurred while placing your order. Please try again.");
+      alert(error.response?.data?.message || "An error occurred while placing your order. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handelPaymentSuccess = () => {
-    alert(`✅ Payment successful!\n\nOrder Number: ${orderData.orderNumber}\nTotal: ${formatCurrency(orderData.total)}`);
+    // Bank Transfer payment success - Show success modal
+    setShowPaymentModal(false);
+    setSuccessOrderData({
+      orderNumber: orderData.orderNumber,
+      total: orderData.total,
+      paymentMethod: "Bank Transfer"
+    });
+    setShowSuccessModal(true);
     onClearCart();
+  };
+
+  const handleContinueShopping = () => {
+    setShowSuccessModal(false);
     onNavigate("home");
   };
 
@@ -816,6 +831,17 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
           onClose={() => setShowPaymentModal(false)}
           orderData={orderData}
           onPaymentSuccess={handelPaymentSuccess}
+        />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && successOrderData && (
+        <OrderSuccessModal
+          isOpen={showSuccessModal}
+          orderNumber={successOrderData.orderNumber}
+          total={successOrderData.total}
+          paymentMethod={successOrderData.paymentMethod}
+          onContinueShopping={handleContinueShopping}
         />
       )}
     </>

@@ -16,6 +16,8 @@ router.post('/check-status', asyncHandle(paymentController.checkPaymentStatus));
 // Sepay webhook (public - Sepay gọi vào)
 router.post('/sepay-webhook', asyncHandle(paymentController.handleSepayWebhook));
 
+router.post('/cancel-order', asyncHandle(paymentController.cancelOrder));
+
 // 🧪 TEST ENDPOINT - Manually confirm payment (Development only)
 router.post('/webhook-test', asyncHandle(paymentController.testWebhook));
 

@@ -1,6 +1,7 @@
 const sepayService = require('../services/sepayService');
 const orderService = require('../services/orderService');
 const orderModel = require('../models/orderModel');
+const asyncHandler = require('express-async-handler');
 const AppError = require('../errors');
 
 /**
@@ -138,10 +139,7 @@ const handleSepayWebhook = async (req, res) => {
     // Verify signature
     if (!sepayService.verifyWebhookSignature(payload, signature)) {
       console.warn('⚠️ Invalid webhook signature');
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid signature'
-      });
+      throw new AppError('Invalid signature', 401);
     }
     
     // Extract transaction info
@@ -213,6 +211,46 @@ const handleSepayWebhook = async (req, res) => {
 };
 
 /**
+ * Cancel unpaid order
+ * POST /api/payments/cancel-order
+ */
+const cancelOrder = async (req, res) => {
+  try {
+    const { orderId, reason } = req.body;
+
+    if (!orderId) {
+      throw new AppError('Order ID is required', 400);
+    }
+
+    const order = await orderModel.findById(orderId);
+
+    if (!order) {
+      throw new AppError('Order not found', 404);
+    }
+
+    if (order.paymentStatus === 'Paid') {
+      throw new AppError('Cannot cancel paid order', 400);
+    }
+
+    // Xóa order khỏi database
+    await orderModel.findByIdAndDelete(orderId);
+    
+    console.log(`🗑️  User cancelled order: ${order.orderNumber} - Reason: ${reason || 'User cancelled'}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Order cancelled successfully',
+      data: {
+        orderId: orderId,
+        orderNumber: order.orderNumber
+      }
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
  * 🧪 TEST WEBHOOK - Manually trigger payment confirmation (Development only)
  * POST /api/payments/webhook-test
  * Body: { "orderNumber": "ORD1234567890" }
@@ -232,10 +270,7 @@ const testWebhook = async (req, res) => {
     }
     
     if (order.paymentStatus === 'Paid') {
-      return res.status(400).json({
-        success: false,
-        message: 'Order already paid'
-      });
+      throw new AppError('Order already paid', 400);
     }
     
     // Simulate payment confirmation
@@ -267,5 +302,6 @@ module.exports = {
   generateQRCode,
   checkPaymentStatus,
   handleSepayWebhook,
+  cancelOrder,
   testWebhook
 };

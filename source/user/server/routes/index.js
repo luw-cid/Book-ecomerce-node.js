@@ -11,7 +11,7 @@ const cartRoutes = require('./cartRoute');
 const userRoutes = require('./userRoute');
 const discountRoutes = require('./discountRoute');
 const loyaltyRoutes = require('./loyaltyRoute');
-const orderRoutes = require('./orderRote');
+const orderRoutes = require('./orderRoute');
 const paymentRoutes = require('./paymentRoute');
 
 // ánh xạ các route con

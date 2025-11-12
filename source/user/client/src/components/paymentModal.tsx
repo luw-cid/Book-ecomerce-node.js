@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { X, Copy, CheckCircle, Loader2, Clock } from "lucide-react";
+import { X, Copy, CheckCircle, Loader2, Clock, Mail, Download } from "lucide-react";
 import { Button } from "./ui/button";
+import { Card, CardContent } from "./ui/card";
 import { formatCurrency } from "../utils/formatCurrency";
 import axios from "axios";
 
@@ -11,9 +12,10 @@ interface PaymentModalProps {
     orderId: string;
     orderNumber: string;
     total: number;
-    recipientName: string;
-    recipientEmail: string;
-    recipientPhone: string;
+    yourName: string;
+    yourEmail: string;
+    yourAddress: string;
+    yourPhone: string;
   };
   onPaymentSuccess: () => void;
 }
@@ -34,6 +36,7 @@ export function PaymentModal({ isOpen, onClose, orderData, onPaymentSuccess }: P
   const [qrData, setQrData] = useState<QRData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [countdown, setCountdown] = useState(5 * 60); // 5 minutes
   const [error, setError] = useState("");
 
@@ -105,8 +108,11 @@ export function PaymentModal({ isOpen, onClose, orderData, onPaymentSuccess }: P
       });
 
       if (response.data.data.paid) {
-        onPaymentSuccess();
-        onClose();
+        setIsCompleted(true);
+        // Gọi callback sau 2 giây để user kịp nhìn thấy màn hình success
+        setTimeout(() => {
+          onPaymentSuccess();
+        }, 2000);
       } else if (!isAuto) {
         alert("Payment not received yet. Please try again in a few moments.");
       }
@@ -120,6 +126,22 @@ export function PaymentModal({ isOpen, onClose, orderData, onPaymentSuccess }: P
     }
   };
 
+  const handelCancel = async () => {
+    if (confirm('Cancel this order?')) {
+      try {
+        await axios.post(`${API_URL}/payments/cancel-order`, {
+          orderId: orderData.orderId,
+          reason: 'User cancelled'
+        });
+        alert('Order cancelled successfully');
+        onClose();
+      } catch (error) {
+        console.error("Error cancelling order:", error);
+        alert('Failed to cancel order');
+      }
+    }
+  }
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     alert("Copied to clipboard!");
@@ -132,6 +154,43 @@ export function PaymentModal({ isOpen, onClose, orderData, onPaymentSuccess }: P
   };
 
   if (!isOpen) return null;
+
+  // Success screen after payment confirmed
+  if (isCompleted) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center p-4" style={{ zIndex: 9999, backdropFilter: 'blur(4px)' }}>
+        <Card className="w-full max-w-md text-center shadow-lg">
+          <CardContent className="pt-8 pb-6">
+            <div className="mb-6">
+              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Confirmed!</h1>
+              <p className="text-gray-600">Thank you for your purchase</p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="text-sm text-gray-600 mb-1">Order Number</div>
+              <div className="text-lg font-semibold text-gray-900">{orderData.orderNumber}</div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                <Mail className="h-4 w-4" />
+                <span>Confirmation email will be sent</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                <Download className="h-4 w-4" />
+                <span>Order details saved</span>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-500">
+              Redirecting to home page...
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center p-4" style={{ zIndex: 9999, backdropFilter: 'blur(4px)' }}>
@@ -150,7 +209,7 @@ export function PaymentModal({ isOpen, onClose, orderData, onPaymentSuccess }: P
             <Button
               variant="ghost"
               size="sm"
-              onClick={onClose}
+              onClick={handelCancel}
               className="text-gray-500 hover:text-gray-700"
             >
               <X className="h-5 w-5" />
@@ -183,20 +242,24 @@ export function PaymentModal({ isOpen, onClose, orderData, onPaymentSuccess }: P
                     <div className="bg-blue-600 rounded-full p-1">
                       <CheckCircle className="h-4 w-4 text-white" />
                     </div>
-                    Recipient Information
+                    Your Information
                   </h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Name:</span>
-                      <span className="font-semibold text-gray-900">{orderData.recipientName}</span>
+                      <span className="font-semibold text-gray-900">{orderData.yourName}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Email:</span>
-                      <span className="font-semibold text-gray-900">{orderData.recipientEmail}</span>
+                      <span className="font-semibold text-gray-900">{orderData.yourEmail}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Phone:</span>
-                      <span className="font-semibold text-gray-900">{orderData.recipientPhone}</span>
+                      <span className="font-semibold text-gray-900">{orderData.yourPhone}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Address:</span>
+                      <span className="font-semibold text-gray-900">{orderData.yourAddress}</span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-blue-300">
                       <span className="text-gray-600">Total Amount:</span>
@@ -321,11 +384,11 @@ export function PaymentModal({ isOpen, onClose, orderData, onPaymentSuccess }: P
                   </Button>
 
                   <Button
-                    onClick={onClose}
+                    onClick={handelCancel}
                     variant="outline"
-                    className="w-full"
+                    className="w-full text-red-600 hover:bg-red-50"
                   >
-                    Cancel
+                    Cancel Order
                   </Button>
                 </div>
               </div>
