@@ -91,7 +91,7 @@ export function CategoryPage({
   // ============= DEBOUNCED PRICE RANGE =============
   const [debouncedPriceRange, setDebouncedPriceRange] = useState<[number, number]>([0, 50]);
   const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(100);
+  const [maxPrice, setMaxPrice] = useState(1000000);
   // ============= FETCH MIN/MAX PRICE =============
   useEffect(() => {
     const fetchPriceRange = async () => {
@@ -103,12 +103,24 @@ export function CategoryPage({
           params,
           headers: { "Content-Type": "application/json" }
         });
+        console.log('📊 Price range response:', response.data);
+        const data: any = response.data;
+        const min = data.minPrice ?? 0;
+        const max = data.maxPrice ?? 1000000;
 
-        setMinPrice(response.data.minPrice || 0);
-        setMaxPrice(response.data.maxPrice || 100);
-        setPriceRange([response.data.minPrice || 0, response.data.maxPrice || 100]);
+        console.log(`✅ Setting price range: ${min} - ${max}`);
+
+        setMinPrice(min);
+        setMaxPrice(max);
+        setPriceRange([min, max]);
+        setDebouncedPriceRange([min, max]);
       } catch (err) {
-        console.warn('Failed to fetch price range:', err);
+        console.error('❌ Failed to fetch price range:', err);
+        // Fallback: giá trị lớn để không filter
+        setMinPrice(0);
+        setMaxPrice(1000000);
+        setPriceRange([0, 1000000]);
+        setDebouncedPriceRange([0, 1000000]);
       }
     };
 

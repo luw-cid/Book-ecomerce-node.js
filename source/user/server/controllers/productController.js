@@ -189,7 +189,7 @@ const getProductsByPriceRange = asyncHandle(async(req, res) => {
 // Thêm hàm lấy range giá
 const getPriceRange = asyncHandle(async (req, res) => {
   const { category } = req.query;
-  const filter = { isActive: true };
+  const filter = {};
 
   if (category && category.trim() !== "") {
     try {
@@ -202,10 +202,9 @@ const getPriceRange = asyncHandle(async (req, res) => {
           name: { $regex: new RegExp(`^${category}$`, 'i') } // Case-insensitive
         });
         
-        if (!catDoc) {
-          // Không tìm thấy category -> trả range của tất cả products
-          console.warn(`⚠️ Category not found: ${category}`);
-          // Không thêm filter.category -> query tất cả products
+        if (catDoc) {
+          filter.category = catDoc._id;
+          console.log(`✅ Found category: ${category} -> ${catDoc._id}`);
         } else {
           filter.category = catDoc._id;
         }
@@ -217,36 +216,66 @@ const getPriceRange = asyncHandle(async (req, res) => {
   }
 
   try {
+    console.log('🔍 Query filter:', filter);
+    
     const result = await Product.aggregate([
       { $match: filter },
       {
         $group: {
           _id: null,
           minPrice: { $min: "$price" },
-          maxPrice: { $max: "$price" }
+          maxPrice: { $max: "$price" },
+          count: { $sum: 1 } // ← Thêm count để debug
         }
       }
     ]);
 
-    const priceRange = result[0] || { minPrice: 0, maxPrice: 100 };
-    
-    return res.status(200).json({
-      minPrice: priceRange.minPrice || 0,
-      maxPrice: priceRange.maxPrice || 100
-    });
+    console.log('📊 Aggregate result:', result);
+
+    if (result.length > 0 && result[0].minPrice != null) {
+      return res.status(200).json({
+        minPrice: result[0].minPrice,
+        maxPrice: result[0].maxPrice,
+        count: result[0].count
+      });
+    } else {
+      // Fallback: Lấy min/max của tất cả products
+      const allResult = await Product.aggregate([
+        { $match: {} }, // Không filter gì cả
+        {
+          $group: {
+            _id: null,
+            minPrice: { $min: "$price" },
+            maxPrice: { $max: "$price" }
+          }
+        }
+      ]);
+
+      console.log('⚠️ No products in category, using global range:', allResult);
+
+      if (allResult.length > 0) {
+        return res.status(200).json({
+          minPrice: allResult[0].minPrice || 0,
+          maxPrice: allResult[0].maxPrice || 1000000 // 1 triệu VND
+        });
+      } else {
+        // Database hoàn toàn rỗng
+        return res.status(200).json({ minPrice: 0, maxPrice: 1000000 });
+      }
+    }
   } catch (err) {
     console.error('❌ Error in getPriceRange:', err);
     return res.status(500).json({ 
       message: 'Failed to fetch price range',
       minPrice: 0,
-      maxPrice: 100
+      maxPrice: 1000000
     });
   }
 });
 // Trả danh sách publishers (distinct)
 const getBrands = asyncHandle(async (req, res) => {
   const { category } = req.query;
-  const filter = { isActive: true };
+  const filter = {};
 
   if (category && category.trim() !== "") {
     try {
