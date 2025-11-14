@@ -22,11 +22,11 @@ const createCategory = async (req, res, next) => {
 
 /**
  * READ - Lấy danh sách categories (có phân trang và filter)
- * GET /categories?page=1&limit=10&sortBy=createdAt&sortOrder=desc&isActive=true
+ * GET /categories?page=1&limit=12&sortBy=createdAt&sortOrder=desc&isActive=true
  */
 const getCategories = async (req, res, next) => {
     try {
-        const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', isActive } = req.query;
+        const { page = 1, limit = 12, sortBy = 'createdAt', sortOrder = 'desc', isActive } = req.query;
         
         // Build filter
         const filter = {};

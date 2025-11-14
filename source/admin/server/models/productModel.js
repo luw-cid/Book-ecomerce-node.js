@@ -49,11 +49,11 @@ const productSchema = new mongoose.Schema(
             default: 0,
             min: 0
         },
-        category: { 
+        category: [{ 
             type: mongoose.Schema.Types.ObjectId, 
             ref: "Category",
             required: true
-        },
+        }],
         discount: { 
             type: mongoose.Schema.Types.ObjectId, 
             ref: "Discount" 

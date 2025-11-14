@@ -16,11 +16,39 @@ const userSchema = new mongoose.Schema(
             emailNotifications: { type: Boolean, default: true },
             smsNotifications: { type: Boolean, default: false },
             marketingEmails: { type: Boolean, default: true }
+        },
+        
+        // Loyalty Program
+        loyalty: {
+            points: { 
+                type: Number, 
+                default: 0, 
+                min: 0 
+            },
+            lifetimePoints: { 
+                type: Number, 
+                default: 0, 
+                min: 0 
+            },
+            tier: { 
+                type: String, 
+                enum: ['bronze', 'silver', 'gold', 'platinum'], 
+                default: 'bronze' 
+            },
+            lastEarnedAt: { 
+                type: Date 
+            },
+            lastRedeemedAt: { 
+                type: Date 
+            }
         }
     },
     { timestamps: true }
 );
 
 const User = mongoose.model('User', userSchema);
+
+module.exports = User;
+
 
 module.exports = User;

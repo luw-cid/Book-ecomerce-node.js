@@ -1,116 +1,361 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Search, Eye } from 'lucide-react';
+import { Search, Eye, Loader2, Filter } from 'lucide-react';
 import { OrderDetail } from './OrderDetail';
+import { toast } from 'sonner';
+import axios from 'axios';
+import { formatCurrency } from '../../utils/formatCurrency';
 
-const mockOrders = [
-  { id: '#ORD-1234', customer: 'John Doe', email: 'john@example.com', items: 3, total: '$44.98', status: 'Processing', date: '2025-10-18' },
-  { id: '#ORD-1235', customer: 'Jane Smith', email: 'jane@example.com', items: 1, total: '$15.99', status: 'Shipped', date: '2025-10-17' },
-  { id: '#ORD-1236', customer: 'Mike Johnson', email: 'mike@example.com', items: 5, total: '$89.95', status: 'Processing', date: '2025-10-17' },
-  { id: '#ORD-1237', customer: 'Sarah Williams', email: 'sarah@example.com', items: 2, total: '$27.98', status: 'Delivered', date: '2025-10-16' },
-  { id: '#ORD-1238', customer: 'Tom Brown', email: 'tom@example.com', items: 4, total: '$64.96', status: 'Processing', date: '2025-10-16' },
-  { id: '#ORD-1239', customer: 'Emily Davis', email: 'emily@example.com', items: 6, total: '$102.94', status: 'Cancelled', date: '2025-10-15' },
-  { id: '#ORD-1240', customer: 'David Wilson', email: 'david@example.com', items: 3, total: '$51.97', status: 'Shipped', date: '2025-10-15' },
-  { id: '#ORD-1241', customer: 'Lisa Anderson', email: 'lisa@example.com', items: 7, total: '$143.93', status: 'Delivered', date: '2025-10-14' },
-];
+const API_URL = 'http://localhost:4000';
+
+interface User {
+  _id: string;
+  fullName?: string;
+  email: string;
+  phoneNumber?: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  images: string[];
+  price: number;
+}
+
+interface OrderItem {
+  product: Product;
+  quantity: number;
+  price: number;
+}
+
+interface ShippingAddress {
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  district: string;
+  ward: string;
+}
+
+interface Order {
+  _id: string;
+  orderNumber: string;
+  user: User;
+  items: OrderItem[];
+  shippingAddress: ShippingAddress;
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  total: number;
+  orderStatus: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export function OrderManagement() {
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPaginating, setIsPaginating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [statusFilter, setStatusFilter] = useState('');
 
-  const filteredOrders = mockOrders.filter(order =>
-    order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customer.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getToken = () => {
+    return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+  };
+
+  // Fetch orders from API
+  useEffect(() => {
+    fetchOrders(true);
+  }, [statusFilter]);
+
+  const fetchOrders = async (showLoader = true) => {
+    try {
+      if (showLoader) {
+        setIsLoading(true);
+      } else {
+        setIsPaginating(true);
+      }
+      const token = getToken();
+      
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '10',
+        ...(statusFilter && { status: statusFilter })
+      });
+
+      const response = await axios.get(`${API_URL}/orders?${params}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        setOrders(response.data.orders);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalOrders(response.data.pagination.totalOrders);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to fetch orders');
+      setOrders([]);
+    } finally {
+      setIsLoading(false);
+      setIsPaginating(false);
+    }
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchOrders(false);
+  };
+
+  const filteredOrders = orders.filter(order => {
+    // If there's a search term, filter by it
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = (
+        order.orderNumber.toLowerCase().includes(searchLower) ||
+        order.user?.fullName?.toLowerCase().includes(searchLower) ||
+        order.user?.email?.toLowerCase().includes(searchLower)
+      );
+      
+      if (!matchesSearch) return false;
+    }
+    
+    return true;
+  });
+
+  const getStatusLabel = (status: string) => {
+    return status; // Return status as-is since we're now using proper case
+  };
 
   if (selectedOrder) {
     return <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />;
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Processing':
+    if (!status) return 'bg-gray-100 text-gray-800';
+    
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-gray-100 text-gray-800';
+      case 'processing':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Shipped':
-        return 'bg-blue-100 text-blue-800';
-      case 'Delivered':
+      case 'shipped':
+        return 'bg-purple-100 text-purple-800';
+      case 'delivered':
         return 'bg-green-100 text-green-800';
-      case 'Cancelled':
+      case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-2xl sm:text-3xl mb-1">Order Management</h2>
-        <p className="text-gray-600 text-sm sm:text-base">View and manage all customer orders</p>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-1">Order Management</h2>
+        <p className="text-gray-600 text-sm sm:text-base">
+          View and manage all customer orders • {totalOrders} orders
+        </p>
       </div>
 
       <Card className="p-4 sm:p-6">
-        <div className="mb-4 sm:mb-6">
-          <div className="relative max-w-md">
+        {/* Search and Filters */}
+        <div className="space-y-4 mb-6">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input 
-              placeholder="Search orders by ID or customer..." 
+              placeholder="Search by order number, customer name, or status..." 
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          {/* Status Filter Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <span className="text-sm text-gray-600 font-medium">Status:</span>
+            <Button
+              variant={statusFilter === '' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('')}
+              className="text-xs sm:text-sm"
+            >
+              All
+            </Button>
+            {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((status) => (
+              <Button
+                key={status}
+                variant={statusFilter === status ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleStatusFilter(status)}
+                className="text-xs sm:text-sm"
+              >
+                {status}
+              </Button>
+            ))}
+          </div>
         </div>
 
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <table className="w-full min-w-[800px]">
-            <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left py-3 px-4 text-sm sm:text-base">Order ID</th>
-                <th className="text-left py-3 px-4 text-sm sm:text-base">Customer</th>
-                <th className="text-left py-3 px-4 text-sm sm:text-base">Items</th>
-                <th className="text-left py-3 px-4 text-sm sm:text-base">Total Amount</th>
-                <th className="text-left py-3 px-4 text-sm sm:text-base">Status</th>
-                <th className="text-left py-3 px-4 text-sm sm:text-base">Order Date</th>
-                <th className="text-left py-3 px-4 text-sm sm:text-base">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="border-b hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm sm:text-base">{order.id}</td>
-                  <td className="py-3 px-4">
-                    <div>
-                      <p className="text-sm sm:text-base">{order.customer}</p>
-                      <p className="text-xs sm:text-sm text-gray-500">{order.email}</p>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-gray-600 text-sm sm:text-base">{order.items} books</td>
-                  <td className="py-3 px-4 text-sm sm:text-base">{order.total}</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm whitespace-nowrap ${getStatusColor(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-sm sm:text-base">{order.date}</td>
-                  <td className="py-3 px-4">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setSelectedOrder(order)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Orders Table */}
+        {filteredOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+              <Search className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {searchTerm || statusFilter ? 'No orders found' : 'No orders yet'}
+            </h3>
+            <p className="text-gray-500 text-sm">
+              {searchTerm || statusFilter
+                ? 'Try changing your filters or search terms'
+                : 'New orders will appear here'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className={isPaginating ? 'opacity-50 transition-opacity duration-200' : 'transition-opacity duration-200'}>
+                <table className="w-full min-w-[800px]">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Order ID</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Customer</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Items</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Total</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Order Date</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.map((order) => (
+                    <tr key={order._id} className="border-b hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4">
+                        <span className="font-mono text-sm font-medium text-gray-900">{order.orderNumber}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{order.user?.fullName || 'N/A'}</p>
+                          <p className="text-xs text-gray-500">{order.user?.email}</p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-gray-600">{order.items.length} items</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm font-semibold text-green-600">{formatCurrency(order.total || 0)}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge className={`whitespace-nowrap ${getStatusColor(order.orderStatus)}`}>
+                          {order.orderStatus}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">{formatDate(order.createdAt)}</td>
+                      <td className="py-3 px-4">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setSelectedOrder(order)}
+                          className="hover:bg-green-50 hover:text-green-600 transition-colors"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+            </div>
+
+            {/* Pagination */}
+            {filteredOrders.length > 0 && (
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages} • Total: {totalOrders} orders
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || isPaginating}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          disabled={isPaginating}
+                          className="min-w-[40px]"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || isPaginating}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </Card>
     </div>
   );

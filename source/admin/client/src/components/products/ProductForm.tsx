@@ -50,9 +50,10 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
   const [price, setPrice] = useState(product?.price || 0);
   const [originalPrice, setOriginalPrice] = useState(product?.originalPrice || 0);
   const [stock, setStock] = useState(product?.stock || 0);
-  const [categoryId, setCategoryId] = useState(
-    typeof product?.category === 'object' ? product.category._id : product?.category || ''
-  );
+  const [categoryId, setCategoryId] = useState(() => {
+    if (!product?.category) return '';
+    return typeof product.category === 'object' ? product.category._id : product.category;
+  });
   const [imageUrls, setImageUrls] = useState<string[]>(product?.images || []);
   const [newImageUrl, setNewImageUrl] = useState('');
   const [tags, setTags] = useState<string[]>(product?.tags || []);
@@ -151,7 +152,7 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
       price: Number(price),
       originalPrice: originalPrice > 0 ? Number(originalPrice) : undefined,
       stock: Number(stock),
-      category: categoryId,
+      category: categoryId ? [categoryId] : [],
       images: imageUrls,
       tags,
       isActive,
@@ -200,6 +201,7 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
       }
     } catch (error: any) {
       console.error('Error saving product:', error);
+      console.error('Error response:', error.response?.data);
       toast.error(error.response?.data?.message || 'Failed to save product');
     } finally {
       setIsLoading(false);
