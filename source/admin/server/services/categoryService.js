@@ -1,5 +1,6 @@
 // services/categoryService.js
-const Category = require('../models/categoryModel');
+const categoryModel = require('../models/categoryModel');
+const productModel = require('../models/productModel');
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -29,12 +30,12 @@ const createCategory = async (data) => {
     }
     
     // Kiểm tra slug đã tồn tại chưa
-    const existingCategory = await Category.findOne({ slug: data.slug });
+    const existingCategory = await categoryModel.findOne({ slug: data.slug });
     if (existingCategory) {
         throw new Error('Category với slug này đã tồn tại');
     }
     
-    const category = new Category(data);
+    const category = new categoryModel(data);
     return await category.save();
 };
 
@@ -48,16 +49,31 @@ const getCategories = async ({ filter = {}, page = 1, limit = 12, sortBy = 'crea
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
     
-    const categories = await Category.find(filter)
+    const categories = await categoryModel.find(filter)
         .sort(sort)
         .skip(skip)
         .limit(limit);
+    
+    // Thêm productCount cho mỗi category
+    const categoriesWithCount = await Promise.all(
+        categories.map(async (category) => {
+            const productCount = await productModel.countDocuments({ 
+                category: category._id,
+                isActive: true 
+            });
+            
+            return {
+                ...category.toObject(),
+                productCount
+            };
+        })
+    );
         
-    const total = await Category.countDocuments(filter);
+    const total = await categoryModel.countDocuments(filter);
 
     return {
         success: true,
-        categories,
+        categories: categoriesWithCount,
         total,
         page: Number(page),
         limit: Number(limit),
@@ -69,7 +85,7 @@ const getCategories = async ({ filter = {}, page = 1, limit = 12, sortBy = 'crea
  * READ - Lấy tất cả categories (không phân trang - dùng cho dropdown)
  */
 const getAllCategories = async () => {
-    return await Category.find({ isActive: true })
+    return await categoryModel.find({ isActive: true })
         .select('_id name slug description image')
         .sort({ name: 1 });
 };
@@ -78,7 +94,7 @@ const getAllCategories = async () => {
  * READ - Lấy chi tiết category theo ID
  */
 const getCategoryById = async (categoryId) => {
-    const category = await Category.findById(categoryId);
+    const category = await categoryModel.findById(categoryId);
     if (!category) {
         throw new Error('Category không tồn tại');
     }
@@ -89,7 +105,7 @@ const getCategoryById = async (categoryId) => {
  * READ - Lấy category theo slug
  */
 const getCategoryBySlug = async (slug) => {
-    const category = await Category.findOne({ slug });
+    const category = await categoryModel.findOne({ slug });
     if (!category) {
         throw new Error('Category không tồn tại');
     }
@@ -105,7 +121,7 @@ const updateCategory = async (categoryId, data) => {
         data.slug = generateSlug(data.name);
         
         // Kiểm tra slug mới có trùng không (trừ chính nó)
-        const existingCategory = await Category.findOne({ 
+        const existingCategory = await categoryModel.findOne({ 
             slug: data.slug, 
             _id: { $ne: categoryId } 
         });
@@ -114,7 +130,7 @@ const updateCategory = async (categoryId, data) => {
         }
     }
     
-    const category = await Category.findByIdAndUpdate(
+    const category = await categoryModel.findByIdAndUpdate(
         categoryId, 
         data, 
         { new: true, runValidators: true }
@@ -131,7 +147,7 @@ const updateCategory = async (categoryId, data) => {
  * DELETE - Xóa category (soft delete - set isActive = false)
  */
 const deleteCategory = async (categoryId) => {
-    const category = await Category.findByIdAndUpdate(
+    const category = await categoryModel.findByIdAndUpdate(
         categoryId,
         { isActive: false },
         { new: true }
@@ -149,14 +165,13 @@ const deleteCategory = async (categoryId) => {
  */
 const permanentDeleteCategory = async (categoryId) => {
     // Kiểm tra xem có sản phẩm nào đang sử dụng category này không
-    const Product = require('../models/productModel');
-    const productsCount = await Product.countDocuments({ category: categoryId });
+    const productsCount = await productModel.countDocuments({ category: categoryId });
     
     if (productsCount > 0) {
         throw new Error(`Không thể xóa category này vì có ${productsCount} sản phẩm đang sử dụng`);
     }
     
-    const category = await Category.findByIdAndDelete(categoryId);
+    const category = await categoryModel.findByIdAndDelete(categoryId);
     
     if (!category) {
         throw new Error('Category không tồn tại');
@@ -169,7 +184,7 @@ const permanentDeleteCategory = async (categoryId) => {
  * RESTORE - Khôi phục category đã bị soft delete
  */
 const restoreCategory = async (categoryId) => {
-    const category = await Category.findByIdAndUpdate(
+    const category = await categoryModel.findByIdAndUpdate(
         categoryId,
         { isActive: true },
         { new: true }
@@ -195,12 +210,12 @@ const searchCategories = async (keyword, page = 1, limit = 10) => {
         ]
     };
 
-    const categories = await Category.find(filter)
+    const categories = await categoryModel.find(filter)
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 });
 
-    const total = await Category.countDocuments(filter);
+    const total = await categoryModel.countDocuments(filter);
 
     return {
         success: true,
@@ -217,13 +232,12 @@ const searchCategories = async (keyword, page = 1, limit = 10) => {
  * COUNT - Đếm số lượng sản phẩm trong mỗi category
  */
 const getCategoriesWithProductCount = async () => {
-    const Product = require('../models/productModel');
     
-    const categories = await Category.find({ isActive: true });
+    const categories = await categoryModel.find({ isActive: true });
     
     const categoriesWithCount = await Promise.all(
         categories.map(async (category) => {
-            const productCount = await Product.countDocuments({ 
+            const productCount = await productModel.countDocuments({ 
                 category: category._id,
                 isActive: true 
             });

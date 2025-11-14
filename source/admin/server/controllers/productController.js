@@ -17,7 +17,7 @@ const createProduct = asyncHandle(async (req, res) => {
 
 // READ - Lấy danh sách sản phẩm
 const getProducts = asyncHandle(async (req, res) => {
-    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
     
     // Build filter từ query params
     const filter = {};
@@ -27,25 +27,33 @@ const getProducts = asyncHandle(async (req, res) => {
     if (req.query.isBestseller !== undefined) filter.isBestseller = req.query.isBestseller === 'true';
     if (req.query.isFlashSale !== undefined) filter.isFlashSale = req.query.isFlashSale === 'true';
     
+    // Thêm search support
+    if (search) {
+        filter.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { author: { $regex: search, $options: 'i' } },
+            { publisher: { $regex: search, $options: 'i' } }
+        ];
+    }
+    
     try {
         const result = await productService.getProducts({
-        filter,
-        page: Number(page),
-        limit: Number(limit),
-        sortBy,
-        sortOrder
+            filter,
+            page: Number(page),
+            limit: Number(limit),
+            sortBy,
+            sortOrder
         });
     
-        console.log('Products fetched successfully:', result.products.length); // Debug log
+        console.log('Products fetched successfully:', result.products.length);
         res.status(200).json(result);
     } catch (error) {
-        console.error('Error in getProducts:', error); // Log lỗi chi tiết
+        console.error('Error in getProducts:', error);
         res.status(500).json({
             success: false,
             message: error.message || 'Error fetching products'
         });
     }
-    
 });
 
 // READ - Lấy chi tiết sản phẩm theo ID

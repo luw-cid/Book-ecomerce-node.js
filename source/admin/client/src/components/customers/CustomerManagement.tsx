@@ -48,9 +48,14 @@ export function CustomerManagement() {
     return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
   };
 
+  // Fetch when search term or page changes (with debounce for search)
   useEffect(() => {
-    fetchCustomers(1, true);
-  }, []);
+    const timeoutId = setTimeout(() => {
+      fetchCustomers(currentPage, true);
+    }, searchTerm ? 500 : 0); // Debounce only for search, immediate for pagination
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, currentPage]);
 
   const fetchCustomers = async (page = 1, showLoader = true) => {
     if (showLoader) {
@@ -63,7 +68,8 @@ export function CustomerManagement() {
       const token = getToken();
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '10'
+        limit: '10',
+        ...(searchTerm && { search: searchTerm })
       });
 
       const response = await axios.get(`${API_URL}/customers?${params}`, {
@@ -88,20 +94,16 @@ export function CustomerManagement() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchCustomers(page, false);
   };
 
-  const filteredCustomers = customers.filter(customer => {
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        customer.fullName.toLowerCase().includes(searchLower) ||
-        customer.email.toLowerCase().includes(searchLower) ||
-        customer.phoneNumber?.toLowerCase().includes(searchLower)
-      );
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
     }
-    return true;
-  });
+  };
+
+  // Client-side filtering removed - now handled by server
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -141,12 +143,12 @@ export function CustomerManagement() {
               placeholder="Search by name, email, or phone..." 
               className="pl-10"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
         </div>
 
-        {filteredCustomers.length === 0 ? (
+        {customers.length === 0 ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <Search className="w-8 h-8 text-gray-400" />
@@ -176,7 +178,7 @@ export function CustomerManagement() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredCustomers.map((customer) => (
+                    {customers.map((customer) => (
                       <tr key={customer._id} className="border-b hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
@@ -222,7 +224,7 @@ export function CustomerManagement() {
             </div>
 
             {/* Pagination */}
-            {filteredCustomers.length > 0 && (
+            {customers.length > 0 && (
               <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-sm text-gray-600">
                   Page {currentPage} of {totalPages} • Total: {totalCustomers} customers

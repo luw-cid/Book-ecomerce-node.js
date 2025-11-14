@@ -64,9 +64,15 @@ export function ProductManagement() {
     }
     try {
       const token = getToken();
-      let url = `${API_URL}/products?page=${page}&limit=10&sortBy=createdAt&sortOrder=desc`;
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '10',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        ...(search && { search })
+      });
       
-      const response = await axios.get(url, {
+      const response = await axios.get(`${API_URL}/products?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -86,10 +92,14 @@ export function ProductManagement() {
     }
   };
 
-  // Load products on mount
+  // Fetch when search term or page changes (with debounce for search)
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    const timeoutId = setTimeout(() => {
+      fetchProducts(currentPage, searchTerm, true);
+    }, searchTerm ? 500 : 0); // Debounce only for search, immediate for pagination
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, currentPage]);
 
   const handleEdit = (product: Product) => {
     setSelectedProduct(product);
@@ -220,13 +230,16 @@ export function ProductManagement() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchProducts(page, searchTerm, false);
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.author?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  };
+
+  // Client-side filtering removed - now handled by server
 
   if (showForm) {
     return (
@@ -286,7 +299,7 @@ export function ProductManagement() {
               placeholder="Search books by title or author..." 
               className="pl-10"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               disabled={isLoading}
             />
           </div>
@@ -297,7 +310,7 @@ export function ProductManagement() {
             <Loader2 className="w-8 h-8 animate-spin text-[#1a4d2e]" />
             <span className="ml-3 text-gray-600">Loading products...</span>
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : products.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">No products found</p>
           </div>
@@ -318,7 +331,7 @@ export function ProductManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map((product) => (
+                  {products.map((product) => (
                   <tr key={product._id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4 text-sm sm:text-base">{product.name}</td>
                     <td className="py-3 px-4 text-gray-600 text-sm sm:text-base">{product.author || '-'}</td>
@@ -367,7 +380,7 @@ export function ProductManagement() {
         )}
 
         {/* Pagination */}
-        {filteredProducts.length > 0 && (
+        {products.length > 0 && (
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-600">
               Page {currentPage} of {totalPages} • Total: {totalProducts} products

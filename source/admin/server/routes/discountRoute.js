@@ -2,13 +2,13 @@ const express = require('express');
 const discountController = require('../controllers/discountController');
 const asyncHandle = require('express-async-handler');
 const { authMiddleware } = require('../middlewares/authMiddleware');
-const roleMiddleware = require('../middlewares/roleMiddleware');
+const { adminMiddleware } = require('../middlewares/roleMiddleware');
 
 const router = express.Router();
 
+// ==================== PROTECTED ROUTES (ADMIN ONLY) ====================
 // Protect all routes with admin authentication
-router.use(authMiddleware);
-// router.use(roleMiddleware(['admin', 'super_admin']));
+router.use(authMiddleware, adminMiddleware);
 
 // GET /admin/discounts - Get all discounts with filters
 router.get('/', asyncHandle(discountController.getAllDiscounts));
