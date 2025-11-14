@@ -18,7 +18,7 @@ const app = express();
 
 // Cấu hình CORS
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:5173'], // Thêm port 5173 cho Vite
+    origin: ['http://localhost:5000', 'http://localhost:5173'], // Thêm port 5173 cho Vite
     credentials: true
 }));
 

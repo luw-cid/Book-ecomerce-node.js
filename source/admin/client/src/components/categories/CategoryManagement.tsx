@@ -31,7 +31,11 @@ export function CategoryManagement() {
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaginating, setIsPaginating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCategories, setTotalCategories] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -43,16 +47,23 @@ export function CategoryManagement() {
     return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
   };
 
-  const fetchCategories = async () => {
-    setIsLoading(true);
+  const fetchCategories = async (page = 1, showLoader = true) => {
+    if (showLoader) {
+      setIsLoading(true);
+    } else {
+      setIsPaginating(true);
+    }
     try {
       const token = getToken();
-      const response = await axios.get(`${API_URL}/categories`, {
+      const response = await axios.get(`${API_URL}/categories?page=${page}&limit=12`, {
         headers: { Authorization: `Bearer ${token}`, },
       });
 
       if (response.data.success) {
         setCategories(response.data.categories || []);
+        setTotalCategories(response.data.total || 0);
+        setTotalPages(response.data.totalPages || 1);
+        setCurrentPage(response.data.page || 1);
       }
     } catch (error: any) {
       console.error('Error fetching categories:', error);
@@ -60,12 +71,13 @@ export function CategoryManagement() {
       setCategories([]);
     } finally {
       setIsLoading(false);
+      setIsPaginating(false);
     }
   };
 
   // Load categories on mount
   useEffect(() => {
-    fetchCategories();
+    fetchCategories(1, true);
   }, []);
 
   const handleEdit = (category: Category) => {
@@ -224,6 +236,11 @@ export function CategoryManagement() {
     });
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchCategories(page, false);
+  };
+
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     category.slug.toLowerCase().includes(searchTerm.toLowerCase())
@@ -255,7 +272,7 @@ export function CategoryManagement() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 gap-4 transition-opacity duration-200 ${isPaginating ? 'opacity-50' : ''}`}>
           {filteredCategories.map((category) => (
             <Card key={category._id} className="p-4 hover:shadow-md transition-shadow">
               {/* Category Image */}
@@ -320,6 +337,59 @@ export function CategoryManagement() {
           <div className="text-center py-12">
             <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-500">No categories found</p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filteredCategories.length > 0 && (
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages} • Total: {totalCategories} categories
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1 || isPaginating}
+              >
+                Previous
+              </Button>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      disabled={isPaginating}
+                      className="min-w-[40px]"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || isPaginating}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </Card>

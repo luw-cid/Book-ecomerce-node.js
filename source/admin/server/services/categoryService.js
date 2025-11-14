@@ -41,7 +41,7 @@ const createCategory = async (data) => {
 /**
  * READ - Lấy danh sách categories (có filter và phân trang)
  */
-const getCategories = async ({ filter = {}, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' }) => {
+const getCategories = async ({ filter = {}, page = 1, limit = 12, sortBy = 'createdAt', sortOrder = 'desc' }) => {
     const skip = (page - 1) * limit;
     
     // Build sort object

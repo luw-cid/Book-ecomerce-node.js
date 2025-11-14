@@ -9,6 +9,7 @@ import { ImportProductsDialog } from './ImportProductsDialog';
 import { DeleteConfirmationDialog } from '../ui/delete-confirmation-dialog';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const API_URL = 'http://localhost:4000';
 
@@ -45,6 +46,7 @@ export function ProductManagement() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaginating, setIsPaginating] = useState(false);
   const [totalProducts, setTotalProducts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -54,11 +56,15 @@ export function ProductManagement() {
   };
 
   // Fetch products from API
-  const fetchProducts = async (page = 1, search = '') => {
-    setIsLoading(true);
+  const fetchProducts = async (page = 1, search = '', showLoader = true) => {
+    if (showLoader) {
+      setIsLoading(true);
+    } else {
+      setIsPaginating(true);
+    }
     try {
       const token = getToken();
-      let url = `${API_URL}/products?page=${page}&limit=100&sortBy=createdAt&sortOrder=desc`;
+      let url = `${API_URL}/products?page=${page}&limit=10&sortBy=createdAt&sortOrder=desc`;
       
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -76,6 +82,7 @@ export function ProductManagement() {
       setProducts([]);
     } finally {
       setIsLoading(false);
+      setIsPaginating(false);
     }
   };
 
@@ -211,6 +218,11 @@ export function ProductManagement() {
     fetchProducts(currentPage, searchTerm);
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchProducts(page, searchTerm, false);
+  };
+
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.author?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -291,33 +303,34 @@ export function ProductManagement() {
           </div>
         ) : (
           <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left py-3 px-4 text-sm sm:text-base">Title</th>
-                  <th className="text-left py-3 px-4 text-sm sm:text-base">Author</th>
-                  <th className="text-left py-3 px-4 text-sm sm:text-base">Publisher</th>
-                  <th className="text-left py-3 px-4 text-sm sm:text-base">Price</th>
-                  <th className="text-left py-3 px-4 text-sm sm:text-base">Stock</th>
-                  <th className="text-left py-3 px-4 text-sm sm:text-base">Category</th>
-                  <th className="text-left py-3 px-4 text-sm sm:text-base">Status</th>
-                  <th className="text-left py-3 px-4 text-sm sm:text-base">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => (
+            <div className={isPaginating ? 'opacity-50 transition-opacity duration-200' : 'transition-opacity duration-200'}>
+              <table className="w-full min-w-[800px]">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left py-3 px-4 text-sm sm:text-base">Title</th>
+                    <th className="text-left py-3 px-4 text-sm sm:text-base">Author</th>
+                    <th className="text-left py-3 px-4 text-sm sm:text-base">Publisher</th>
+                    <th className="text-left py-3 px-4 text-sm sm:text-base">Price</th>
+                    <th className="text-left py-3 px-4 text-sm sm:text-base">Stock</th>
+                    <th className="text-left py-3 px-4 text-sm sm:text-base">Category</th>
+                    <th className="text-left py-3 px-4 text-sm sm:text-base">Status</th>
+                    <th className="text-left py-3 px-4 text-sm sm:text-base">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map((product) => (
                   <tr key={product._id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4 text-sm sm:text-base">{product.name}</td>
                     <td className="py-3 px-4 text-gray-600 text-sm sm:text-base">{product.author || '-'}</td>
                     <td className="py-3 px-4 text-gray-600 text-sm sm:text-base">{product.publisher || '-'}</td>
-                    <td className="py-3 px-4 text-sm sm:text-base">${product.price.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-sm sm:text-base">{formatCurrency(product.price)}</td>
                     <td className="py-3 px-4 text-sm sm:text-base">
                       <span className={product.stock === 0 ? 'text-red-600' : ''}>
                         {product.stock}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-sm sm:text-base">
-                      {typeof product.category === 'object' ? product.category.name : product.category}
+                      {product.category && typeof product.category === 'object' ? product.category.name : product.category || '-'}
                     </td>
                     <td className="py-3 px-4">
                       <Badge 
@@ -349,6 +362,60 @@ export function ProductManagement() {
                 ))}
               </tbody>
             </table>
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filteredProducts.length > 0 && (
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages} • Total: {totalProducts} products
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1 || isPaginating}
+              >
+                Previous
+              </Button>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      disabled={isPaginating}
+                      className="min-w-[40px]"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || isPaginating}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </Card>

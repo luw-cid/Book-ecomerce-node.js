@@ -10,7 +10,7 @@ const createProduct = asyncHandle(async (req, res) => {
     const product = await productService.createProduct(req.body);
     res.status(201).json({
         success: true,
-        message: 'Tạo sản phẩm thành công!',
+        message: 'Product creted successfully!',
         product
     });
 });
@@ -52,7 +52,7 @@ const getProducts = asyncHandle(async (req, res) => {
 const getProductById = asyncHandle(async (req, res) => {
     const product = await productService.getProductById(req.params.id);
     if (!product) {
-        throw new AppError('Không tìm thấy sản phẩm!', 404);
+        throw new AppError('Product not found!', 404);
     }
     res.status(200).json({
         success: true,
@@ -64,11 +64,11 @@ const getProductById = asyncHandle(async (req, res) => {
 const updateProduct = asyncHandle(async (req, res) => {
     const updatedProduct = await productService.updateProduct(req.params.id, req.body);
     if (!updatedProduct) {
-        throw new AppError('Sản phẩm không tồn tại!', 404);
+        throw new AppError('Product not found!', 404);
     }
     res.status(200).json({
         success: true,
-        message: 'Cập nhật sản phẩm thành công!',
+        message: 'Update product successfully!',
         product: updatedProduct
     });
 });
@@ -77,11 +77,11 @@ const updateProduct = asyncHandle(async (req, res) => {
 const deleteProduct = asyncHandle(async (req, res) => {
     const deletedProduct = await productService.deleteProduct(req.params.id);
     if (!deletedProduct) {
-        throw new AppError('Sản phẩm không tồn tại!', 404);
+        throw new AppError('Product not found!', 404);
     }
     res.status(200).json({
         success: true,
-        message: 'Xóa sản phẩm thành công!',
+        message: 'Product deleted successfully!',
         product: deletedProduct
     });
 });
@@ -91,7 +91,7 @@ const searchProducts = asyncHandle(async (req, res) => {
     const { keyword = '', page = 1, limit = 10 } = req.query;
     
     if (!keyword.trim()) {
-        throw new AppError('Vui lòng nhập từ khóa tìm kiếm!', 400);
+        throw new AppError('Please enter search keywords!', 400);
     }
     
     const result = await productService.searchProducts(keyword, Number(page), Number(limit));
@@ -124,7 +124,7 @@ const importProducts = asyncHandle(async (req, res) => {
 // IMPORT - Nhập nhiều sản phẩm từ file Excel
 const importProductsFromExcel = asyncHandle(async (req, res) => {
     if (!req.file) {
-        throw new AppError('Vui lòng upload file Excel!', 400);
+        throw new AppError('Please upload file Excel!', 400);
     }
     
     const result = await productService.importProductsFromExcel(req.file.path);

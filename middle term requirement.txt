@@ -1,0 +1,102 @@
+Đối với nội dung được tô màu tím, sinh viên phải tuân thủ nghiêm ngặt các mô tả được cung cấp. Bất kỳ sai lệch, sửa đổi hoặc bổ sung tính năng nào sẽ dẫn đến việc bài nộp bị loại khỏi vòng đánh giá.
+I. TỔNG QUAN
+Dự án cuối cùng của khóa học này bao gồm việc phát triển một trang web thương mại điện tử đầy đủ chức năng. Dự án này sẽ kiểm tra kiến ​​thức của bạn về phát triển web bằng Node.js ở phần back-end, cùng với bất kỳ framework front-end nào bạn chọn. Dự án sẽ được hoàn thành theo nhóm
+từ 2-3 thành viên. Mỗi nhóm sẽ được yêu cầu thiết kế, triển khai và triển khai một ứng dụng thương mại điện tử bao gồm các tính năng thiết yếu
+như xác thực người dùng, quản lý sản phẩm và hệ thống đặt hàng. Bạn được tự do lựa chọn các thư viện và công cụ hỗ trợ để nâng cao
+chức năng của ứng dụng, nhưng phần back-end cốt lõi phải được phát triển bằng một framework Node.js như Express.js. Để ngăn chặn gian lận, bạn
+được yêu cầu phát triển một trang web chỉ bán máy tính và linh kiện máy tính. Việc bán điện thoại hoặc bất kỳ sản phẩm nào khác
+Trang 2/13
+bị nghiêm cấm, và bất kỳ vi phạm nào đối với quy tắc này sẽ dẫn đến điểm 0 cho toàn bộ dự án. Bạn cũng sẽ cần triển khai
+ứng dụng của mình lên một dịch vụ lưu trữ công cộng (ví dụ: Heroku, Vercel, AWS, v.v.) hoặc, thay vào đó, đóng gói dự án của bạn bằng Docker Compose
+và cung cấp các cấu hình Docker cần thiết để nó có thể chạy cục bộ trên bất kỳ máy nào.
+II. YÊU CẦU DỰ ÁN
+1. Trang đích (trang chủ)
+• Đây là trang đầu tiên người dùng sẽ thấy khi truy cập trang web. Trang web phải hiển thị danh sách sản phẩm trong các danh mục "Sản phẩm mới", "Bán chạy nhất" và ít nhất ba danh mục riêng biệt khác (ví dụ: máy tính xách tay, màn hình, ổ cứng).
+
+Người dùng không bắt buộc phải đăng nhập để duyệt và mua sản phẩm.
+• Trang web phải cho phép người dùng mua hàng mà không cần đăng nhập. Nếu họ mua hàng mà không cần đăng nhập, một tài khoản sẽ được
+tự động tạo cho người dùng (nếu họ chưa có tài khoản), thông tin đơn hàng sẽ được lưu và trong tương lai, nếu
+khách hàng đăng nhập, họ sẽ có thể xem lại các đơn hàng trước đó của mình.
+• Nếu khách hàng mua hàng sau khi đăng nhập, địa chỉ mặc định (nếu có) sẽ được điền sẵn trong phần thanh toán. Ngoài ra, người dùng cũng có thể thay đổi sang một địa chỉ giao hàng khác nếu muốn.
+• Để đơn giản hóa, hệ thống chỉ hỗ trợ hai loại người dùng: khách hàng và một quản trị viên.
+2. Quản lý Người dùng
+• Đăng ký và Đăng nhập Người dùng: Cho phép người dùng tạo tài khoản, đăng nhập và quản lý hồ sơ của mình. Khi tạo tài khoản, người dung chỉ cần nhập email, họ tên đầy đủ và địa chỉ giao hàng.
+• Xác thực Mạng xã hội: Người dùng có thể đăng nhập bằng bất kỳ tài khoản mạng xã hội nào, ví dụ: Google hoặc Facebook, v.v. để thuận tiện.
+• Quản lý Hồ sơ: Người dùng có thể cập nhật thông tin cá nhân, thay đổi/khôi phục mật khẩu và quản lý nhiều địa chỉ giao hàng cho mỗi địa chỉ giao hàng.
+3. Quản lý Sản phẩm
+• Danh mục Sản phẩm: Một trang chuyên dụng (không phải trang đích) hiển thị danh sách sản phẩm với thông tin cơ bản như tên, giá, hình ảnh và mô tả ngắn (trong chế độ xem danh sách hoặc chế độ xem lưới), với cơ chế phân trang được áp dụng để giới hạn số lượng sản phẩm được hiển thị cùng lúc. Sắp xếp sản phẩm thành các danh mục và thẻ để cải thiện điều hướng và SEO. Tính năng phân trang
+phải hoạt động ở mọi nơi danh sách sản phẩm được hiển thị. Nó phải hiển thị số trang, ngay cả khi chỉ có một trang.
+
+Khi
+Trang 3/13
+trình bày bản demo, nếu trang web thiếu dữ liệu đủ để hiển thị tính năng 'phân trang', nó sẽ được coi là
+không có chức năng này.
+
+• Trang chi tiết sản phẩm phải hiển thị thông tin đầy đủ về một sản phẩm cụ thể, bao gồm tên, giá, thương hiệu,
+danh sách các biến thể (nếu có), mô tả ngắn ít nhất năm dòng và tối thiểu ba hình ảnh minh họa. Bên dưới thông tin sản phẩm, nên có một phần dành cho nhận xét của người dùng và xếp hạng sao. Trang web phải hỗ trợ các sản phẩm có nhiều biến thể, mỗi biến thể có tính năng theo dõi hàng tồn kho độc lập. Để đạt điểm tối đa cho phần này, mỗi sản phẩm phải có ít nhất hai biến thể.
+• Đặt hàng sản phẩm: Sắp xếp danh sách kết quả (sản phẩm) theo một số tiêu chí như: giá (tăng dần/giảm dần), mức độ liên quan, v.v. Để đạt điểm tối đa cho phần này, trang web phải cung cấp ít nhất bốn tiêu chí sắp xếp, bao gồm: sắp xếp theo tên (A-Z và Z-A) và sắp xếp theo giá (tăng dần và giảm dần).
+• Tìm kiếm và Lọc sản phẩm: Người dùng có thể tìm kiếm sản phẩm và lọc kết quả theo các thuộc tính như giá, danh mục hoặc xếp hạng. Để đạt điểm tối đa cho phần lọc, trang web phải bao gồm ít nhất ba tiêu chí lọc, với các bộ lọc bắt buộc cho thương hiệu và giá (cho phép người dùng chọn giá trị tối thiểu và tối đa).
+• Đánh giá và Xếp hạng sản phẩm: Người dùng không bắt buộc phải đăng nhập để bình luận, nhưng phải đăng nhập (không cần phải mua hàng) để đánh giá sản phẩm. Để đạt điểm tối đa cho phần lọc, trang web phải bao gồm ít nhất ba tiêu chí lọc, với các bộ lọc bắt buộc cho thương hiệu và giá (cho phép người dùng chọn giá trị tối thiểu và tối đa).
+• Đánh giá và Xếp hạng Sản phẩm: Người dùng không bắt buộc phải đăng nhập để bình luận, nhưng phải đăng nhập (không cần mua hàng) để đánh giá sản phẩm bằng sao. Nếu có thể, hãy sử dụng websockets để triển khai tính năng cho phép bạn xem các bình luận và xếp hạng đã cập nhật mà không cần tải lại trang chi tiết sản phẩm.
+4. Giỏ hàng và Thanh toán
+• Thêm vào Giỏ hàng: Cho phép người dùng thêm sản phẩm vào giỏ hàng, đồng thời có thể cập nhật số lượng hoặc xóa sản phẩm. Trang web
+phải cho phép người dùng chỉnh sửa giỏ hàng và nhận thông tin cập nhật theo thời gian thực (ví dụ: thay đổi về số lượng và giá) mà không cần
+phải tải lại trang.
+• Tóm tắt Giỏ hàng: Hiển thị tóm tắt các mặt hàng trong giỏ hàng, bao gồm tổng giá, thuế và phí vận chuyển.
+• Quy trình Thanh toán: Hướng dẫn người dùng thực hiện quy trình nhiều bước để nhập thông tin thanh toán, chi tiết vận chuyển và xác nhận đơn hàng.
+• Thanh toán cho Khách: Cho phép người dùng hoàn tất giao dịch mua mà không cần tạo tài khoản.
+• Mã Giảm giá: Trang web phải cho phép người dùng nhập mã giảm giá trong quá trình thanh toán. Các mã này phải là chuỗi ký tự chữ và số gồm 5 ký tự do quản trị viên tạo ra. Mã giảm giá sẽ không có ngày hết hạn nhưng sẽ có giới hạn sử dụng
+do quản trị viên xác định, với giới hạn tối đa là 10 lần sử dụng cho mỗi mã. Người mua hàng phải kiểm tra được thời hạn hiệu lực và hiệu lực của mã giảm giá (nếu có) trước khi hoàn tất thanh toán.
+5. Quản lý Đơn hàng
+Trang 4/13
+• Tạo Đơn hàng: Sau khi thanh toán thành công, một hồ sơ đơn hàng sẽ được tạo và liên kết với tài khoản của người dùng. Sau khi giao dịch mua hàng hoàn tất, người dùng sẽ thấy màn hình thành công hiển thị tất cả thông tin liên quan về đơn hàng vừa đặt. Ngoài ra, người dùng sẽ nhận được email xác nhận với thông tin chi tiết về đơn hàng.
+• Theo dõi Đơn hàng: Cho phép người dùng theo dõi trạng thái đơn hàng (ví dụ: đang chờ xử lý, đã xác nhận, đang vận chuyển, đã giao hàng). Ngoài việc xem trạng thái hiện tại của đơn hàng, khách hàng cũng có thể xem lịch sử trạng thái của đơn hàng. Lịch sử này có thể được trình bày trong một bảng liệt kê tất cả các trạng thái cùng với dấu thời gian cập nhật tương ứng, được sắp xếp theo thứ tự thời gian ngược, với trạng thái gần đây nhất được hiển thị ở trên cùng.
+• Lịch sử đơn hàng: Trang web phải hiển thị các đơn hàng trước đó của người dùng, bao gồm các thông tin như số đơn hàng, ngày mua, tổng số tiền, trạng thái và danh sách sản phẩm cùng số lượng tương ứng cho mỗi đơn hàng.
+• Chương trình khách hàng thân thiết: Nên triển khai hệ thống khách hàng thân thiết, trong đó khách hàng sẽ được tích lũy 10% tổng giá trị đơn hàng dưới dạng điểm cho mỗi lần mua. Ví dụ: với tổng giá trị đơn hàng là 1.000.000 đồng, khách hàng sẽ tích lũy được 100 điểm, tương đương với 100.000 đồng. Số điểm này có thể được sử dụng ngay cho đơn hàng tiếp theo mà không bị giới hạn thêm.
+6. Quản lý Quản trị
+• Dardboards:
+o Bảng điều khiển Đơn giản: Tổng quan cấp cao về hiệu suất của cửa hàng, các số liệu chính và thông tin chi tiết hữu ích. Bao gồm
+những thông tin như: Tổng số người dùng, số lượng người dùng mới, số lượng đơn hàng, doanh thu, các sản phẩm bán chạy nhất được thể hiện
+thông qua biểu đồ.
+o Bảng điều khiển Nâng cao: Hiển thị số liệu thống kê và biểu đồ liên quan cho thông tin chính theo các khoảng thời gian cụ thể. Theo mặc định,
+dữ liệu được hiển thị hàng năm, nhưng người dùng có thể linh hoạt điều chỉnh chế độ xem theo quý, hàng tháng, hàng tuần hoặc dựa trên ngày bắt đầu và kết thúc được xác định. Đối với mỗi khung thời gian này, việc theo dõi số lượng đơn hàng đã bán, tổng doanh thu và
+lợi nhuận chung là rất cần thiết. Ngoài ra, cần có các biểu đồ so sánh hiển thị doanh thu, lợi nhuận, số lượng sản phẩm và loại sản phẩm
+đã bán, được phân tích theo năm, tháng, quý và tuần.
+• Quản lý Sản phẩm: Quản trị viên có thể thêm, cập nhật hoặc xóa sản phẩm, quản lý danh mục và xử lý hàng tồn kho từ bảng điều khiển trung tâm. • Quản lý Người dùng: Quản trị viên có thể xem và quản lý tất cả người dùng, bao gồm cả việc cấm hoặc cập nhật thông tin người dùng.
+• Quản lý Đơn hàng: Quản trị viên có thể xem, cập nhật và xử lý đơn hàng (ví dụ: thay đổi trạng thái từ đang chờ xử lý sang đã xác nhận).
+Trang 5/13
+o Xem danh sách đơn hàng: Quản trị viên có thể xem danh sách đơn hàng trên toàn hệ thống, được sắp xếp theo thứ tự đơn hàng gần đây nhất trước. Phân trang
+nên được áp dụng, hiển thị khoảng 20 mục trên mỗi trang. Giao diện này cũng cho phép quản trị viên lọc đơn hàng
+theo nhiều khoảng thời gian khác nhau, chẳng hạn như: hôm nay, hôm qua, tuần này, tháng này hoặc một khoảng thời gian cụ thể (bắt đầu-kết thúc).
+o Xem chi tiết đơn hàng: Quản trị viên có thể chọn một đơn hàng để xem thông tin chi tiết (chẳng hạn như tên người mua, thời gian mua hàng, tổng số tiền, có áp dụng giảm giá hay không, v.v.), cũng như danh sách sản phẩm trong đơn hàng. Ngoài ra, quản trị viên cũng có thể thay đổi trạng thái đơn hàng (ví dụ: từ đang chờ xử lý sang đã xác nhận).
+• Quản lý giảm giá: Quản trị viên cần có khả năng xem danh sách mã giảm giá cùng với các thông tin chi tiết liên quan,
+bao gồm thời gian tạo, giá trị giảm giá, số lần mã đã được sử dụng ngoài số lượng tối đa được phép và
+danh sách các đơn hàng đã áp dụng phiếu giảm giá. Ngoài ra, quản trị viên cần có khả năng tạo mã giảm giá mới.
+• Ngoài các chức năng đã đề cập ở trên, bạn không được thêm bất kỳ tính năng bổ sung nào vào phần quản trị.
+7. Triển khai
+Bạn được yêu cầu chọn một trong hai phương pháp dưới đây để triển khai dự án của nhóm. Hoàn thành thành công nhiệm vụ này sẽ không
+cộng thêm điểm, nhưng nếu không thực hiện sẽ bị phạt: trừ 1,0 điểm nếu tổng điểm của bạn từ 8,5 trở lên và
+trừ 0,5 điểm nếu tổng điểm của bạn dưới 8,5:
+1. Lưu trữ Công cộng:
+• Trang web nên được triển khai trên bất kỳ nền tảng lưu trữ đám mây công cộng nào (ví dụ: Heroku, Vercel, AWS, Netlify).
+
+• Cung cấp URL công khai để truy cập dự án của bạn.
+• Đảm bảo trang web hoạt động bình thường, giống như trong môi trường cục bộ, vì đây sẽ là cơ sở để đánh giá
+điểm của bạn. Đừng quên cung cấp tên người dùng/mật khẩu cho tài khoản quản trị viên.
+2. Docker Compose:
+• Nếu bạn chọn không triển khai lên dịch vụ lưu trữ trực tuyến, bạn phải đóng gói ứng dụng bằng Docker Compose.
+• Mỗi thành phần (giao diện người dùng, giao diện quản trị, cơ sở dữ liệu, v.v.) nên được đặt trong các vùng chứa riêng biệt.
+• Cung cấp tệp docker-compose.yml, kèm theo hướng dẫn rõ ràng để chạy dự án cục bộ.
+• Đảm bảo bạn đã kiểm tra thiết lập Docker Compose này và nó hoạt động bình thường trước khi nộp dự án.
+Học viên phải đảm bảo rằng giảng viên có thể chạy dự án của họ chỉ bằng lệnh "docker compose up -d". Các lệnh khác, chẳng hạn như "npm install", nên được cấu hình sẵn trong tệp YAML của docker compose hoặc Dockerfile.
+8. Các yêu cầu khác
+Trang 6/13
+• UI/UX: Ứng dụng web phải có thiết kế rõ ràng, thân thiện với người dùng, điều hướng trực quan. Tập trung vào trải nghiệm người dùng, thời gian tải nhanh và tương tác dễ dàng với các thành phần.
+• Hợp tác nhóm: Các thành viên trong nhóm phải làm việc cùng nhau bằng cách sử dụng kiểm soát phiên bản (ví dụ: Git), phân chia nhiệm vụ và đảm bảo tích hợp các đóng góp một cách liền mạch. Việc giao tiếp thường xuyên là điều cần thiết. Bạn được yêu cầu thể hiện quy trình làm việc nhóm bằng cách
+chụp ảnh màn hình các đóng góp của các thành viên trong nhóm bằng tính năng GitHub Insights. Bằng chứng phải cho thấy rõ ràng
+dự án đã được triển khai ít nhất một tháng kể từ ngày bắt đầu, với mỗi thành viên thực hiện tối thiểu hai lần commit
+mỗi tuần. Việc không đáp ứng các tiêu chí này có thể dẫn đến việc trừ điểm hoặc không được cộng điểm cho phần làm việc nhóm.
+• Các nhóm chỉ có một thành viên sẽ không nhận được bất kỳ điểm nào cho phần làm việc nhóm.
+• Thiết kế đáp ứng: Ứng dụng web phải đáp ứng, thích ứng liền mạch với các thiết bị và kích thước màn hình khác nhau. Sử dụng
+các framework như Bootstrap hoặc CSS Grid để đảm bảo khả năng tương thích.
+• Khả năng mở rộng theo chiều ngang: Thiết kế ứng dụng để có thể mở rộng theo chiều ngang, cho phép ứng dụng xử lý nhiều lưu lượng hơn bằng cách thêm máy chủ. Triển khai kiến ​​trúc không trạng thái
