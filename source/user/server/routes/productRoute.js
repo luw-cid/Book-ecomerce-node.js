@@ -9,7 +9,7 @@ router.get('/search/advanced', productController.advancedSearch);
 
 // ==================== SPECIAL ROUTES ====================
 router.get('/brands', productController.getBrands);
-router.get('/price-range', productController.getProductsByPriceRange);
+// router.get('/price-range', productController.getProductsByPriceRange);
 router.get('/price-range', productController.getPriceRange);
 router.get('/new', productController.getNewProducts);            
 router.get('/bestseller', productController.getBestSellerProducts); 
