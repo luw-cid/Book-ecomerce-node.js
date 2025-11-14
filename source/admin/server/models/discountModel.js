@@ -94,7 +94,7 @@ const discountSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-discountSchema.index({ code: 1 });
+// Không cần index({ code: 1 }) vì đã có unique: true ở schema
 discountSchema.index({ isActive: 1, expiresAt: 1 });
 discountSchema.index({ startAt: 1, expiresAt: 1 });
 

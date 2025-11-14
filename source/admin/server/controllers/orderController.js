@@ -7,7 +7,7 @@ const AppError = require('../errors');
  * Get all orders with filters and pagination
  */
 const getOrders = async (req, res) => {
-    const { page = 1, limit = 12, status, paymentStatus, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const { page = 1, limit = 12, status, paymentStatus, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
     const filter = {};
 
@@ -19,12 +19,16 @@ const getOrders = async (req, res) => {
         filter.paymentStatus = paymentStatus;
     }
 
+    // Không thêm $or ở đây - để service handle để tránh conflict
+    // Service sẽ xử lý search cho cả orderNumber và user data
+
     const result = await orderService.getOrders({
         filter,
         page: parseInt(page),
         limit: parseInt(limit),
         sortBy,
-        sortOrder
+        sortOrder,
+        search: search || ''
     });
 
     res.status(200).json(result);

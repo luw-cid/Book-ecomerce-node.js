@@ -55,7 +55,13 @@ export function CategoryManagement() {
     }
     try {
       const token = getToken();
-      const response = await axios.get(`${API_URL}/categories?page=${page}&limit=12`, {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '12',
+        ...(searchTerm && { search: searchTerm })
+      });
+      
+      const response = await axios.get(`${API_URL}/categories?${params}`, {
         headers: { Authorization: `Bearer ${token}`, },
       });
 
@@ -75,10 +81,14 @@ export function CategoryManagement() {
     }
   };
 
-  // Load categories on mount
+  // Fetch when search term or page changes (with debounce for search)
   useEffect(() => {
-    fetchCategories(1, true);
-  }, []);
+    const timeoutId = setTimeout(() => {
+      fetchCategories(currentPage, true);
+    }, searchTerm ? 500 : 0); // Debounce only for search, immediate for pagination
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, currentPage]);
 
   const handleEdit = (category: Category) => {
     setSelectedCategory(category);
@@ -238,13 +248,16 @@ export function CategoryManagement() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchCategories(page, false);
   };
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.slug.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  };
+
+  // Client-side filtering removed - now handled by server
 
   return (
     <div className="space-y-6">
@@ -267,13 +280,13 @@ export function CategoryManagement() {
               placeholder="Search categories..." 
               className="pl-10"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
         </div>
 
         <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 gap-4 transition-opacity duration-200 ${isPaginating ? 'opacity-50' : ''}`}>
-          {filteredCategories.map((category) => (
+          {categories.map((category) => (
             <Card key={category._id} className="p-4 hover:shadow-md transition-shadow">
               {/* Category Image */}
               {category.image && (
@@ -333,7 +346,7 @@ export function CategoryManagement() {
           ))}
         </div>
 
-        {filteredCategories.length === 0 && (
+        {categories.length === 0 && (
           <div className="text-center py-12">
             <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-500">No categories found</p>
@@ -341,7 +354,7 @@ export function CategoryManagement() {
         )}
 
         {/* Pagination */}
-        {filteredCategories.length > 0 && (
+        {categories.length > 0 && (
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-600">
               Page {currentPage} of {totalPages} • Total: {totalCategories} categories

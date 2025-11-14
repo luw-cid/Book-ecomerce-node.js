@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
-const { authMiddleware } = require("../middlewares/authMiddleware");
+const { authMiddleware } = require('../middlewares/authMiddleware');
+const { adminMiddleware } = require('../middlewares/roleMiddleware');
 
-router.use(authMiddleware);
+// ==================== PROTECTED ROUTES (ADMIN ONLY) ====================
+router.use(authMiddleware, adminMiddleware);
+
 router.get('/', orderController.getOrders);
 router.get('/stats', orderController.getOrderStats);
 router.get('/:id', orderController.getOrderById);

@@ -6,8 +6,9 @@ const { authMiddleware } = require('../middlewares/authMiddleware');
 const { adminMiddleware } = require('../middlewares/roleMiddleware');
 const { uploadExcel } = require('../middlewares/uploadMiddleware');
 
-// Apply auth middleware to all routes
-// router.use(authMiddleware, adminMiddleware);
+// ==================== PROTECTED ROUTES (ADMIN ONLY) ====================
+// Apply auth + admin middleware to all routes
+router.use(authMiddleware, adminMiddleware);
 
 // Search products - ĐẶT TRƯỚC /:id
 router.get('/search', productController.searchProducts);

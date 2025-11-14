@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -77,6 +77,15 @@ export function OrderManagement() {
     fetchOrders(true);
   }, [statusFilter]);
 
+  // Fetch when search term or page changes (with debounce for search)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchOrders(true);
+    }, searchTerm ? 500 : 0); // Debounce only for search, immediate for pagination
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, currentPage]);
+
   const fetchOrders = async (showLoader = true) => {
     try {
       if (showLoader) {
@@ -89,7 +98,8 @@ export function OrderManagement() {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '10',
-        ...(statusFilter && { status: statusFilter })
+        ...(statusFilter && { status: statusFilter }),
+        ...(searchTerm && { search: searchTerm })
       });
 
       const response = await axios.get(`${API_URL}/orders?${params}`, {
@@ -119,24 +129,16 @@ export function OrderManagement() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchOrders(false);
   };
 
-  const filteredOrders = orders.filter(order => {
-    // If there's a search term, filter by it
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = (
-        order.orderNumber.toLowerCase().includes(searchLower) ||
-        order.user?.fullName?.toLowerCase().includes(searchLower) ||
-        order.user?.email?.toLowerCase().includes(searchLower)
-      );
-      
-      if (!matchesSearch) return false;
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
     }
-    
-    return true;
-  });
+  };
+
+  // Client-side filtering removed - now handled by server
 
   const getStatusLabel = (status: string) => {
     return status; // Return status as-is since we're now using proper case
@@ -199,7 +201,7 @@ export function OrderManagement() {
               placeholder="Search by order number, customer name, or status..." 
               className="pl-10"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
 
@@ -230,7 +232,7 @@ export function OrderManagement() {
         </div>
 
         {/* Orders Table */}
-        {filteredOrders.length === 0 ? (
+        {orders.length === 0 ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <Search className="w-8 h-8 text-gray-400" />
@@ -261,7 +263,7 @@ export function OrderManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => (
+                  {orders.map((order) => (
                     <tr key={order._id} className="border-b hover:bg-gray-50 transition-colors">
                       <td className="py-3 px-4">
                         <span className="font-mono text-sm font-medium text-gray-900">{order.orderNumber}</span>
@@ -303,7 +305,7 @@ export function OrderManagement() {
             </div>
 
             {/* Pagination */}
-            {filteredOrders.length > 0 && (
+            {orders.length > 0 && (
               <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-sm text-gray-600">
                   Page {currentPage} of {totalPages} • Total: {totalOrders} orders

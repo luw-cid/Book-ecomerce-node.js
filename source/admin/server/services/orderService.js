@@ -1,32 +1,55 @@
 const orderModel = require('../models/orderModel');
+const userModel = require('../models/userModel');
 
-const getOrders = async ({ filter = {}, page = 1, limit = 12, sortBy = 'createdAt', sortOrder = 'desc' }) => {
-    const skip = (page - 1) * limit;
-    const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1};
-
+const getOrders = async ({ filter, page, limit, sortBy, sortOrder, search }) => {
     try {
-        const orders = await orderModel
-            .find(filter)
-            .populate('user', 'fullName email phone')
+        const skip = (page - 1) * limit;
+        
+        // Nếu có search, build filter.$or một lần duy nhất
+        if (search && search.trim()) {
+            // Tìm users matching search
+            const matchingUsers = await userModel.find({
+                $or: [
+                    { fullName: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ]
+            }).select('_id');
+            
+            const userIds = matchingUsers.map(u => u._id);
+            
+            // Xóa filter.$or cũ nếu có (từ controller)
+            if (filter.$or) {
+                delete filter.$or;
+            }
+            
+            // Build filter.$or mới với cả orderNumber và userIds
+            filter.$or = [
+                { orderNumber: { $regex: search, $options: 'i' } },
+                { user: { $in: userIds } }
+            ];
+        }
+        
+        // Chỉ tạo query một lần duy nhất
+        const query = orderModel.find(filter)
+            .populate('user', 'fullName email phoneNumber')
             .populate('items.product', 'name images price')
-            .sort(sort)
+            .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
             .skip(skip)
-            .limit(limit)
-            .lean();
+            .limit(limit);
 
+        const orders = await query;
         const total = await orderModel.countDocuments(filter);
 
         return {
             success: true,
             orders,
             pagination: {
-                currentPage: page,
+                page,
+                limit,
                 totalPages: Math.ceil(total / limit),
-                totalOrders: total,
-                limit
+                totalOrders: total
             }
         };
-
     } catch (error) {
         throw error;
     }

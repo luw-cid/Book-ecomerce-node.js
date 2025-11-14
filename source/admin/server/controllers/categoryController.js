@@ -26,12 +26,21 @@ const createCategory = async (req, res, next) => {
  */
 const getCategories = async (req, res, next) => {
     try {
-        const { page = 1, limit = 12, sortBy = 'createdAt', sortOrder = 'desc', isActive } = req.query;
+        const { page = 1, limit = 12, search, sortBy = 'createdAt', sortOrder = 'desc', isActive } = req.query;
         
         // Build filter
         const filter = {};
         if (isActive !== undefined) {
             filter.isActive = isActive === 'true';
+        }
+        
+        // Thêm search support
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { slug: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
         }
         
         const result = await categoryService.getCategories({
