@@ -39,17 +39,14 @@ export function CategoryPage({
 
   // ============= FILTER STATE =============
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating" | "newest">("featured");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
+  const [sortBy, setSortBy] = useState<"featured" | "price-low" | "price-high" | "rating" | "newest" | "name-asc" | "name-desc">("featured"); const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
 
-  // Get min and max prices from books in this category
-  // const categoryBooks = sampleBooks.filter(book =>
-  //   category === "" || book.category.toLowerCase() === category.toLowerCase()
-  // );
+  // ============= BRAND & RATING FILTERS =============
+  const [brands, setBrands] = useState<string[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<string>("all");
+  const [minRating, setMinRating] = useState<number | null>(null);
 
-  // const minPrice = Math.min(...categoryBooks.map(book => book.price));
-  // const maxPrice = Math.max(...categoryBooks.map(book => book.price));
   // ============= MAP BACKEND → FRONTEND =============
   const mapProductToBook = (product: any): Book => {
     const originalPrice = product.originalPrice ?? (
@@ -127,7 +124,28 @@ export function CategoryPage({
     fetchPriceRange();
   }, [category]);
 
+  // ============= FETCH BRANDS =============
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const params: any = {};
+        if (category && category !== "") params.category = category;
 
+        const res = await axios.get('http://localhost:3000/products/brands', {
+          params,
+          headers: { "Content-Type": "application/json" }
+        });
+        const data: any = res.data;
+        const list: string[] = Array.isArray(data) ? data : data.brands || [];
+        setBrands(list);
+        console.log('📦 Brands loaded:', list);
+      } catch (err) {
+        console.warn('⚠️ Failed to fetch brands:', err);
+        setBrands([]);
+      }
+    };
+    fetchBrands();
+  }, [category]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -157,6 +175,16 @@ export function CategoryPage({
           params.category = category;
         }
 
+        // Brand filter (publisher)
+        if (selectedBrand && selectedBrand !== "all") {
+          params.publisher = selectedBrand;
+        }
+
+        // Rating filter
+        if (minRating != null && minRating > 0) {
+          params.minRating = minRating;
+        }
+
         // 3. Thêm search query nếu có
         if (searchQuery) {
           params.search = searchQuery;
@@ -172,6 +200,14 @@ export function CategoryPage({
             params.sortBy = "price";
             params.sortOrder = "desc";
             break;
+          case "name-asc":
+            params.sortBy = "name";
+            params.sortOrder = "asc";
+            break;
+          case "name-desc":
+            params.sortBy = "name";
+            params.sortOrder = "desc";
+            break;
           case "rating":
             params.sortBy = "rating";
             params.sortOrder = "desc";
@@ -185,6 +221,8 @@ export function CategoryPage({
             break;
         }
 
+        console.log('🔍 Fetching with params:', params);
+
         // 5. Gọi API
         const response = await axios.get('http://localhost:3000/products', {
           params,
@@ -197,6 +235,7 @@ export function CategoryPage({
           const productsArray = data.products || data;
           const mappedBooks = (Array.isArray(productsArray) ? productsArray : []).map(mapProductToBook);
 
+          console.log(`✅ Loaded ${mappedBooks.length} books`);
           setBooks(mappedBooks);
           setTotalBooks(data.total || mappedBooks.length);
         }
@@ -214,64 +253,7 @@ export function CategoryPage({
 
     // Cleanup: hủy request nếu component unmount trước khi fetch xong
     return () => { cancelled = true; };
-  }, [category, currentPage, sortBy, debouncedPriceRange, searchQuery]);
-
-  // Filter and search books (backend đã filter)
-  // const filteredBooks = useMemo(() => {
-  //   let books = categoryBooks;
-
-  //   // Apply search query if provided
-  //   if (searchQuery) {
-  //     books = books.filter(book =>
-  //       book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //       book.author.toLowerCase().includes(searchQuery.toLowerCase())
-  //     );
-  //   }
-
-  //   // Filter by price range
-  //   books = books.filter(book => book.price >= priceRange[0] && book.price <= priceRange[1]);
-
-  //   // Sort books
-  //   switch (sortBy) {
-  //     case "price-low":
-  //       books = [...books].sort((a, b) => a.price - b.price);
-  //       break;
-  //     case "price-high":
-  //       books = [...books].sort((a, b) => b.price - a.price);
-  //       break;
-  //     case "rating":
-  //       books = [...books].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-  //       break;
-  //     case "newest":
-  //       books = [...books].sort((a, b) => {
-  //         if (a.isNew && !b.isNew) return -1;
-  //         if (!a.isNew && b.isNew) return 1;
-  //         // if (a.newProduct && !b.newProduct) return -1;
-  //         // if (!a.newProduct && b.newProduct) return 1;
-  //         return 0;
-  //       });
-  //       break;
-  //     default:
-  //       // Featured (prioritize bestsellers and flash sales)
-  //       books = [...books].sort((a, b) => {
-  //         if (a.isBestseller && !b.isBestseller) return -1;
-  //         if (!a.isBestseller && b.isBestseller) return 1;
-  //         if (a.isFlashSale && !b.isFlashSale) return -1;
-  //         if (!a.isFlashSale && b.isFlashSale) return 1;
-  //         return 0;
-  //       });
-  //   }
-
-  //   return books;
-  // }, [categoryBooks, searchQuery, sortBy, priceRange]);
-
-  // Calculate pagination
-  // const totalPages = Math.ceil(filteredBooks.length / BOOKS_PER_PAGE);
-  // const startIndex = (currentPage - 1) * BOOKS_PER_PAGE;
-  // const endIndex = startIndex + BOOKS_PER_PAGE;
-  // const currentBooks = filteredBooks.slice(startIndex, endIndex);
-
-
+  }, [category, currentPage, sortBy, debouncedPriceRange, searchQuery, selectedBrand, minRating]);
 
   // ============= PAGINATION =============
   const totalPages = Math.ceil(totalBooks / BOOKS_PER_PAGE);
@@ -307,6 +289,8 @@ export function CategoryPage({
   const clearFilters = () => {
     setPriceRange([minPrice, maxPrice]);
     setSortBy("featured");
+    setSelectedBrand("all");
+    setMinRating(null);
     setCurrentPage(1);
   };
 
@@ -418,10 +402,47 @@ export function CategoryPage({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="featured">Featured</SelectItem>
+                  <SelectItem value="name-asc">Name: A → Z</SelectItem>
+                  <SelectItem value="name-desc">Name: Z → A</SelectItem>
                   <SelectItem value="price-low">Price: Low to High</SelectItem>
                   <SelectItem value="price-high">Price: High to Low</SelectItem>
                   <SelectItem value="rating">Highest Rated</SelectItem>
                   <SelectItem value="newest">Newest First</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Brand Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Brand:</span>
+              <Select value={selectedBrand} onValueChange={(v: string) => setSelectedBrand(v)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="All Brands" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Brands</SelectItem>
+                  {brands.map(brand => (
+                    <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Rating Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Min Rating:</span>
+              <Select
+                value={minRating == null ? "all" : String(minRating)}
+                onValueChange={(v: string) => setMinRating(v === "all" ? null : Number(v))}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Any" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any Rating</SelectItem>
+                  <SelectItem value="4">4★ & above</SelectItem>
+                  <SelectItem value="3">3★ & above</SelectItem>
+                  <SelectItem value="2">2★ & above</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -503,7 +524,7 @@ export function CategoryPage({
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalPages >= 1 && (
               <div className="flex justify-center">
                 <Pagination>
                   <PaginationContent>

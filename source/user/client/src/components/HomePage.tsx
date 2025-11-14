@@ -8,7 +8,7 @@ import { ShoppingCart, type CartItem } from "./ShoppingCart";
 import { Footer } from "./Footer";
 // import { sampleBooks } from "../data/books";
 import { Button } from "./ui/button";
-import { Filter, DollarSign, X } from "lucide-react";
+import { Filter, DollarSign, X, ChevronRight, ChevronLeft } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
@@ -58,6 +58,12 @@ export function HomePage({
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+
+  // ============= PAGINATION STATE CHO CATEGORIES =============
+  const [categoryPages, setCategoryPages] = useState<Record<string, number>>({});
+  const [categoryTotals, setCategoryTotals] = useState<Record<string, number>>({});
+  const BOOKS_PER_CATEGORY_PAGE = 4; // 4 sách/trang cho mỗi category
+
   // ============= COMPUTED VALUES =============
   const minPrice = useMemo(() => {
     if (allBooks.length === 0) return 0;
@@ -125,13 +131,19 @@ export function HomePage({
         });
 
         // Backend trả về { success: true, count: N, categories: [...] }
-        const categoriesData = categoriesRes.data.categories || [];
+        const categoriesData = (categoriesRes.data as any).categories || [];
         const activeCategories = categoriesData
           .filter((cat: any) => cat.isActive)
           .map((cat: any) => cat.name);
         // Lấy TẤT CẢ categories (không giới hạn số lượng)
 
         setCategories(activeCategories);
+        // Initialize category pages (tất cả bắt đầu từ page 1)
+        const initialPages: Record<string, number> = {};
+        activeCategories.forEach((cat: string) => {
+          initialPages[cat] = 1;
+        });
+        setCategoryPages(initialPages);
 
         // 2. Gọi API song song cho New, Bestseller, Flash Sale
         const [newRes, bestsellerRes, flashSaleRes] = await Promise.all([
@@ -150,9 +162,9 @@ export function HomePage({
         ]);
 
         // Map backend products sang frontend books
-        const newBooksData = newRes.data.map(mapProductToBook);
-        const bestsellerData = bestsellerRes.data.map(mapProductToBook);
-        const flashSaleData = flashSaleRes.data.map(mapProductToBook);
+        const newBooksData = (newRes.data as any[]).map(mapProductToBook);
+        const bestsellerData = (bestsellerRes.data as any[]).map(mapProductToBook);
+        const flashSaleData = (flashSaleRes.data as any[]).map(mapProductToBook);
 
         setNewBooks(newBooksData);
         setBestsellerBooks(bestsellerData);
@@ -160,6 +172,7 @@ export function HomePage({
 
         // 3. Fetch products cho mỗi category
         const categoryBooksData: Record<string, Book[]> = {};
+        const categoryTotalsData: Record<string, number> = {};
 
         await Promise.all(
           activeCategories.map(async (categoryName: string) => {
@@ -167,19 +180,24 @@ export function HomePage({
               const res = await axios.get('http://localhost:3000/products', {
                 params: {
                   category: categoryName,
-                  limit: 8
+                  page: 1, // Load page 1 ban đầu
+                  limit: BOOKS_PER_CATEGORY_PAGE
                 },
                 headers: { "Content-Type": "application/json" }
               });
-              categoryBooksData[categoryName] = res.data.products.map(mapProductToBook);
+              const data = res.data as { products?: any[]; total?: number };
+              categoryBooksData[categoryName] = (data.products || []).map(mapProductToBook);
+              categoryTotalsData[categoryName] = data.total || 0;
             } catch (err) {
               console.error(`Error loading ${categoryName} books:`, err);
               categoryBooksData[categoryName] = [];
+              categoryTotalsData[categoryName] = 0;
             }
           })
         );
 
         setCategoryBooks(categoryBooksData);
+        setCategoryTotals(categoryTotalsData);
 
         // Gộp tất cả books để filter
         const combined = [
@@ -216,6 +234,41 @@ export function HomePage({
     loadInitialData();
   }, []); // Empty dependency = chỉ chạy 1 lần khi mount
 
+  // ============= HANDLE CATEGORY PAGE CHANGE =============
+  const handleCategoryPageChange = async (categoryName: string, newPage: number) => {
+    try {
+      const res = await axios.get('http://localhost:3000/products', {
+        params: {
+          category: categoryName,
+          page: newPage,
+          limit: BOOKS_PER_CATEGORY_PAGE
+        },
+        headers: { "Content-Type": "application/json" }
+      });
+      const data = res.data as { products?: any[]; total?: number };
+      const books = (data.products || []).map(mapProductToBook);
+
+      // Update category books và page
+      setCategoryBooks(prev => ({
+        ...prev,
+        [categoryName]: books
+      }));
+
+      setCategoryPages(prev => ({
+        ...prev,
+        [categoryName]: newPage
+      }));
+
+      // Scroll đến section đó
+      document.getElementById(`category-${categoryName}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    } catch (err) {
+      console.error(`Error loading page ${newPage} for ${categoryName}:`, err);
+    }
+  };
+
   // ============= FETCH KHI SEARCH HOẶC FILTER =============
   useEffect(() => {
     // Nếu không có filter thì không cần fetch
@@ -235,7 +288,8 @@ export function HomePage({
           headers: { "Content-Type": "application/json" }
         });
 
-        const books = response.data.products.map(mapProductToBook);
+        const data = response.data as { products?: any[] };
+        const books = (data.products || []).map(mapProductToBook);
         setAllBooks(books);
       } catch (err: any) {
         console.error('❌ Error loading filtered books:', err);
@@ -300,14 +354,8 @@ export function HomePage({
 
   // ============= EVENT HANDLERS =============
   const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-    // Scroll xuống phần books
-    setTimeout(() => {
-      document.getElementById('books-section')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }, 100);
+    // Navigate đến CategoryPage với category đã chọn
+    onNavigate('category', { category });
   };
 
   const clearFilters = () => {
@@ -513,7 +561,7 @@ export function HomePage({
                 onToggleWishlist={onToggleWishlist}
                 // onBookClick={handleBookClick}
                 wishlist={wishlist}
-                onViewAll={() => handleCategorySelect("")}
+                onViewAll={() => onNavigate('category', { category: '' })}
                 onNavigate={onNavigate}
                 isAuthenticated={isAuthenticated}
               />
@@ -530,7 +578,7 @@ export function HomePage({
                 onToggleWishlist={onToggleWishlist}
                 // onBookClick={handleBookClick}
                 wishlist={wishlist}
-                onViewAll={() => handleCategorySelect("")}
+                onViewAll={() => onNavigate('category', { category: '' })}
                 onNavigate={onNavigate}
                 isAuthenticated={isAuthenticated}
               />
@@ -547,7 +595,7 @@ export function HomePage({
                 onToggleWishlist={onToggleWishlist}
                 // onBookClick={handleBookClick}
                 wishlist={wishlist}
-                onViewAll={() => handleCategorySelect("")}
+                onViewAll={() => onNavigate('category', { category: '' })}
                 onNavigate={onNavigate}
                 isAuthenticated={isAuthenticated}
               />
@@ -556,6 +604,10 @@ export function HomePage({
             {/* Category Sections */}
             {categories.map((categoryName, index) => {
               const books = categoryBooks[categoryName] || [];
+              const currentPage = categoryPages[categoryName] || 1;
+              const totalBooks = categoryTotals[categoryName] || 0;
+              const totalPages = Math.ceil(totalBooks / BOOKS_PER_CATEGORY_PAGE);
+
               if (books.length === 0) return null;
 
               // Định nghĩa màu sắc cho từng category (4 mùa)
@@ -569,20 +621,65 @@ export function HomePage({
               const colorTheme = categoryColors[index % 4];
 
               return (
-                <ProductSection
-                  key={categoryName}
-                  title={categoryName}
-                  subtitle={`Explore our collection of ${categoryName.toLowerCase()} books`}
-                  books={books}
-                  type={colorTheme as any}
-                  onAddToCart={onAddToCart}
-                  onToggleWishlist={onToggleWishlist}
-                  // onBookClick={handleBookClick}
-                  wishlist={wishlist}
-                  onViewAll={() => handleCategorySelect(categoryName)}
-                  onNavigate={onNavigate}
-                  isAuthenticated={isAuthenticated}
-                />
+                <div key={categoryName} id={`category-${categoryName}`}>
+                  <ProductSection
+                    title={categoryName}
+                    subtitle={`Explore our collection of ${categoryName.toLowerCase()} books (Page ${currentPage}/${totalPages})`}
+                    books={books}
+                    type={colorTheme as any}
+                    onAddToCart={onAddToCart}
+                    onToggleWishlist={onToggleWishlist}
+                    wishlist={wishlist}
+                    onViewAll={() => handleCategorySelect(categoryName)}
+                    onNavigate={onNavigate}
+                    isAuthenticated={isAuthenticated}
+                  />
+
+                  {/* Pagination Controls cho Category */}
+                  {totalPages >= 1 && (
+                    <div className="container mx-auto px-4 pb-8">
+                      <div className="flex items-center justify-center gap-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCategoryPageChange(categoryName, currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="border-2"
+                        >
+                          Previous
+                        </Button>
+
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleCategoryPageChange(categoryName, pageNum)}
+                              className={currentPage === pageNum ? "bg-gradient-to-r from-winter to-summer" : ""}
+                            >
+                              {pageNum}
+                            </Button>
+                          ))}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCategoryPageChange(categoryName, currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="border-2"
+                        >
+                          Next
+                        </Button>
+                      </div>
+
+                      <div className="text-center mt-3 text-sm text-muted-foreground">
+                        Showing {((currentPage - 1) * BOOKS_PER_CATEGORY_PAGE) + 1} - {Math.min(currentPage * BOOKS_PER_CATEGORY_PAGE, totalBooks)} of {totalBooks} books
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </>
@@ -677,15 +774,20 @@ export function HomePage({
               {filteredBooks.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredBooks.map((book) => (
-                    <BookCard
+                    <div
                       key={book.id}
-                      book={book}
-                      onAddToCart={(payload) => onAddToCart(payload.book)}
-                      onToggleWishlist={onToggleWishlist}
-                      onNavigate={onNavigate}
-                      isInWishlist={wishlist.has(book.id)}
-                      isAuthenticated={isAuthenticated}
-                    />
+                      onClick={() => onNavigate?.('product-detail', { bookId: book.id })}
+                      className="cursor-pointer"
+                    >
+                      <BookCard
+                        book={book}
+                        onAddToCart={(payload) => onAddToCart(payload.book)}
+                        onToggleWishlist={onToggleWishlist}
+                        isInWishlist={wishlist.has(book.id)}
+                        onNavigate={onNavigate}
+                        isAuthenticated={isAuthenticated}
+                      />
+                    </div>
                   ))}
                 </div>
               ) : (
