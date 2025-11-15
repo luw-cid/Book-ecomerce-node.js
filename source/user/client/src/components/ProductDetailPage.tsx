@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import io, { Socket } from 'socket.io-client';
 import { ArrowLeft, Star, Heart, Share2, ShoppingCart, Truck, Shield, RotateCcw, ThumbsUp, CheckCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -10,9 +11,10 @@ import { Card, CardContent } from "./ui/card";
 import { BookCard, type Book } from "./BookCard";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import axios from "axios";
-import { getReviewsForBook, getRatingDistribution } from "../data/reviews";
+// import { getReviewsForBook, getRatingDistribution } from "../data/reviews";
 import type { PageType } from "../App";
 import { formatCurrency } from "../utils/formatCurrency";
+import { ReviewForm } from './ReviewForm';
 
 interface ProductDetailPageProps {
   bookId: string;
@@ -20,6 +22,26 @@ interface ProductDetailPageProps {
   onAddToCart: (book: Book) => void;
   onToggleWishlist: (bookId: string) => void;
   isInWishlist: boolean;
+  isAuthenticated?: boolean;
+}
+
+interface Review {
+  _id: string;
+  customerName: string;
+  title: string;
+  comment: string;
+  rating: number | null;
+  helpful: number;
+  verified: boolean;
+  season?: string;
+  createdAt: string;
+}
+
+interface ReviewStats {
+  averageRating: number;
+  totalRatings: number;
+  totalReviews: number;
+  distribution: Record<number, number>;
 }
 
 export function ProductDetailPage({
@@ -27,7 +49,8 @@ export function ProductDetailPage({
   onNavigate,
   onAddToCart,
   onToggleWishlist,
-  isInWishlist
+  isInWishlist,
+  isAuthenticated = false
 }: ProductDetailPageProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState("description");
@@ -36,6 +59,16 @@ export function ProductDetailPage({
   const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({
+    averageRating: 0,
+    totalRatings: 0,
+    totalReviews: 0,
+    distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  });
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
   // Map backend product → frontend Book (copied/adapted from HomePage)
   const mapProductToBook = (product: any): Book => {
@@ -74,6 +107,18 @@ export function ProductDetailPage({
     };
   };
 
+  // ============= FETCH REVIEWS ============= ← THÊM
+  const fetchReviews = async () => {
+    try {
+      const res = await axios.get(`http://localhost:3000/reviews/${bookId}`);
+      const data = res.data as { reviews: Review[]; stats: ReviewStats };
+      setReviews(data.reviews);
+      setReviewStats(data.stats);
+    } catch (err) {
+      console.error('Failed to load reviews:', err);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -85,6 +130,9 @@ export function ProductDetailPage({
         });
         const mapped = mapProductToBook(res.data);
         if (!cancelled) setBook(mapped);
+
+        // Fetch reviews ← THÊM
+        await fetchReviews();
 
         // fetch related products by category
         if (mapped.category) {
@@ -117,9 +165,46 @@ export function ProductDetailPage({
     return () => { cancelled = true; };
   }, [bookId]);
 
-  const reviews = getReviewsForBook(bookId);
-  const ratingDistribution = getRatingDistribution(bookId);
-  const totalReviews = reviews.length;
+  // ============= WEBSOCKET SETUP ============= ← THÊM MỚI
+  useEffect(() => {
+    const newSocket = io('http://localhost:3000', {
+      transports: ['websocket'],
+      upgrade: false
+    });
+
+    newSocket.on('connect', () => {
+      console.log('✅ WebSocket connected');
+      newSocket.emit('joinProduct', bookId);
+    });
+
+    // Real-time: New review added
+    newSocket.on('newReview', (review: Review) => {
+      console.log('📩 New review received:', review);
+      setReviews(prev => [review, ...prev]);
+      fetchReviews(); // Refresh stats
+    });
+
+    // Real-time: Rating updated
+    newSocket.on('ratingUpdated', () => {
+      console.log('⭐ Rating updated');
+      fetchReviews(); // Refresh stats
+    });
+
+    // Real-time: Review marked helpful
+    newSocket.on('reviewHelpful', ({ reviewId, helpful }: { reviewId: string; helpful: number }) => {
+      setReviews(prev =>
+        prev.map(r => (r._id === reviewId ? { ...r, helpful } : r))
+      );
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.emit('leaveProduct', bookId);
+      newSocket.disconnect();
+    };
+  }, [bookId]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -147,10 +232,11 @@ export function ProductDetailPage({
   }
 
   const renderStars = (rating: number, size: string = "h-4 w-4") => {
+    const safeRating = rating || 0;
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`${size} ${i < Math.floor(rating)
+        className={`${size} ${i < Math.floor(safeRating)
           ? "fill-yellow-400 text-yellow-400"
           : "text-gray-300"
           }`}
@@ -175,6 +261,16 @@ export function ProductDetailPage({
       case 'autumn': return 'bg-autumn/20 text-autumn-foreground border-autumn/30';
       case 'winter': return 'bg-winter/20 text-winter-foreground border-winter/30';
       default: return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+  };
+
+  // ============= HANDLE HELPFUL ============= ← THÊM
+  const handleMarkHelpful = async (reviewId: string) => {
+    try {
+      await axios.post(`http://localhost:3000/reviews/${reviewId}/helpful`);
+      // WebSocket sẽ tự động update
+    } catch (err) {
+      console.error('Failed to mark helpful:', err);
     }
   };
 
@@ -244,10 +340,10 @@ export function ProductDetailPage({
             {/* Rating */}
             <div className="flex items-center space-x-2">
               <div className="flex items-center">
-                {renderStars(book.rating)}
+                {renderStars(book.rating || 0)}
               </div>
-              <span className="font-semibold">{book.rating}</span>
-              <span className="text-gray-500">({book.reviewCount.toLocaleString()} reviews)</span>
+              <span className="font-semibold">{book.rating || 0}</span>
+              <span className="text-gray-500">({(book.reviewCount || 0).toLocaleString()} reviews)</span>
             </div>
 
             {/* Price */}
@@ -381,12 +477,29 @@ export function ProductDetailPage({
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-2xl font-semibold mb-2">Customer Reviews</h3>
-                      <p className="text-muted-foreground">{totalReviews} reviews • Average {book.rating} stars</p>
+                      <p className="text-muted-foreground">
+                        {reviewStats.totalReviews} reviews • Average {reviewStats.averageRating} stars
+                      </p>
                     </div>
-                    <Button className="bg-gradient-to-r from-spring via-summer via-autumn to-winter text-white hover:opacity-90">
-                      Write a Review
+                    <Button
+                      onClick={() => setShowReviewForm(!showReviewForm)}
+                      className="bg-gradient-to-r from-spring via-summer via-autumn to-winter text-white hover:opacity-90"
+                    >
+                      {showReviewForm ? 'Cancel' : 'Write a Review'}
                     </Button>
                   </div>
+
+                  {/* Review Form */}
+                  {showReviewForm && (
+                    <ReviewForm
+                      productId={bookId}
+                      isAuthenticated={isAuthenticated}
+                      onReviewSubmitted={() => {
+                        setShowReviewForm(false);
+                        fetchReviews();
+                      }}
+                    />
+                  )}
 
                   {/* Rating Overview */}
                   <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
@@ -394,11 +507,11 @@ export function ProductDetailPage({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Overall Rating */}
                         <div className="text-center">
-                          <div className="text-5xl font-bold text-gray-900 mb-2">{book.rating}</div>
+                          <div className="text-5xl font-bold text-gray-900 mb-2">{reviewStats.averageRating.toFixed(1)}</div>
                           <div className="flex justify-center mb-2">
-                            {renderStars(book.rating, "h-6 w-6")}
+                            {renderStars(reviewStats.averageRating, "h-6 w-6")}
                           </div>
-                          <p className="text-gray-600">Based on {totalReviews} reviews</p>
+                          <p className="text-gray-600">Based on {reviewStats.totalReviews} reviews</p>
                         </div>
 
                         {/* Rating Distribution */}
@@ -407,10 +520,10 @@ export function ProductDetailPage({
                             <div key={star} className="flex items-center space-x-3">
                               <span className="w-8 text-sm font-medium">{star} ★</span>
                               <Progress
-                                value={totalReviews > 0 ? (ratingDistribution[star] / totalReviews) * 100 : 0}
+                                value={reviewStats.totalReviews > 0 ? (reviewStats.distribution[star] / reviewStats.totalReviews) * 100 : 0}
                                 className="flex-1 h-2"
                               />
-                              <span className="w-8 text-sm text-gray-600">{ratingDistribution[star]}</span>
+                              <span className="w-8 text-sm text-gray-600">{reviewStats.distribution[star]}</span>
                             </div>
                           ))}
                         </div>
@@ -422,7 +535,7 @@ export function ProductDetailPage({
                   <div className="space-y-4">
                     {reviews.map((review) => (
                       <Card
-                        key={review.id}
+                        key={review._id}
                         className={`border-l-4 ${getSeasonalColor(review.season)} bg-white/70 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow`}
                       >
                         <CardContent className="p-6">
@@ -430,7 +543,7 @@ export function ProductDetailPage({
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center space-x-3">
                               <Avatar className="h-10 w-10">
-                                <AvatarImage src={`https://images.unsplash.com/photo-${1500000000000 + parseInt(review.id.slice(1)) * 100000}?w=40&h=40&fit=crop&crop=face`} />
+                                <AvatarImage src={`https://i.pravatar.cc/150?u=${review._id}`} />
                                 <AvatarFallback className={getSeasonalBadge(review.season)}>
                                   {review.customerName.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
@@ -451,9 +564,9 @@ export function ProductDetailPage({
                                   )}
                                 </div>
                                 <div className="flex items-center space-x-2 mt-1">
-                                  {renderStars(review.rating)}
+                                  {review.rating && renderStars(review.rating)}
                                   <span className="text-sm text-gray-500">
-                                    {new Date(review.date).toLocaleDateString('en-US', {
+                                    {new Date(review.createdAt).toLocaleDateString('en-US', {
                                       year: 'numeric',
                                       month: 'long',
                                       day: 'numeric'
@@ -475,6 +588,7 @@ export function ProductDetailPage({
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleMarkHelpful(review._id)}
                               className="text-gray-600 hover:text-gray-900"
                             >
                               <ThumbsUp className="h-4 w-4 mr-2" />
@@ -497,6 +611,12 @@ export function ProductDetailPage({
                       </Button>
                     </div>
                   )}
+
+                  {reviews.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <p>No reviews yet. Be the first to review this book!</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
@@ -512,7 +632,7 @@ export function ProductDetailPage({
                 <BookCard
                   key={relatedBook.id}
                   book={relatedBook}
-                  onAddToCart={onAddToCart}
+                  onAddToCart={(payload) => onAddToCart(payload.book)}
                   onToggleWishlist={onToggleWishlist}
                   isInWishlist={false}
                   onNavigate={onNavigate}
@@ -522,6 +642,6 @@ export function ProductDetailPage({
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

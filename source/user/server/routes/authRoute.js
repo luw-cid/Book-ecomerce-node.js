@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require("../controllers/authController");
-const authMiddleware = require("../middlewares/authMiddleware");
+const { authMiddleware } = require("../middlewares/authMiddleware");
 const passport = require('passport');
 
 // Register & login thường
@@ -15,6 +15,8 @@ router.get("/profile", authMiddleware, authController.profile);
 
 // Logout all devices (phải login)
 router.post("/logout-all", authMiddleware, authController.logoutAllDevices);
+
+router.get('/check-session', authMiddleware, authController.checkSession);
 
 // Google OAuth
 router.get("/google", 

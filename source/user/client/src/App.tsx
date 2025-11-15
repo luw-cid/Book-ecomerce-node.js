@@ -44,12 +44,12 @@ export default function App() {
   const [isCartSyncing, setIsCartSyncing] = useState(false);
   const [isCartLoaded, setIsCartLoaded] = useState(false);
 
-    // ✅ Save currentPage to localStorage khi thay đổi
+  // ✅ Save currentPage to localStorage khi thay đổi
   useEffect(() => {
     localStorage.setItem(PAGE_STORAGE_KEY, currentPage);
   }, [currentPage]);
 
-    // ✅ Save pageData to localStorage khi thay đổi
+  // ✅ Save pageData to localStorage khi thay đổi
   useEffect(() => {
     if (pageData) {
       localStorage.setItem(PAGE_DATA_STORAGE_KEY, JSON.stringify(pageData));
@@ -68,15 +68,15 @@ export default function App() {
   useEffect(() => {
     if (user) {
       console.log('🎯 User authenticated - starting activity tracker (15min idle timeout)');
-      
+
       // Setup activity tracker với 15 phút idle timeout
       const cleanup = setupActivityTracker(handleLogout);
-      
+
       // Cleanup khi unmount hoặc logout
       return cleanup;
     }
   }, [user]);
-  
+
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem(CART_STORAGE_KEY);
@@ -113,11 +113,11 @@ export default function App() {
     setIsCartSyncing(true);
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
+
       // Nếu có items trong local cart, sync lên backend
       if (cartItems.length > 0) {
         console.log('🔄 Syncing local cart to backend...');
-        
+
         // Clear backend cart first
         await axios.delete(`${API_URL}/cart/clear`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -146,8 +146,8 @@ export default function App() {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        const backendCart = response.data.cart?.items || [];
-        
+        const backendCart = (response.data as any).cart?.items || [];
+
         // Convert backend format to local format
         // Note: Bạn cần fetch product details nếu cần
         // For now, chỉ log
@@ -164,7 +164,7 @@ export default function App() {
       setIsCartSyncing(false);
     }
   };
-  
+
   // Xử lý callback từ Google OAuth
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -176,11 +176,11 @@ export default function App() {
       try {
         // URLSearchParams đã tự decode, chỉ cần parse user data
         const userData = JSON.parse(decodeURIComponent(userStr));
-        
+
         // Save tokens to localStorage (Google OAuth users are considered "remembered")
         localStorage.setItem('token', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
-        
+
         login(userData, accessToken);
 
         // Xóa query params khỏi URL
@@ -284,6 +284,7 @@ export default function App() {
             onAddToCart={handleAddToCart}
             onToggleWishlist={handleToggleWishlist}
             isInWishlist={wishlist.has(pageData?.bookId || "")}
+            isAuthenticated={!!user}
           />
         );
       case "cart":

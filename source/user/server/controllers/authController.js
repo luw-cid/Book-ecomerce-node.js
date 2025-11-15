@@ -111,6 +111,23 @@ const googleCallback = asyncHandle(async (req, res) => {
     res.redirect(`http://localhost:5173/auth/callback?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}&user=${encodedUser}`);
 });
 
+const checkSession = (req, res) => {
+  if (req.isAuthenticated()) {
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email
+      }
+    });
+  }
+  return res.status(401).json({
+    success: false,
+    message: 'Not authenticated'
+  });
+};
+
 module.exports = {
     register,
     login,
@@ -119,4 +136,5 @@ module.exports = {
     refreshToken,
     logoutAllDevices,
     googleCallback,
+    checkSession
 };

@@ -2,6 +2,8 @@ require('dotenv').config();
 
 const createError = require('http-errors');
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -9,13 +11,45 @@ const session = require('express-session');
 const passport = require('passport');
 
 const indexRouter = require("./routes/index");
-
 const errorHandle = require('./middlewares/errorHandler');
 const connectDB = require('./config/connectDB');
 const { cleanupUnpaidOrders } = require('./jobs/clearupOrders');
 
 const app = express();
+const server = http.createServer(app);
 
+// ============= SOCKET.IO SETUP =============
+const io = socketIo(server, {
+  cors: {
+    origin: 'http://localhost:5173', // Frontend URL
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Make io accessible to routes
+app.set('io', io);
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log('✅ Client connected:', socket.id);
+
+  // Join product room
+  socket.on('joinProduct', (productId) => {
+    socket.join(`product-${productId}`);
+    console.log(`📦 Socket ${socket.id} joined product-${productId}`);
+  });
+
+  // Leave product room
+  socket.on('leaveProduct', (productId) => {
+    socket.leave(`product-${productId}`);
+    console.log(`📤 Socket ${socket.id} left product-${productId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('❌ Client disconnected:', socket.id);
+  });
+});
 
 // Cấu hình CORS
 app.use(cors({
@@ -74,6 +108,10 @@ app.use(errorHandle);
 
 cleanupUnpaidOrders();
 
-app.listen(3000, () => console.log('Server is running on http://localhost:3000'));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🔌 WebSocket ready on ws://localhost:${PORT}`);
+});
 
 module.exports = app;
