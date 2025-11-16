@@ -83,7 +83,7 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
                 <form onSubmit={handleSubmitReview} className="space-y-4">
                     {/* Name */}
                     <div>
-                        <Label htmlFor="name">Your Name *</Label>
+                        <Label htmlFor="name">Your Name</Label>
                         <Input
                             id="name"
                             value={customerName}
@@ -130,7 +130,7 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
 
                     {/* Title */}
                     <div>
-                        <Label htmlFor="title">Review Title *</Label>
+                        <Label htmlFor="title">Review Title</Label>
                         <Input
                             id="title"
                             value={title}

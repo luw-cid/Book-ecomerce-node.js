@@ -65,7 +65,16 @@ export function CategoryPage({
       rating: product.rating ?? 4.5,
       reviewCount: product.reviewCount ?? 0,
       category: product.category?.name || product.category || 'Uncategorized',
-      brand: product.publisher || 'Unknown Brand',
+      publisher: product.publisher || 'Unknown Publisher',
+      pages: product.pages,
+      publicationDate: product.publicationDate 
+        ? new Date(product.publicationDate).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        : undefined,
+      language: product.bookLanguage || 'English',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
       variants: [
         {

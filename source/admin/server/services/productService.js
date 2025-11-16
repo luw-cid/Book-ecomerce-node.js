@@ -38,6 +38,12 @@ const createProduct = async (data) => {
         data.slug = `${data.slug}-${Date.now()}`;
     }
     
+    // Đổi tên 'language' thành 'bookLanguage' để tránh conflict với MongoDB reserved keyword
+    if (data.language !== undefined) {
+        data.bookLanguage = data.language;
+        delete data.language;
+    }
+    
     const product = new Product(data);
     return await product.save();
 };
@@ -98,11 +104,33 @@ const updateProduct = async (productId, data) => {
         }
     }
     
-    return await Product.findByIdAndUpdate(
-        productId, 
-        data, 
-        { new: true, runValidators: true }
-    ).populate('category discount');
+    // Đổi tên 'language' thành 'bookLanguage' để tránh conflict với MongoDB reserved keyword
+    // 'language' là reserved keyword trong MongoDB và gây conflict với update operations
+    if (data.language !== undefined) {
+        data.bookLanguage = data.language;
+        delete data.language;
+    }
+    
+    // Sử dụng findById + save() thay vì update operations để tránh conflict hoàn toàn
+    const product = await Product.findById(productId);
+    
+    if (!product) {
+        throw new Error('Product not found');
+    }
+    
+    // Update tất cả fields
+    Object.keys(data).forEach(key => {
+        if (data[key] !== undefined) {
+            product[key] = data[key];
+        }
+    });
+    
+    // Save với validation
+    await product.save();
+    
+    // Return với populate
+    return await Product.findById(productId)
+        .populate('category discount');
 };
 
 /**

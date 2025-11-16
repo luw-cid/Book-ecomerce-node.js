@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -6,9 +6,12 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
+import { Checkbox } from '../ui/checkbox';
+import { Badge } from '../ui/badge';
 import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { TiptapEditor } from './TiptapEditor';
 
 const API_URL = 'http://localhost:4000';
 
@@ -23,11 +26,14 @@ interface Product {
   name: string;
   author?: string;
   publisher?: string;
+  pages?: number;
+  publicationDate?: string | Date;
+  bookLanguage?: string;
   description: string;
   price: number;
   originalPrice?: number;
   stock: number;
-  category: Category | string;
+  category: Category[] | Category | string[] | string; // Support both array and single value
   images: string[];
   tags?: string[];
   isActive: boolean;
@@ -46,13 +52,30 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
   const [name, setName] = useState(product?.name || '');
   const [author, setAuthor] = useState(product?.author || '');
   const [publisher, setPublisher] = useState(product?.publisher || '');
+  const [pages, setPages] = useState(product?.pages || 0);
+  const [publicationDate, setPublicationDate] = useState(() => {
+    if (!product?.publicationDate) return '';
+    const date = new Date(product.publicationDate);
+    return date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+  });
+  const [language, setLanguage] = useState(product?.bookLanguage || 'English');
   const [description, setDescription] = useState(product?.description || '');
   const [price, setPrice] = useState(product?.price || 0);
   const [originalPrice, setOriginalPrice] = useState(product?.originalPrice || 0);
   const [stock, setStock] = useState(product?.stock || 0);
-  const [categoryId, setCategoryId] = useState(() => {
-    if (!product?.category) return '';
-    return typeof product.category === 'object' ? product.category._id : product.category;
+  const [categoryIds, setCategoryIds] = useState<string[]>(() => {
+    if (!product?.category) return [];
+    // Handle array of categories
+    if (Array.isArray(product.category)) {
+      return product.category.map(cat => 
+        typeof cat === 'object' && cat ? cat._id : (typeof cat === 'string' ? cat : '')
+      ).filter(Boolean);
+    }
+    // Handle single category (convert to array)
+    const singleId = typeof product.category === 'object' && '_id' in product.category 
+      ? product.category._id 
+      : (typeof product.category === 'string' ? product.category : '');
+    return singleId ? [singleId] : [];
   });
   const [imageUrls, setImageUrls] = useState<string[]>(product?.images || []);
   const [newImageUrl, setNewImageUrl] = useState('');
@@ -133,8 +156,8 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
       toast.error('Price must be greater than 0');
       return;
     }
-    if (!categoryId) {
-      toast.error('Category is required');
+    if (categoryIds.length === 0) {
+      toast.error('At least one category is required');
       return;
     }
     if (imageUrls.length === 0) {
@@ -148,11 +171,14 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
       name: name.trim(),
       author: author.trim(),
       publisher: publisher.trim(),
+      pages: pages > 0 ? Number(pages) : undefined,
+      publicationDate: publicationDate ? new Date(publicationDate) : undefined,
+      bookLanguage: language.trim() || undefined,
       description: description.trim(),
       price: Number(price),
       originalPrice: originalPrice > 0 ? Number(originalPrice) : undefined,
       stock: Number(stock),
-      category: categoryId ? [categoryId] : [],
+      category: categoryIds, // Array of category IDs
       images: imageUrls,
       tags,
       isActive,
@@ -266,38 +292,96 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter product description"
-                  rows={5}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  required
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="pages">Number of Pages</Label>
+                  <Input
+                    id="pages"
+                    type="number"
+                    placeholder="Enter number of pages"
+                    value={pages || ''}
+                    onChange={(e) => setPages(Number(e.target.value))}
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="publicationDate">Publication Date</Label>
+                  <Input
+                    id="publicationDate"
+                    type="date"
+                    value={publicationDate}
+                    onChange={(e) => setPublicationDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="language">Language</Label>
+                  <Input
+                    id="language"
+                    placeholder="e.g., English, Vietnamese"
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div>
-                <Label htmlFor="category">Category *</Label>
+                <Label htmlFor="description">Description *</Label>
+                <TiptapEditor
+                  content={description}
+                  onChange={setDescription}
+                />
+                {!description?.trim() && (
+                  <p className="text-xs text-red-500 mt-1">Description is required</p>
+                )}
+              </div>
+
+              <div>
+                <Label>Categories * (Select at least one)</Label>
                 {isFetchingCategories ? (
                   <div className="flex items-center gap-2 p-2 border rounded">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm">Loading categories...</span>
                   </div>
                 ) : (
-                  <Select value={categoryId} onValueChange={setCategoryId} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat._id} value={cat._id}>
+                  <div className="border rounded-md p-4 max-h-64 overflow-y-auto space-y-3">
+                    {categories.length === 0 ? (
+                      <p className="text-sm text-gray-500">No categories available</p>
+                    ) : (
+                      categories.map((cat) => (
+                        <div key={cat._id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`category-${cat._id}`}
+                            checked={categoryIds.includes(cat._id)}
+                            onCheckedChange={(checked: any) => {
+                              if (checked) {
+                                setCategoryIds([...categoryIds, cat._id]);
+                              } else {
+                                setCategoryIds(categoryIds.filter(id => id !== cat._id));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`category-${cat._id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {cat.name}
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+                {categoryIds.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {categoryIds.map(id => {
+                      const cat = categories.find(c => c._id === id);
+                      return cat ? (
+                        <Badge key={id} variant="secondary" className="text-xs">
                           {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
                 )}
               </div>
             </div>

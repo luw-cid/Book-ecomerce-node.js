@@ -85,7 +85,16 @@ export function ProductDetailPage({
       rating: product.rating ?? 4.5,
       reviewCount: product.reviewCount ?? 0,
       category: product.category?.name || 'Uncategorized',
-      brand: product.publisher || product.tags?.[1] || 'Unknown Brand',
+      publisher: product.publisher || product.tags?.[1] || 'Unknown Publisher',
+      pages: product.pages,
+      publicationDate: product.publicationDate 
+        ? new Date(product.publicationDate).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        : undefined,
+      language: product.bookLanguage || 'English',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
       variants: [
         {
@@ -437,36 +446,43 @@ export function ProductDetailPage({
               </TabsList>
 
               <TabsContent value="description" className="mt-4 space-y-4">
-                <div className="prose max-w-none">
-                  {/* <p className="text-gray-700 leading-relaxed">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
-                    incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
-                    exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                  </p>
-                  <p className="text-gray-700 leading-relaxed">
-                    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-                    culpa qui officia deserunt mollit anim id est laborum.
-                  </p> */}
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {book.description || 'No description available.'}
-                  </p>
+                <div className="prose max-w-none text-gray-700">
+                  {book.description ? (
+                    <div 
+                      className="product-description"
+                      dangerouslySetInnerHTML={{ __html: book.description }}
+                    />
+                  ) : (
+                    <p className="text-gray-500 italic">No description available.</p>
+                  )}
                 </div>
               </TabsContent>
 
               <TabsContent value="details" className="mt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-2">
-                    <div><strong>Publisher:</strong> Random House</div>
-                    <div><strong>Publication Date:</strong> January 2023</div>
-                    <div><strong>Language:</strong> English</div>
-                    <div><strong>Pages:</strong> 320</div>
+                <div className="space-y-3 max-w-2xl">
+                  <div className="flex justify-between py-3 border-b border-gray-100">
+                    <strong className="text-gray-700">Author:</strong>
+                    <span className="text-gray-900">{book.author || 'N/A'}</span>
                   </div>
-                  <div className="space-y-2">
-                    <div><strong>ISBN-10:</strong> 1234567890</div>
-                    <div><strong>ISBN-13:</strong> 978-1234567890</div>
-                    <div><strong>Dimensions:</strong> 6 x 9 inches</div>
-                    <div><strong>Weight:</strong> 1.2 lbs</div>
+                  <div className="flex justify-between py-3 border-b border-gray-100">
+                    <strong className="text-gray-700">Publisher:</strong>
+                    <span className="text-gray-900">{book.publisher || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between py-3 border-b border-gray-100">
+                    <strong className="text-gray-700">Category:</strong>
+                    <span className="text-gray-900">{book.category || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between py-3 border-b border-gray-100">
+                    <strong className="text-gray-700">Pages:</strong>
+                    <span className="text-gray-900">{book.pages || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between py-3 border-b border-gray-100">
+                    <strong className="text-gray-700">Publication Date:</strong>
+                    <span className="text-gray-900">{book.publicationDate || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between py-3 border-b border-gray-100">
+                    <strong className="text-gray-700">Language:</strong>
+                    <span className="text-gray-900">{book.language || 'N/A'}</span>
                   </div>
                 </div>
               </TabsContent>
@@ -510,6 +526,7 @@ export function ProductDetailPage({
                           <div className="text-5xl font-bold text-gray-900 mb-2">{reviewStats.averageRating.toFixed(1)}</div>
                           <div className="flex justify-center mb-2">
                             {renderStars(reviewStats.averageRating, "h-6 w-6")}
+
                           </div>
                           <p className="text-gray-600">Based on {reviewStats.totalReviews} reviews</p>
                         </div>

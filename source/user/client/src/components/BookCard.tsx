@@ -27,13 +27,21 @@ export interface Book {
   rating?: number;
   reviewCount?: number;
   category?: string;
-  brand?: string;
+  publisher?: string;
   coverImage?: string;
   variants?: BookVariant[];
   isNew?: boolean;
   isBestseller?: boolean;
   isFlashSale?: boolean;
   flashSaleEndTime?: string; // ISO string
+  // Additional book details
+  publicationDate?: string;
+  language?: string;
+  pages?: number;
+  isbn10?: string;
+  isbn13?: string;
+  dimensions?: string;
+  weight?: string;
 }
 
 interface BookCardProps {

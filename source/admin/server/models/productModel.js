@@ -25,6 +25,19 @@ const productSchema = new mongoose.Schema(
             type: String,
             trim: true
         },
+        publicationDate: {
+            type: Date,
+            required: false
+        },
+        bookLanguage: {
+            type: String,
+            required: false,
+            trim: true
+        },
+        pages: {
+            type: Number,
+            min: 0
+        },
         description: { 
             type: String, 
             required: true,

@@ -97,7 +97,16 @@ export function HomePage({
       rating: product.rating ?? 4.5,
       reviewCount: product.reviewCount ?? 0,
       category: product.category?.name || product.category || 'Uncategorized',
-      brand: product.publisher || product.tags?.[1] || 'Unknown Brand',
+      publisher: product.publisher || product.tags?.[1] || 'Unknown Publisher',
+      pages: product.pages,
+      publicationDate: product.publicationDate 
+        ? new Date(product.publicationDate).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        : undefined,
+      language: product.bookLanguage || 'English',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
       variants: [
         {
@@ -214,8 +223,8 @@ export function HomePage({
         // 👇 EXTRACT BRANDS
         const brands = new Set<string>();
         uniqueBooks.forEach(book => {
-          if (book.brand && book.brand !== 'Unknown Brand') {
-            brands.add(book.brand);
+          if (book.publisher && book.publisher !== 'Unknown Brand') {
+            brands.add(book.publisher);
           }
         });
         setAvailableBrands(Array.from(brands).sort());
@@ -321,7 +330,7 @@ export function HomePage({
 
     // 👇 FILTER BY BRANDS
     if (selectedBrands.length > 0) {
-      books = books.filter(book => book.brand && selectedBrands.includes(book.brand));
+      books = books.filter(book => book.publisher && selectedBrands.includes(book.publisher));
     }
     // Sort books
     switch (sortBy) {

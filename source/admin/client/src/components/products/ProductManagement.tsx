@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -28,7 +28,7 @@ interface Product {
   price: number;
   originalPrice?: number;
   stock: number;
-  category: Category | string;
+  category: Category[] | Category | string[] | string; // Support both array and single value
   images: string[];
   tags?: string[];
   isActive: boolean;
@@ -343,7 +343,11 @@ export function ProductManagement() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-sm sm:text-base">
-                      {product.category && typeof product.category === 'object' ? product.category.name : product.category || '-'}
+                      {product.category && Array.isArray(product.category) && product.category.length > 0
+                        ? product.category.map((cat: any) => typeof cat === 'object' ? cat.name : cat).join(', ')
+                        : product.category && typeof product.category === 'object' && 'name' in product.category
+                        ? (product.category as any).name
+                        : '-'}
                     </td>
                     <td className="py-3 px-4">
                       <Badge 
