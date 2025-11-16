@@ -3,6 +3,7 @@ const Product = require('../models/productModel');
 const asyncHandle = require('express-async-handler');
 const AppError = require('../errors');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
 // ============= GET REVIEWS FOR PRODUCT =============
 const getReviews = asyncHandle(async (req, res) => {
@@ -70,11 +71,16 @@ const getReviews = asyncHandle(async (req, res) => {
 // ============= CREATE REVIEW (không cần login) =============
 const createReview = asyncHandle(async (req, res) => {
   const { productId } = req.params;
-  const { customerName, title, comment, season } = req.body;
+  const { customerName, title, comment, season, rating } = req.body;
 
   // Validate
-  if (!customerName || !title || !comment) {
-    throw new AppError('Please provide name, title, and comment', 400);
+  if (!customerName || !comment) {
+    throw new AppError('Please provide name and comment', 400);
+  }
+
+  // Validate rating (nếu có)
+  if (rating !== undefined && (rating < 1 || rating > 5)) {
+    throw new AppError('Rating must be between 1 and 5', 400);
   }
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
@@ -87,23 +93,48 @@ const createReview = asyncHandle(async (req, res) => {
     throw new AppError('Product not found', 404);
   }
 
+  // Lấy user từ token (nếu có)
+  let userId = null;
+  let verified = false;
+ 
+  if (req.headers.authorization) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      userId = decoded.id;
+      verified = true;
+    } catch (err) {
+      // Token không hợp lệ → Vẫn cho phép tạo review (không verified)
+      console.warn('Invalid token in createReview:', err.message);
+    }
+  }
+
   // Create review
   const review = await Review.create({
     product: productId,
+    user: userId,
     customerName,
-    title,
+    title: title || '',
     comment,
-    season: season || 'spring',
-    verified: false
+    rating: rating || null,
+    verified
   });
 
   // Populate user nếu có
   await review.populate('user', 'name email');
 
+  // Update product rating nếu có rating
+  if (rating) {
+    await updateProductRating(productId);
+  }
+
   // Emit WebSocket event
   const io = req.app.get('io');
   if (io) {
     io.to(`product-${productId}`).emit('newReview', review);
+    if (rating) {
+      io.to(`product-${productId}`).emit('ratingUpdated', { productId });
+    }
   }
 
   return res.status(201).json({
@@ -119,6 +150,8 @@ const addRating = asyncHandle(async (req, res) => {
   const { rating } = req.body;
   const userId = req.user?._id; // Từ auth middleware
 
+  console.log('📊 addRating called:', { productId, rating, userId });
+
   if (!userId) {
     throw new AppError('You must be logged in to rate products', 401);
   }
@@ -129,6 +162,12 @@ const addRating = asyncHandle(async (req, res) => {
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new AppError('Invalid product ID', 400);
+  }
+
+// ← THÊM: Check product exists
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new AppError('Product not found', 404);
   }
 
   // Check if user already rated

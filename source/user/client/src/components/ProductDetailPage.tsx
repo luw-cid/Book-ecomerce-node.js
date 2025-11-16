@@ -121,7 +121,9 @@ export function ProductDetailPage({
     try {
       const res = await axios.get(`http://localhost:3000/reviews/${bookId}`);
       const data = res.data as { reviews: Review[]; stats: ReviewStats };
-      setReviews(data.reviews);
+      // Filter: Chỉ hiển thị reviews có comment (không hiển thị rating-only)
+      const actualReviews = data.reviews.filter(r => r.comment && r.comment.trim().length > 0);
+      setReviews(actualReviews);
       setReviewStats(data.stats);
     } catch (err) {
       console.error('Failed to load reviews:', err);
@@ -251,26 +253,6 @@ export function ProductDetailPage({
           }`}
       />
     ));
-  };
-
-  const getSeasonalColor = (season?: string) => {
-    switch (season) {
-      case 'spring': return 'border-l-spring bg-spring-light/30';
-      case 'summer': return 'border-l-summer bg-summer-light/30';
-      case 'autumn': return 'border-l-autumn bg-autumn-light/30';
-      case 'winter': return 'border-l-winter bg-winter-light/30';
-      default: return 'border-l-gray-300 bg-gray-50/30';
-    }
-  };
-
-  const getSeasonalBadge = (season?: string) => {
-    switch (season) {
-      case 'spring': return 'bg-spring/20 text-spring-foreground border-spring/30';
-      case 'summer': return 'bg-summer/20 text-summer-foreground border-summer/30';
-      case 'autumn': return 'bg-autumn/20 text-autumn-foreground border-autumn/30';
-      case 'winter': return 'bg-winter/20 text-winter-foreground border-winter/30';
-      default: return 'bg-gray-100 text-gray-700 border-gray-300';
-    }
   };
 
   // ============= HANDLE HELPFUL ============= ← THÊM
@@ -553,15 +535,14 @@ export function ProductDetailPage({
                     {reviews.map((review) => (
                       <Card
                         key={review._id}
-                        className={`border-l-4 ${getSeasonalColor(review.season)} bg-white/70 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow`}
+                        className="border-l-4 border-primary bg-white/70 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow"
                       >
                         <CardContent className="p-6">
                           {/* Review Header */}
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center space-x-3">
                               <Avatar className="h-10 w-10">
-                                <AvatarImage src={`https://i.pravatar.cc/150?u=${review._id}`} />
-                                <AvatarFallback className={getSeasonalBadge(review.season)}>
+                                <AvatarFallback className="bg-primary text-primary-foreground">
                                   {review.customerName.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
@@ -572,11 +553,6 @@ export function ProductDetailPage({
                                     <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50">
                                       <CheckCircle className="h-3 w-3 mr-1" />
                                       Verified
-                                    </Badge>
-                                  )}
-                                  {review.season && (
-                                    <Badge variant="outline" className={`text-xs ${getSeasonalBadge(review.season)}`}>
-                                      {review.season}
                                     </Badge>
                                   )}
                                 </div>
@@ -594,14 +570,15 @@ export function ProductDetailPage({
                             </div>
                           </div>
 
-                          {/* Review Content */}
-                          <div className="space-y-3">
-                            <h4 className="font-semibold text-gray-900">{review.title}</h4>
-                            <p className="text-gray-700 leading-relaxed">{review.comment}</p>
-                          </div>
+                          {/* Title - Hiển thị nếu có */}
+                          {review.title && (
+                            <h4 className="font-semibold text-lg mb-2">{review.title}</h4>
+                          )}
+
+                          <p className="text-gray-700 leading-relaxed mb-4">{review.comment}</p>
 
                           {/* Review Actions */}
-                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                          <div className="flex items-center space-x-4 pt-4 border-t">
                             <Button
                               variant="ghost"
                               size="sm"

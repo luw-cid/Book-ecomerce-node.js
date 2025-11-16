@@ -20,12 +20,12 @@ const reviewSchema = new mongoose.Schema({
   },
   title: {
     type: String,
-    required: true,
+    required: false,
     trim: true
   },
   comment: {
     type: String,
-    required: true,
+    required: false,
     trim: true
   },
   
@@ -46,12 +46,6 @@ const reviewSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  season: {
-    type: String,
-    enum: ['spring', 'summer', 'autumn', 'winter'],
-    default: 'spring'
-  },
-  
   createdAt: {
     type: Date,
     default: Date.now

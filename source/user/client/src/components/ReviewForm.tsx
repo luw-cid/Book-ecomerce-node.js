@@ -26,39 +26,41 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
         e.preventDefault();
         setError('');
 
-        if (!customerName.trim() || !title.trim() || !comment.trim()) {
-            setError('Please fill in all fields');
-            return;
-        }
-
-        if (comment.length < 20) {
-            setError('Comment must be at least 20 characters');
+        if (!customerName.trim() || !comment.trim()) {
+            setError('Please provide your name and comment');
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            // Submit review (không cần login)
-            await axios.post(`http://localhost:3000/reviews/${productId}/review`, {
-                customerName,
-                title,
-                comment,
-                season: ['spring', 'summer', 'autumn', 'winter'][Math.floor(Math.random() * 4)]
-            });
-
-            // Submit rating (nếu đã login và có rating)
             if (isAuthenticated && rating > 0) {
-                const token = localStorage.getItem('token');
+                // User đã login VÀ có rating → Gửi cả comment + rating trong 1 request
+                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+                console.log('🔑 Submitting review + rating with token:', token ? 'Present' : 'Missing');
+
                 await axios.post(
-                    `http://localhost:3000/reviews/${productId}/rating`,
-                    { rating },
+                    `http://localhost:3000/reviews/${productId}/review`,
+                    {
+                        customerName,
+                        title,
+                        comment,
+                        rating
+                    },
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`
+                            Authorization: `Bearer ${token}` // ← GỬI TOKEN để verify user
                         }
                     }
                 );
+            } else {
+                // User chưa login HOẶC không có rating → Chỉ gửi comment
+                await axios.post(`http://localhost:3000/reviews/${productId}/review`, {
+                    customerName,
+                    title,
+                    comment
+                });
             }
 
             // Reset form
@@ -69,6 +71,8 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
 
             onReviewSubmitted();
         } catch (err: any) {
+            console.error('❌ Submit error:', err); // ← LOG
+            console.error('❌ Response data:', err.response?.data);
             setError(err.response?.data?.message || 'Failed to submit review');
         } finally {
             setIsSubmitting(false);
@@ -142,7 +146,7 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
 
                     {/* Comment */}
                     <div>
-                        <Label htmlFor="comment">Your Review * (min 20 characters)</Label>
+                        <Label htmlFor="comment">Your Review *</Label>
                         <Textarea
                             id="comment"
                             value={comment}
@@ -152,9 +156,6 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
                             required
                             className="resize-none"
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {comment.length} / 20 characters minimum
-                        </p>
                     </div>
 
                     {error && (
@@ -166,7 +167,7 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-gradient-to-r from-spring via-summer via-autumn to-winter text-white hover:opacity-90"
+                        className="w-full"
                     >
                         {isSubmitting ? 'Submitting...' : 'Submit Review'}
                     </Button>
