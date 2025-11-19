@@ -1,6 +1,6 @@
 import { useState, useEffect} from "react";
 import axios from "axios";
-import { Book, Heart, Users, Zap, Telescope, Shield, ArrowRight, Sparkles, BookOpen, Loader2 } from "lucide-react";
+import { Book, Heart, Users, Zap, Telescope, Shield, ArrowLeft, ArrowRight, Sparkles, BookOpen, Loader2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -93,10 +93,13 @@ const defaultColors = {
   overlayColor: "bg-gray-500/40"
 };
 
+const PAGE_SIZE = 3;
+
 export function CategorySection({ onNavigate }: CategorySectionProps) {
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   useEffect(() => {
     loadCategories();
@@ -116,6 +119,7 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
 
       const fetchedCategories: CategoryWithCount[] = categoriesResponse.data.categories;
       setCategories(fetchedCategories);
+      setCurrentPage(1);
     } catch (err: any) {
       console.error('Error loading categories:', err);
       setError(
@@ -165,8 +169,11 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
 
         {/* Categories grid */}
         {!loading && !error && categories.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.map((category) => {
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {categories
+                .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+                .map((category) => {
               // Lấy icon và colors dựa trên tên category
               const IconComponent = categoryIcons[category.name] || defaultIcon;
               const colors = categoryColors[category.name] || defaultColors;
@@ -228,7 +235,35 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
                 </Card>
               );
             })}
-          </div>
+            </div>
+            {Math.ceil(categories.length / PAGE_SIZE) > 1 && (
+              <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
+                <Button
+                  variant="outline"
+                  className="border-blue-200 text-blue-600 hover:bg-blue-50/50"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <span className="text-sm font-medium text-gray-600">
+                  Page {currentPage} of {Math.ceil(categories.length / PAGE_SIZE)}
+                </span>
+                <Button
+                  variant="outline"
+                  className="border-blue-200 text-blue-600 hover:bg-blue-50/50"
+                  disabled={currentPage === Math.ceil(categories.length / PAGE_SIZE)}
+                  onClick={() =>
+                    setCurrentPage((prev) =>
+                      Math.min(Math.ceil(categories.length / PAGE_SIZE), prev + 1)
+                    )
+                  }
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
 
         {/* No categories found */}
@@ -247,7 +282,7 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
               className="border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50/50 text-blue-600 px-8 py-3"
               onClick={() => onNavigate("category", {})}
             >
-              View All Categories
+              View All Books
             </Button>
           </div>
         )}
