@@ -70,6 +70,11 @@ export function ProductDetailPage({
   const [socket, setSocket] = useState<Socket | null>(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
 
+  // ============= PAGINATION STATE =============
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const REVIEWS_PER_PAGE = 3;
+
   // Map backend product → frontend Book (copied/adapted from HomePage)
   const mapProductToBook = (product: any): Book => {
     const originalPrice = product.discount
@@ -87,12 +92,12 @@ export function ProductDetailPage({
       category: product.category?.name || 'Uncategorized',
       publisher: product.publisher || product.tags?.[1] || 'Unknown Publisher',
       pages: product.pages,
-      publicationDate: product.publicationDate 
-        ? new Date(product.publicationDate).toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })
+      publicationDate: product.publicationDate
+        ? new Date(product.publicationDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
         : undefined,
       language: product.bookLanguage || 'English',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
@@ -116,18 +121,39 @@ export function ProductDetailPage({
     };
   };
 
-  // ============= FETCH REVIEWS ============= ← THÊM
-  const fetchReviews = async () => {
+  // ============= FETCH REVIEWS =============
+  const fetchReviews = async (page: number = currentPage) => {
     try {
-      const res = await axios.get(`http://localhost:3000/reviews/${bookId}`);
-      const data = res.data as { reviews: Review[]; stats: ReviewStats };
+      const res = await axios.get(`http://localhost:3000/reviews/${bookId}`, {
+        params: {
+          page,
+          limit: REVIEWS_PER_PAGE
+        }
+      });
+      const data = res.data as { reviews: Review[]; stats: ReviewStats; total?: number };
       // Filter: Chỉ hiển thị reviews có comment (không hiển thị rating-only)
       const actualReviews = data.reviews.filter(r => r.comment && r.comment.trim().length > 0);
       setReviews(actualReviews);
       setReviewStats(data.stats);
+
+      // Calculate total pages
+      if (data.total) {
+        setTotalPages(Math.ceil(data.total / REVIEWS_PER_PAGE));
+      }
     } catch (err) {
       console.error('Failed to load reviews:', err);
     }
+  };
+
+  // ============= HANDLE PAGE CHANGE =============
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    fetchReviews(newPage);
+    // Scroll to reviews section
+    document.querySelector('[data-reviews-section]')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
   };
 
   useEffect(() => {
@@ -142,8 +168,9 @@ export function ProductDetailPage({
         const mapped = mapProductToBook(res.data);
         if (!cancelled) setBook(mapped);
 
-        // Fetch reviews ← THÊM
-        await fetchReviews();
+        // Fetch reviews 
+        await fetchReviews(1);
+        setCurrentPage(1);
 
         // fetch related products by category
         if (mapped.category) {
@@ -191,14 +218,16 @@ export function ProductDetailPage({
     // Real-time: New review added
     newSocket.on('newReview', (review: Review) => {
       console.log('📩 New review received:', review);
-      setReviews(prev => [review, ...prev]);
-      fetchReviews(); // Refresh stats
+      // Refresh first page to show new review
+      if (currentPage === 1) {
+        fetchReviews(1);
+      }
     });
 
     // Real-time: Rating updated
     newSocket.on('ratingUpdated', () => {
       console.log('⭐ Rating updated');
-      fetchReviews(); // Refresh stats
+      fetchReviews(currentPage); // Refresh stats
     });
 
     // Real-time: Review marked helpful
@@ -430,7 +459,7 @@ export function ProductDetailPage({
               <TabsContent value="description" className="mt-4 space-y-4">
                 <div className="prose max-w-none text-gray-700">
                   {book.description ? (
-                    <div 
+                    <div
                       className="product-description"
                       dangerouslySetInnerHTML={{ __html: book.description }}
                     />
@@ -470,7 +499,7 @@ export function ProductDetailPage({
               </TabsContent>
 
               <TabsContent value="reviews" className="mt-4">
-                <div className="space-y-6">
+                <div className="space-y-6" data-reviews-section>
                   {/* Reviews Header */}
                   <div className="flex items-center justify-between">
                     <div>
@@ -494,7 +523,8 @@ export function ProductDetailPage({
                       isAuthenticated={isAuthenticated}
                       onReviewSubmitted={() => {
                         setShowReviewForm(false);
-                        fetchReviews();
+                        fetchReviews(1);
+                        setCurrentPage(1);
                       }}
                     />
                   )}
@@ -597,11 +627,56 @@ export function ProductDetailPage({
                     ))}
                   </div>
 
-                  {/* Load More Reviews */}
-                  {reviews.length > 0 && (
-                    <div className="text-center">
-                      <Button variant="outline" className="border-gray-200 hover:bg-gray-50">
-                        Load More Reviews
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center space-x-2 mt-8">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        Previous
+                      </Button>
+
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // Show first, last, current, and adjacent pages
+                          const showPage =
+                            page === 1 ||
+                            page === totalPages ||
+                            Math.abs(page - currentPage) <= 1;
+
+                          const showEllipsis =
+                            (page === 2 && currentPage > 3) ||
+                            (page === totalPages - 1 && currentPage < totalPages - 2);
+
+                          if (showEllipsis) {
+                            return <span key={page} className="px-2 text-gray-500">...</span>;
+                          }
+                          if (!showPage) return null;
+
+                          return (
+                            <Button
+                              key={page}
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handlePageChange(page)}
+                              className={currentPage === page ? "bg-primary" : ""}
+                            >
+                              {page}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
                       </Button>
                     </div>
                   )}

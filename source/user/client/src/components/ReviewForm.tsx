@@ -140,7 +140,6 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="Sum up your experience in a few words"
-                            required
                         />
                     </div>
 

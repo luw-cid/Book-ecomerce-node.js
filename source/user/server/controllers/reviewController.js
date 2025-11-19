@@ -8,20 +8,28 @@ const jwt = require('jsonwebtoken');
 // ============= GET REVIEWS FOR PRODUCT =============
 const getReviews = asyncHandle(async (req, res) => {
   const { productId } = req.params;
-  const { page = 1, limit = 10 } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new AppError('Invalid product ID', 400);
   }
 
-  const reviews = await Review.find({ product: productId })
+  // ============= FILTER: Only reviews with comments =============
+  const reviewQuery = {
+    product: new mongoose.Types.ObjectId(productId),
+    comment: { $ne: null, $ne: '' } // Only reviews with actual comments
+  };
+
+  const reviews = await Review.find(reviewQuery)
     .populate('user', 'name email')
     .sort({ createdAt: -1 })
-    .limit(limit * 1)
-    .skip((page - 1) * limit)
+    .skip(skip)
+    .limit(limit)
     .lean();
 
-  const total = await Review.countDocuments({ product: productId });
+  const total = await Review.countDocuments(reviewQuery);
 
   // Calculate rating distribution
   const distribution = await Review.aggregate([
@@ -58,11 +66,11 @@ const getReviews = asyncHandle(async (req, res) => {
     reviews,
     total,
     page: parseInt(page),
-    pages: Math.ceil(total / limit),
+    totalPages: Math.ceil(total / limit),
     stats: {
       averageRating: stats.avgRating ? parseFloat(stats.avgRating.toFixed(1)) : 0,
       totalRatings: stats.totalRatings,
-      totalReviews: total,
+      totalReviews: stats.totalRatings,
       distribution: ratingDistribution
     }
   });
@@ -71,7 +79,7 @@ const getReviews = asyncHandle(async (req, res) => {
 // ============= CREATE REVIEW (không cần login) =============
 const createReview = asyncHandle(async (req, res) => {
   const { productId } = req.params;
-  const { customerName, title, comment, season, rating } = req.body;
+  const { customerName, title, comment, rating } = req.body;
 
   // Validate
   if (!customerName || !comment) {
@@ -203,8 +211,8 @@ const addRating = asyncHandle(async (req, res) => {
       product: productId,
       user: userId,
       customerName: req.user.name || 'Anonymous',
-      title: 'Rating',
-      comment: '', // Empty comment for rating-only
+      title: '', 
+      comment: '',
       rating,
       verified: true
     });
