@@ -1,6 +1,34 @@
 const AppError = require('../errors');
 const orderService = require('../services/orderService');
 
+const getOrders = async (req, res) => {
+  const { page = 1, limit = 12, status, paymentStatus, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+
+  const filter = {};
+
+  if (status) {
+      filter.orderStatus = status;
+  }
+
+  if (paymentStatus) {
+      filter.paymentStatus = paymentStatus;
+  }
+
+  // Không thêm $or ở đây - để service handle để tránh conflict
+  // Service sẽ xử lý search cho cả orderNumber và user data
+
+  const result = await orderService.getOrders({
+      filter,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sortBy,
+      sortOrder,
+      search: search || ''
+  });
+
+  res.status(200).json(result);
+};
+
 const createOrder = async (req, res) => {
     const orderData = req.body;
 
@@ -124,6 +152,7 @@ const getUserOrderStats = async (req, res) => {
 };
 
 module.exports = {
+  getOrders,
   createOrder,
   getOrderById,
   getUserOrders,

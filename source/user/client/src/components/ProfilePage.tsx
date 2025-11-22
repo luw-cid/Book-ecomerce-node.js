@@ -31,6 +31,52 @@ interface User {
   };
 }
 
+interface Product {
+  _id: string;
+  name: string;
+  images: string[];
+  price: number;
+}
+
+interface OrderItem {
+  product?: Product | string;
+  quantity: number;
+  price: number;
+  name?: string;
+  image?: string;
+}
+
+interface ShippingAddress {
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  district: string;
+  ward: string;
+}
+
+interface Order {
+  _id: string;
+  orderNumber: string;
+  user?: User;
+  items: OrderItem[];
+  shippingAddress: ShippingAddress;
+  subtotal: number;
+  discount?: {
+    code?: string;
+    amount?: number;
+  };
+  shipping: number;
+  tax: number;
+  total: number;
+  orderStatus: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  paymentStatus: 'Pending' | 'Paid' | 'Failed';
+  paymentMethod: string;
+  createdAt: string;
+  updatedAt: string;
+  trackingNumber?: string;
+}
+
 interface ProfilePageProps {
   user: User | null;
   onNavigate: (page: PageType, data?: any) => void;
@@ -81,6 +127,11 @@ export function ProfilePage({
   // State cho chỉnh sửa avatar
   const [avatarPreview, setAvatarPreview] = useState<string>(user?.avatar || '');
 
+  // State cho order history
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string>('');
+
   // Cập nhật states khi user prop thay đổi
   useEffect(() => {
     if (user) {
@@ -105,6 +156,41 @@ export function ProfilePage({
       return () => clearTimeout(timer); 
     }
   }, [message]);
+
+  // Fetch order history khi user đăng nhập
+  useEffect(() => {
+    if (user) {
+      fetchUserOrders();
+    }
+  }, [user]);
+
+  const fetchUserOrders = async () => {
+    setOrdersLoading(true);
+    setOrdersError('');
+    
+    try {
+      const response = await axios.get(`${API_URL}/orders/my-orders`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        },
+        params: {
+          page: 1,
+          limit: 10,
+        }
+      });
+      
+      if (response.data.success && response.data.data) {
+        setOrders(response.data.data);
+      } else {
+        setOrdersError(response.data.message || 'Failed to fetch orders.');
+      }
+    } catch (error: any) {
+      console.error('Error fetching orders:', error);
+      setOrdersError(error.response?.data?.message || 'Failed to load order history');
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
 
   // JWT token được lưu trong localStorage sau khi login
   const getToken = () => localStorage.getItem('token');
@@ -282,25 +368,6 @@ export function ProfilePage({
     );
   }
 
-  // Mock order history
-  const orderHistory = [
-    {
-      id: "order-001",
-      date: "2024-01-15",
-      status: "Delivered",
-      total: 45.98,
-      items: 3,
-      books: sampleBooks.slice(0, 2)
-    },
-    {
-      id: "order-002", 
-      date: "2024-01-08",
-      status: "Shipped", 
-      total: 29.99,
-      items: 1,
-      books: sampleBooks.slice(2, 3)
-    }
-  ];
 
   const wishlistBooks = sampleBooks.filter(book => wishlist.has(book.id));
   const memberSince = user.createdAt 
@@ -309,11 +376,30 @@ export function ProfilePage({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Delivered': return 'bg-summer/20 text-summer-foreground border-summer/30';
-      case 'Shipped': return 'bg-winter/20 text-winter-foreground border-winter/30';
-      case 'Processing': return 'bg-autumn/20 text-autumn-foreground border-autumn/30';
-      default: return 'bg-gray-100 text-gray-700 border-gray-300';
+      case 'Delivered': 
+        return 'bg-summer/20 text-summer-foreground border-summer/30';
+      case 'Shipped': 
+        return 'bg-winter/20 text-winter-foreground border-winter/30';
+      case 'Processing': 
+        return 'bg-autumn/20 text-autumn-foreground border-autumn/30';
+      case 'Pending': 
+        return 'bg-spring/20 text-spring-foreground border-spring/30';
+      case 'Cancelled': 
+        return 'bg-red-100 text-red-700 border-red-300';
+      default: 
+        return 'bg-gray-100 text-gray-700 border-gray-300';
     }
+  };
+
+  // Handler functions cho order actions
+  const handleViewOrderDetails = (orderId: string) => {
+    onNavigate("order-detail", { orderId });
+  };
+
+  const handleTrackOrder = (orderId: string) => {
+    // Navigate đến trang tracking hoặc hiển thị thông tin tracking
+    // Có thể mở modal hoặc navigate đến trang tracking
+    onNavigate("order-detail", { orderId });
   };
 
   // ==================== RENDER ====================
@@ -398,7 +484,7 @@ export function ProfilePage({
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 mt-6">
                     <div className="text-center p-4 bg-white/60 rounded-lg backdrop-blur-sm">
-                      <div className="text-2xl font-bold text-spring">{orderHistory.length}</div>
+                      <div className="text-2xl font-bold text-spring">{orders.length}</div>
                       <div className="text-sm text-gray-600">Orders</div>
                     </div>
                     <div className="text-center p-4 bg-white/60 rounded-lg backdrop-blur-sm">
@@ -452,7 +538,19 @@ export function ProfilePage({
           <TabsContent value="orders" className="space-y-6">
             <div>
               <h2 className="text-2xl font-semibold mb-4">Order History</h2>
-              {orderHistory.length === 0 ? (
+              
+              {ordersLoading ? (
+                <Card className="p-8 text-center">
+                  <Package className="h-16 w-16 mx-auto text-gray-400 mb-4 animate-pulse" />
+                  <p className="text-gray-600">Loading orders...</p>
+                </Card>
+              ) : ordersError ? (
+                <Card className="p-8 text-center">
+                  <Package className="h-16 w-16 mx-auto text-red-400 mb-4" />
+                  <p className="text-red-600 mb-4">{ordersError}</p>
+                  <Button onClick={fetchUserOrders}>Retry</Button>
+                </Card>
+              ) : orders.length === 0 ? (
                 <Card className="p-8 text-center">
                   <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No orders yet</h3>
@@ -461,14 +559,14 @@ export function ProfilePage({
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {orderHistory.map((order) => (
-                    <Card key={order.id} className="hover:shadow-lg transition-shadow">
+                  {orders.map((order) => (
+                    <Card key={order._id} className="hover:shadow-lg transition-shadow">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                           <div>
-                            <h3 className="font-semibold text-lg">Order #{order.id}</h3>
+                            <h3 className="font-semibold text-lg">Order #{order.orderNumber}</h3>
                             <p className="text-gray-600">
-                              {new Date(order.date).toLocaleDateString('en-US', { 
+                              {new Date(order.createdAt).toLocaleDateString('en-US', { 
                                 year: 'numeric', 
                                 month: 'long', 
                                 day: 'numeric' 
@@ -476,8 +574,8 @@ export function ProfilePage({
                             </p>
                           </div>
                           <div className="text-right">
-                            <Badge variant="outline" className={getStatusColor(order.status)}>
-                              {order.status}
+                            <Badge variant="outline" className={getStatusColor(order.orderStatus)}>
+                              {order.orderStatus}
                             </Badge>
                             <p className="font-semibold text-lg mt-1">{formatCurrency(order.total)}</p>
                           </div>
@@ -485,11 +583,60 @@ export function ProfilePage({
                         
                         <Separator className="my-4" />
                         
+                        {/* Order Items Preview */}
+                        {order.items && order.items.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Items:</p>
+                            <div className="space-y-2">
+                              {order.items.slice(0, 3).map((item, index) => {
+                                const productName = typeof item.product === 'object' && item.product !== null
+                                  ? item.product.name
+                                  : item.name || 'Product';
+                                
+                                return (
+                                  <div key={index} className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-600">
+                                      {productName} x {item.quantity}
+                                    </span>
+                                    <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
+                                  </div>
+                                );
+                              })}
+                              {order.items.length > 3 && (
+                                <p className="text-gray-500 text-xs">
+                                  and {order.items.length - 3} more item(s)...
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <Separator className="my-4" />
+                        
                         <div className="flex items-center justify-between">
-                          <p className="text-gray-600">{order.items} items</p>
+                          <div>
+                            <p className="text-gray-600">{order.items?.length || 0} items</p>
+                            <p className="text-sm text-gray-500">
+                              Payment: {order.paymentStatus} • Method: {order.paymentMethod}
+                            </p>
+                          </div>
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">View Details</Button>
-                            <Button variant="outline" size="sm">Track Order</Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewOrderDetails(order._id)}
+                            >
+                              View Details
+                            </Button>
+                            {order.orderStatus !== 'Delivered' && order.orderStatus !== 'Cancelled' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleTrackOrder(order._id)}
+                              >
+                                Track Order
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardContent>

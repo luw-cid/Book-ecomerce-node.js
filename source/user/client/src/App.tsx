@@ -9,6 +9,7 @@ import { CheckoutPage } from "./components/CheckoutPage";
 import { PaymentPage } from "./components/PaymentPage";
 import { ProfilePage } from "./components/ProfilePage";
 import { CategoryPage } from "./components/CategoryPage";
+import { OrderDetailPage } from "./components/OrderDetailPage";
 import { type Book } from "./components/BookCard";
 import { type CartItem } from "./components/ShoppingCart";
 import axios from "axios";
@@ -18,7 +19,7 @@ import { setupActivityTracker } from "./utils/activityTracker";
 import { setupAxiosInterceptor } from "./utils/axiosInterceptor";
 import { Toaster } from "./components/ui/sonner";
 
-export type PageType = "home" | "login" | "register" | "product-detail" | "cart" | "checkout" | "payment" | "profile" | "category";
+export type PageType = "home" | "login" | "register" | "product-detail" | "cart" | "checkout" | "payment" | "profile" | "category" | "order-detail";
 
 const API_URL = 'http://localhost:3000';
 const CART_STORAGE_KEY = 'bookstore_cart';
@@ -336,6 +337,13 @@ export default function App() {
             onToggleWishlist={handleToggleWishlist}
             wishlist={wishlist}
             searchQuery={searchQuery}
+          />
+        );
+      case "order-detail":
+        return (
+          <OrderDetailPage
+            orderId={pageData?.orderId || ""}
+            onNavigate={handleNavigate}
           />
         );
       default:

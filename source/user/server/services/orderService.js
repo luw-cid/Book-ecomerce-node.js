@@ -10,6 +10,60 @@ const generateOrderNumber = async () => {
     return `ORD${timestamp}${random}`;
 };
 
+const getOrders = async ({ filter, page, limit, sortBy, sortOrder, search }) => {
+    try {
+        const skip = (page - 1) * limit;
+        
+        // Nếu có search, build filter.$or một lần duy nhất
+        if (search && search.trim()) {
+            // Tìm users matching search
+            const matchingUsers = await userModel.find({
+                $or: [
+                    { fullName: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ]
+            }).select('_id');
+            
+            const userIds = matchingUsers.map(u => u._id);
+            
+            // Xóa filter.$or cũ nếu có (từ controller)
+            if (filter.$or) {
+                delete filter.$or;
+            }
+            
+            // Build filter.$or mới với cả orderNumber và userIds
+            filter.$or = [
+                { orderNumber: { $regex: search, $options: 'i' } },
+                { user: { $in: userIds } }
+            ];
+        }
+        
+        // Chỉ tạo query một lần duy nhất
+        const query = orderModel.find(filter)
+            .populate('user', 'fullName email phoneNumber')
+            .populate('items.product', 'name images price')
+            .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+            .skip(skip)
+            .limit(limit);
+
+        const orders = await query;
+        const total = await orderModel.countDocuments(filter);
+
+        return {
+            success: true,
+            orders,
+            pagination: {
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+                totalOrders: total
+            }
+        };
+    } catch (error) {
+        throw error;
+    }
+};
+
 const createGuestAccount = async (shippingAddress) => {
     try {
         const { email, fullName, phone, address, city, zipCode } = shippingAddress;
@@ -138,7 +192,7 @@ const getOrderById = async (orderId, userId = null) => {
     if (userId) {query.user = userId; }
 
     const order = await orderModel.findOne(query)
-        .populate('items.product', 'title price image author')
+        .populate('items.product', 'name images price author')
         .populate('user', 'fullName email');
 
     if (!order) {
@@ -163,7 +217,7 @@ const getUserOrders = async (userId, options = {}) => {
         .sort({ createdAt: -1})
         .skip(skip)
         .limit(limit)
-        .populate('item.product', 'title price image author')
+        .populate('items.product', 'name images price')
         .lean();
 
     const total = await orderModel.countDocuments(query);
@@ -231,6 +285,7 @@ const getUserOrderStats = async (userId) => {
 }
 
 module.exports = {
+  getOrders,
   createOrder,
   getOrderById,
   getUserOrders,
