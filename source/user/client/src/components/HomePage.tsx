@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { HeroSection } from "./HeroSection";
-import { CategoryDropdown } from "./CategoryDropdown";
+import { CategorySection } from "./CategorySection";
 import { ProductSection } from "./ProductSection";
 import { BookCard, type Book } from "./BookCard";
 import { ShoppingCart, type CartItem } from "./ShoppingCart";
@@ -553,11 +553,7 @@ export function HomePage({
           </div>
         </section>
 
-        <CategoryDropdown
-          categories={categories}
-          categoryTotals={categoryTotals}
-          onNavigate={onNavigate}
-        />
+        <CategorySection onNavigate={onNavigate} />
 
         {/* Product Sections - only show when not searching/filtering */}
         {showProductSections && (

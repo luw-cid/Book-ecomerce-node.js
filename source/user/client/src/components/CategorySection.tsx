@@ -1,4 +1,4 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { Book, Heart, Users, Zap, Telescope, Shield, ArrowLeft, ArrowRight, Sparkles, BookOpen, Loader2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
@@ -19,6 +19,13 @@ interface Category {
 
 interface CategoryWithCount extends Category {
   productCount: number;
+}
+
+// API Response interface
+interface CategoriesApiResponse {
+  success: boolean;
+  message?: string;
+  categories: CategoryWithCount[];
 }
 
 interface CategorySectionProps {
@@ -109,22 +116,22 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Lấy danh sách categories từ API (đã bao gồm productCount từ backend)
-      const categoriesResponse = await axios.get(`${API_BASE_URL}/categories`);
+      const categoriesResponse = await axios.get<CategoriesApiResponse>(`${API_BASE_URL}/categories`);
 
       if (!categoriesResponse.data.success) {
         throw new Error(categoriesResponse.data.message || 'Failed to load categories');
       }
 
-      const fetchedCategories: CategoryWithCount[] = categoriesResponse.data.categories;
+      const fetchedCategories = categoriesResponse.data.categories || [];
       setCategories(fetchedCategories);
       setCurrentPage(1);
     } catch (err: any) {
       console.error('Error loading categories:', err);
       setError(
-        err.response?.data?.message || 
-        err.message || 
+        err.response?.data?.message ||
+        err.message ||
         'Failed to load categories. Please try again later.'
       );
     } finally {
@@ -141,7 +148,7 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
             Browse by Category
           </h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Discover your next favorite book by exploring our carefully curated categories. 
+            Discover your next favorite book by exploring our carefully curated categories.
             From thrilling mysteries to heartwarming romances, find exactly what you're looking for.
           </p>
         </div>
@@ -157,7 +164,7 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
         {error && (
           <div className="text-center py-20">
             <p className="text-red-500 mb-4">{error}</p>
-            <Button 
+            <Button
               onClick={loadCategories}
               variant="outline"
               className="border-blue-200 hover:border-blue-300 hover:bg-blue-50/50"
@@ -174,67 +181,67 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
               {categories
                 .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
                 .map((category) => {
-              // Lấy icon và colors dựa trên tên category
-              const IconComponent = categoryIcons[category.name] || defaultIcon;
-              const colors = categoryColors[category.name] || defaultColors;
-              
-              return (
-                <Card 
-                  key={category._id}
-                  className="group cursor-pointer transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 border-0 overflow-hidden relative h-64"
-                  onClick={() => onNavigate("category", { categoryId: category._id, categorySlug: category.slug })}
-                >
-                  {/* Background Image */}
-                  <div className="absolute inset-0">
-                    <ImageWithFallback
-                      src={category.image}
-                      alt={`${category.name} books`}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Overlay for readability */}
-                    <div className={`absolute inset-0 ${colors.overlayColor} backdrop-blur-[0.5px]`}></div>
-                    {/* Additional gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                  </div>
-                  
-                  <CardContent className="p-8 relative z-10 h-full flex flex-col justify-between">
-                    <div className="space-y-4">
-                      {/* Icon with gradient background */}
-                      <div className={`w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 p-3 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                        <IconComponent className="h-8 w-8 text-white drop-shadow-lg" />
+                  // Lấy icon và colors dựa trên tên category
+                  const IconComponent = categoryIcons[category.name] || defaultIcon;
+                  const colors = categoryColors[category.name] || defaultColors;
+
+                  return (
+                    <Card
+                      key={category._id}
+                      className="group cursor-pointer transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 border-0 overflow-hidden relative h-64"
+                      onClick={() => onNavigate("category", { category: category.name })}
+                    >
+                      {/* Background Image */}
+                      <div className="absolute inset-0">
+                        <ImageWithFallback
+                          src={category.image}
+                          alt={`${category.name} books`}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Overlay for readability */}
+                        <div className={`absolute inset-0 ${colors.overlayColor} backdrop-blur-[0.5px]`}></div>
+                        {/* Additional gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                       </div>
-                    </div>
-                    
-                    {/* Content at bottom */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-bold text-white drop-shadow-lg group-hover:scale-105 transition-transform duration-300">
-                          {category.name}
-                        </h3>
-                        <ArrowRight className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 drop-shadow-lg" />
-                      </div>
-                      
-                      <p className="text-white/90 leading-relaxed text-sm drop-shadow-md line-clamp-2">
-                        {category.description}
-                      </p>
-                      
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-xs font-semibold text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/30">
-                          {category.productCount} {category.productCount === 1 ? 'book' : 'books'}
-                        </span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="text-white hover:bg-white/20 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 border border-white/30"
-                        >
-                          Explore
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+
+                      <CardContent className="p-8 relative z-10 h-full flex flex-col justify-between">
+                        <div className="space-y-4">
+                          {/* Icon with gradient background */}
+                          <div className={`w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 p-3 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                            <IconComponent className="h-8 w-8 text-white drop-shadow-lg" />
+                          </div>
+                        </div>
+
+                        {/* Content at bottom */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-white drop-shadow-lg group-hover:scale-105 transition-transform duration-300">
+                              {category.name}
+                            </h3>
+                            <ArrowRight className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 drop-shadow-lg" />
+                          </div>
+
+                          <p className="text-white/90 leading-relaxed text-sm drop-shadow-md line-clamp-2">
+                            {category.description}
+                          </p>
+
+                          <div className="flex items-center justify-between pt-2">
+                            <span className="text-xs font-semibold text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/30">
+                              {category.productCount} {category.productCount === 1 ? 'book' : 'books'}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-white hover:bg-white/20 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 border border-white/30"
+                            >
+                              Explore
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
             {Math.ceil(categories.length / PAGE_SIZE) > 1 && (
               <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
@@ -276,8 +283,8 @@ export function CategorySection({ onNavigate }: CategorySectionProps) {
         {/* Call to action */}
         {!loading && !error && categories.length > 0 && (
           <div className="text-center mt-16">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="lg"
               className="border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50/50 text-blue-600 px-8 py-3"
               onClick={() => onNavigate("category", {})}

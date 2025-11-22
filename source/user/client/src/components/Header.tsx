@@ -28,36 +28,36 @@ interface HeaderProps {
 export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange, onNavigate, isAuthenticated, user, onLogout }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container mx-auto px-4 flex h-16 items-center justify-center gap-14">
         {/* Logo - Left Side */}
         <button
           onClick={() => onNavigate?.("home")}
-          className="flex items-center space-x-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          <BookOpen className="h-6 w-6" />
-          <span className="hidden sm:inline-block font-medium">BookHaven</span>
+          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-sky-500 rounded-lg flex items-center justify-center shadow-md">
+            <BookOpen className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-xl font-bold text-blue-600">
+            BookHaven
+          </span>
         </button>
 
-        {/* Centered Navigation & Search */}
-        <div className="flex-1 flex items-center justify-center max-w-2xl mx-6">
-
-          {/* Search */}
-          <div className="w-full">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search books..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-10 bg-muted/50 border-muted focus:bg-background transition-colors"
-              />
-            </div>
+        {/* Centered Search */}
+        <div className="flex-1 max-w-5xl">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search books..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-10 h-9 bg-muted/50 border-muted focus:bg-background transition-colors"
+            />
           </div>
         </div>
 
         {/* User Actions - Right Side */}
-        <div className="flex items-center space-x-2 flex-shrink-0">
-          <Button variant="ghost" size="icon" className="hover:bg-muted/80 transition-colors">
+        <div className="flex items-center gap-4 flex-shrink-0">
+          <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-muted/80 transition-colors">
             <Heart className="h-4 w-4" />
           </Button>
 
@@ -65,10 +65,10 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-7 w-7">
                     <AvatarImage src={user.avatar} alt={user.fullName} />
-                    <AvatarFallback className="bg-gradient-to-br from-spring to-summer text-white">
+                    <AvatarFallback className="bg-blue-500 text-white text-xs">
                       {user.fullName?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -100,13 +100,13 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
               variant="ghost"
               size="icon"
               onClick={() => onNavigate?.("login")}
-              className="hover:bg-muted/80 transition-colors"
+              className="h-9 w-9 hover:bg-muted/80 transition-colors"
             >
               <User className="h-4 w-4" />
             </Button>
           )}
 
-          <Button variant="ghost" size="icon" onClick={onCartClick} className="relative hover:bg-muted/80 transition-colors">
+          <Button variant="ghost" size="icon" onClick={onCartClick} className="relative h-9 w-9 hover:bg-muted/80 transition-colors">
             <ShoppingCart className="h-4 w-4" />
             {cartItemCount > 0 && (
               <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground">
