@@ -4,7 +4,7 @@ import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import  type { PageType } from "../App";
+import type { PageType } from "../App";
 
 interface User {
   _id: string;
@@ -30,7 +30,7 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo - Left Side */}
-        <button 
+        <button
           onClick={() => onNavigate?.("home")}
           className="flex items-center space-x-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
         >
@@ -39,43 +39,10 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
         </button>
 
         {/* Centered Navigation & Search */}
-        <div className="flex-1 flex items-center justify-center space-x-8 max-w-4xl mx-6">
-          {/* Navigation */}
-          <nav className="hidden lg:flex items-center space-x-6">
-            <button 
-              onClick={() => onNavigate?.("category", { category: "Fiction" })}
-              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
-            >
-              Fiction
-            </button>
-            <button 
-              onClick={() => onNavigate?.("category", { category: "Biography" })}
-              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
-            >
-              Biography
-            </button>
-            <button 
-              onClick={() => onNavigate?.("category", { category: "Mystery" })}
-              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
-            >
-              Mystery
-            </button>
-            <button 
-              onClick={() => onNavigate?.("category", { category: "Science Fiction" })}
-              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
-            >
-              Sci-Fi
-            </button>
-            <button 
-              onClick={() => onNavigate?.("category", { category: "Romance" })}
-              className="transition-colors hover:text-foreground/80 text-foreground/60 hover:text-primary"
-            >
-              Romance
-            </button>
-          </nav>
+        <div className="flex-1 flex items-center justify-center max-w-2xl mx-6">
 
           {/* Search */}
-          <div className="flex-1 max-w-md">
+          <div className="w-full">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -93,7 +60,7 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
           <Button variant="ghost" size="icon" className="hover:bg-muted/80 transition-colors">
             <Heart className="h-4 w-4" />
           </Button>
-          
+
           {/* Authentication Actions */}
           {isAuthenticated && user ? (
             <DropdownMenu>
@@ -129,8 +96,8 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
               onClick={() => onNavigate?.("login")}
               className="hover:bg-muted/80 transition-colors"
@@ -138,7 +105,7 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
               <User className="h-4 w-4" />
             </Button>
           )}
-          
+
           <Button variant="ghost" size="icon" onClick={onCartClick} className="relative hover:bg-muted/80 transition-colors">
             <ShoppingCart className="h-4 w-4" />
             {cartItemCount > 0 && (

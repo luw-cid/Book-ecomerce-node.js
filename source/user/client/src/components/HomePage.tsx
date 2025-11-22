@@ -1,12 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { HeroSection } from "./HeroSection";
-import { CategorySection } from "./CategorySection";
+import { CategoryDropdown } from "./CategoryDropdown";
 import { ProductSection } from "./ProductSection";
 import { BookCard, type Book } from "./BookCard";
 import { ShoppingCart, type CartItem } from "./ShoppingCart";
 import { Footer } from "./Footer";
-// import { sampleBooks } from "../data/books";
 import { Button } from "./ui/button";
 import { Filter, DollarSign, X, ChevronRight, ChevronLeft } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
@@ -99,12 +98,12 @@ export function HomePage({
       category: product.category?.name || product.category || 'Uncategorized',
       publisher: product.publisher || product.tags?.[1] || 'Unknown Publisher',
       pages: product.pages,
-      publicationDate: product.publicationDate 
-        ? new Date(product.publicationDate).toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })
+      publicationDate: product.publicationDate
+        ? new Date(product.publicationDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
         : undefined,
       language: product.bookLanguage || 'English',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
@@ -554,7 +553,11 @@ export function HomePage({
           </div>
         </section>
 
-        <CategorySection onNavigate={onNavigate} />
+        <CategoryDropdown
+          categories={categories}
+          categoryTotals={categoryTotals}
+          onNavigate={onNavigate}
+        />
 
         {/* Product Sections - only show when not searching/filtering */}
         {showProductSections && (
