@@ -39,6 +39,15 @@ export const setupAxiosInterceptor = (onLogout: () => void) => {
     async (error) => {
       const originalRequest = error.config;
 
+      // Bỏ qua các request login/register - những request này có thể trả về 401 hợp lệ
+      const isAuthRequest = originalRequest.url?.includes('/auth/login') || 
+                           originalRequest.url?.includes('/auth/register');
+      
+      if (isAuthRequest) {
+        // Đối với login/register, trả về lỗi trực tiếp không xử lý refresh token
+        return Promise.reject(error);
+      }
+
       // Nếu lỗi 401 và chưa retry
       if (error.response?.status === 401 && !originalRequest._retry) {
         
@@ -71,7 +80,11 @@ export const setupAxiosInterceptor = (onLogout: () => void) => {
           localStorage.removeItem('user');
           
           onLogout();
-          window.location.href = '/login';
+          // Không redirect nếu đang ở trang login/register
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+            window.location.href = '/login';
+          }
           return Promise.reject(error);
         }
 

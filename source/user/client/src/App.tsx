@@ -16,6 +16,7 @@ import axios from "axios";
 import { useAuth } from "./context/authContext";
 import { setupActivityTracker } from "./utils/activityTracker";
 import { setupAxiosInterceptor } from "./utils/axiosInterceptor";
+import { Toaster } from "./components/ui/sonner";
 
 export type PageType = "home" | "login" | "register" | "product-detail" | "cart" | "checkout" | "payment" | "profile" | "category";
 
@@ -368,6 +369,7 @@ export default function App() {
         onLogout={handleLogout}
       />
       {renderCurrentPage()}
+      <Toaster />
     </div>
   );
 }

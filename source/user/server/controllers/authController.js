@@ -128,6 +128,33 @@ const checkSession = (req, res) => {
   });
 };
 
+const recoverPassword = asyncHandle(async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        throw new AppError("Email is required", 400);
+    }
+    const result = await authService.recoverPassword(email);
+    if (!result) {
+        throw new AppError("Email not found", 404);
+    }
+    res.json({
+        success: true,
+        message: "Password recovered successfully! Please check your email for new password."
+    });
+});
+
+const resetPassword = asyncHandle(async (req, res) => {
+    const { email, newPassword } = req.body;
+    const result = await authService.resetPassword(email, newPassword);
+    if (!result) {
+        throw new AppError("Email not found", 404);
+    }
+    res.json({
+        success: true,
+        message: "Password reset successfully!"
+    });
+});
+
 module.exports = {
     register,
     login,
@@ -136,5 +163,7 @@ module.exports = {
     refreshToken,
     logoutAllDevices,
     googleCallback,
-    checkSession
+    checkSession,
+    recoverPassword,
+    resetPassword
 };

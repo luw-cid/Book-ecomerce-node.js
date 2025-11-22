@@ -28,4 +28,7 @@ router.get("/google/callback",
     authController.googleCallback
 );
 
+router.post("/recover-password", authController.recoverPassword);
+router.post("/reset-password", authController.resetPassword);
+
 module.exports = router;

@@ -238,6 +238,24 @@ const logoutAllDevices = async (userId) => {
   await RefreshToken.deleteMany({ user: userId });
 };
 
+const resetPassword = async (email, newPassword) => {
+  const user = await userModel.findOne({ email });
+  if(!user) return null;
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await userModel.updateOne({ email }, { password: hashedPassword });
+  return true;
+};
+
+const recoverPassword = async (email) => {
+  const user = await userModel.findOne({ email });
+  if(!user) return null;
+  const randomPassword = generatePassword();
+  const hashedPassword = await bcrypt.hash(randomPassword, 10);
+  await userModel.updateOne({ email }, { password: hashedPassword });
+  await sendPasswordEmail(email, randomPassword, user.fullName);
+  return true;
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -246,4 +264,6 @@ module.exports = {
     refreshAccessToken,
     logout,
     logoutAllDevices,
+    recoverPassword,
+    resetPassword
 };

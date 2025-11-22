@@ -1,7 +1,7 @@
 import axios from "axios";
 import React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BookOpen, Eye, EyeOff } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -9,6 +9,7 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import type { PageType } from "../App";
 import { useAuth } from "../context/authContext";
+import { toast } from "sonner";
 
 interface LoginPageProps {
   onNavigate: (page: PageType) => void;
@@ -20,10 +21,21 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  // Đảm bảo trang luôn là "login" khi component mount (chỉ chạy một lần)
+  useEffect(() => {
+    onNavigate("login");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Chỉ chạy một lần khi mount
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(""); // Xóa thông báo lỗi cũ
+    
+    // Đảm bảo trang vẫn là "login" trước khi submit
+    onNavigate("login");
     
     try {
       const response = await axios.post('http://localhost:3000/auth/login',
@@ -38,8 +50,22 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
           withCredentials: true,
         }
       );
-      if(response.status === 200) {
+      
+      console.log('🔍 Login response:', response.data);
+      
+      // Kiểm tra kỹ response trước khi xử lý
+      if (response.data && response.data.success === true && response.data.data) {
+        console.log('✅ Login successful, navigating to home');
         const { user, accessToken, refreshToken } = response.data.data;
+        
+        // Kiểm tra đầy đủ dữ liệu trước khi lưu
+        if (!user || !accessToken || !refreshToken) {
+          setErrorMessage("Invalid response from server. Please try again.");
+          setIsLoading(false);
+          // Đảm bảo vẫn ở trang login khi có lỗi
+          onNavigate("login");
+          return;
+        }
         
         // Check if "Remember me" is checked
         const rememberMe = (document.getElementById('remember') as HTMLInputElement)?.checked;
@@ -55,21 +81,69 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         }
         
         login(user, accessToken); // Lưu vào context với accessToken
+        toast.success(response.data.message || "Login successfully!");
         onNavigate("home");
       } else {
-        alert (response.data.message || "Login failed");
+        // Nếu không có success hoặc không có data
+        console.log('❌ Login failed - response:', response.data);
+        setErrorMessage(response.data?.message || "Login failed. Please check your credentials.");
+        setIsLoading(false);
+        // Đảm bảo vẫn ở trang login khi login thất bại
+        onNavigate("login");
       }
     } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.message) {
-        alert(err.response.data.message);
-      } else {
-        alert("An error occurred during login.");
+      // Xử lý lỗi từ axios (401, 500, network error, etc.)
+      console.log('❌ Login error:', err.response?.data || err.message);
+      
+      // Lấy thông báo lỗi từ response
+      let errorMsg = "Account or password incorrect. Please try again.";
+      
+      if (err.response?.data) {
+        // Server trả về lỗi với format { success: false, error: { message: ... } }
+        errorMsg = err.response.data.error?.message 
+          || err.response.data.message 
+          || err.response.data.error
+          || errorMsg;
+      } else if (err.message) {
+        errorMsg = err.message;
       }
-
-    } finally {
+      
+      setErrorMessage(errorMsg);
       setIsLoading(false);
+      // Đảm bảo vẫn ở trang login khi có lỗi
+      onNavigate("login");
     }
 
+  };
+
+  const handleRecoverPassword = async () => {
+    // Kiểm tra email đã được nhập chưa
+    if (!email || email.trim() === "") {
+      toast.error("Please enter email to recover password");
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:3000/auth/recover-password',
+        { email: email },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
+      if(response.status === 200) {
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.message ?? "Recover password failed");
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message 
+        || err.response?.data?.error?.message
+        || "Password recovery failed. Please try again.";
+      toast.error(errorMsg);
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -110,7 +184,10 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setErrorMessage(""); // Xóa thông báo lỗi khi user bắt đầu nhập
+                  }}
                   required
                   className="h-12"
                 />
@@ -124,10 +201,13 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="h-12 pr-10"
-                  />
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErrorMessage(""); // Xóa thông báo lỗi khi user bắt đầu nhập
+                  }}
+                  required
+                  className="h-12 pr-10"
+                />
                   <Button
                     type="button"
                     variant="ghost"
@@ -155,11 +235,18 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
                   type="button"
                   variant="link"
                   className="px-0 text-blue-600 hover:text-blue-800"
-                  onClick={() => alert("Password reset functionality would be implemented here")}
+                  onClick={handleRecoverPassword}
                 >
                   Forgot password?
                 </Button>
               </div>
+
+              {/* Error message */}
+              {errorMessage && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                  {errorMessage}
+                </div>
+              )}
 
               <Button
                 type="submit"
