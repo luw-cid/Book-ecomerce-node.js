@@ -24,10 +24,31 @@ interface HeaderProps {
   user: User | null;
   onLogout: () => void;
 }
-
+function getAvatarBgClass(name?: string) {
+  const colors = [
+    "bg-emerald-600",
+    "bg-purple-600",
+    "bg-rose-600",
+    "bg-indigo-600",
+    "bg-amber-600",
+  ];
+  if (!name) return colors[0];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h << 5) - h + name.charCodeAt(i);
+  return colors[Math.abs(h) % colors.length];
+}
 export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange, onNavigate, isAuthenticated, user, onLogout }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header
+      className="sticky top-0 z-50 w-full border-b"
+      // đậm hơn một chút: màu pastel hồng đậm hơn
+      style={{
+        backgroundColor: "rgba(255,192,220,0.98)", // đậm hơn pastel pink
+        borderColor: "#FFB3D6",
+        boxShadow: "0 1px 0 rgba(255,179,214,0.4) inset",
+        backdropFilter: "blur(6px) saturate(120%)",
+      }}
+    >
       <div className="container mx-auto px-4 flex h-16 items-center justify-center gap-14">
         {/* Logo - Left Side */}
         <button
@@ -68,7 +89,7 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-7 w-7">
                     <AvatarImage src={user.avatar} alt={user.fullName} />
-                    <AvatarFallback className="bg-blue-500 text-white text-xs">
+                    <AvatarFallback className="bg-gradient-to-br from-spring to-summer text-white">
                       {user.fullName?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -116,6 +137,6 @@ export function Header({ cartItemCount, onCartClick, searchQuery, onSearchChange
           </Button>
         </div>
       </div>
-    </header>
+    </header >
   );
 }
