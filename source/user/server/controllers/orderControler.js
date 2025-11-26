@@ -44,9 +44,9 @@ const createOrder = async (req, res) => {
         throw new AppError('Payment method is required', 400);
     }
     
-    if (!orderData.subtotal || !orderData.total) {
-        throw new AppError('Order amounts are required', 400);
-    }
+    // if (!orderData.subtotal || !orderData.total) {
+    //     throw new AppError('Order amounts are required', 400);
+    // }
     
     // Validate shipping address fields
     const { fullName, email, phone, address, city } = orderData.shippingAddress;

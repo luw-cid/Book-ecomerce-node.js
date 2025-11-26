@@ -3,6 +3,7 @@ const userModel = require('../models/userModel');
 const loyaltyService = require('./loyaltyService');
 const discountService = require('./discountService');
 const authService = require('./authService');
+const emailService = require('./emailService');
 
 const generateOrderNumber = async () => {
     const timestamp = Date.now();
@@ -115,6 +116,13 @@ const createOrder = async (orderData) => {
         }
         const order = await orderModel.create(orderData);
         await order.populate('items.product', 'title price coverImage author');
+
+        // Gửi email xác nhận
+        try {
+            await emailService.sendOrderConfirmation(order.shippingAddress.email, order);
+        } catch (err) {
+            console.error('Failed to send order confirmation email:', err);
+        }
 
         if (orderData.discount?.code) {
         try {

@@ -8,7 +8,7 @@ const authMiddleware = async (req, res, next) => {
         // Lấy token từ header
         const token = req.header('Authorization')?.replace('Bearer ', '');
         
-        console.log('🔐 authMiddleware - Token:', token ? 'Present' : 'Missing');
+        // console.log('🔐 authMiddleware - Token:', token ? 'Present' : 'Missing');
 
         if (!token) {
             return res.status(401).json({
@@ -20,7 +20,7 @@ const authMiddleware = async (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
-        console.log('🔐 authMiddleware - Decoded Token:', decoded);
+        // console.log('🔐 authMiddleware - Decoded Token:', decoded);
 
         // Tìm user
         const user = await User.findById(decoded.id).select('-password');
@@ -32,7 +32,7 @@ const authMiddleware = async (req, res, next) => {
             });
         }
 
-        console.log('✅ User authenticated:', user._id);
+        // console.log('✅ User authenticated:', user._id);
 
         // Gắn user vào request
         req.user = user;
