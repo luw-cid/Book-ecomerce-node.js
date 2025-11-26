@@ -67,6 +67,7 @@ export function OrderManagement() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
+  const [pendingSearchTerm, setPendingSearchTerm] = useState('');
 
   const getToken = () => {
     return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
@@ -131,12 +132,7 @@ export function OrderManagement() {
     setCurrentPage(page);
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  };
+  // Đã thay đổi logic tìm kiếm: chỉ thực hiện khi nhấn nút Search hoặc Enter
 
   // Client-side filtering removed - now handled by server
 
@@ -195,14 +191,30 @@ export function OrderManagement() {
       <Card className="p-4 sm:p-6">
         {/* Search and Filters */}
         <div className="space-y-4 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input 
               placeholder="Search by order number, customer name, or status..." 
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-10 pr-24"
+              value={pendingSearchTerm}
+              onChange={(e) => setPendingSearchTerm(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  setSearchTerm(pendingSearchTerm);
+                  setCurrentPage(1);
+                }
+              }}
             />
+              <Button
+                className="ml-4 absolute right-1 top-1/2 -translate-y-1/2 px-4"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm(pendingSearchTerm);
+                  setCurrentPage(1);
+                }}
+              >
+                Search
+              </Button>
           </div>
 
           {/* Status Filter Buttons */}

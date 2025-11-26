@@ -41,6 +41,7 @@ export function ProductManagement() {
   const [showForm, setShowForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [pendingSearchTerm, setPendingSearchTerm] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -297,11 +298,26 @@ export function ProductManagement() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input 
               placeholder="Search books by title or author..." 
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              disabled={isLoading}
+              className="pl-10 pr-24"
+              value={pendingSearchTerm}
+              onChange={(e) => setPendingSearchTerm(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  setSearchTerm(pendingSearchTerm);
+                  setCurrentPage(1);
+                }
+              }}
             />
+              <Button
+                className="ml-4 absolute right-1 top-1/2 -translate-y-1/2 px-4"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm(pendingSearchTerm);
+                  setCurrentPage(1);
+                }}
+              >
+                Search
+              </Button>
           </div>
         </div>
 

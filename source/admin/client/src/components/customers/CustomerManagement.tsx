@@ -37,6 +37,7 @@ interface Customer {
 export function CustomerManagement() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [pendingSearchTerm, setPendingSearchTerm] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPaginating, setIsPaginating] = useState(false);
@@ -134,17 +135,33 @@ export function CustomerManagement() {
         </p>
       </div>
 
-      <Card className="p-4 sm:p-6">
+      <Card className="p-6">
         {/* Search and Filters */}
-        <div className="space-y-4 mb-6">
-          <div className="relative">
+        <div className="mb-6">
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input 
               placeholder="Search by name, email, or phone..." 
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-10 pr-24"
+              value={pendingSearchTerm}
+              onChange={(e) => setPendingSearchTerm(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  setSearchTerm(pendingSearchTerm);
+                  setCurrentPage(1);
+                }
+              }}
             />
+              <Button
+                className="ml-4 absolute right-1 top-1/2 -translate-y-1/2 px-4"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm(pendingSearchTerm);
+                  setCurrentPage(1);
+                }}
+              >
+                Search
+              </Button>
           </div>
         </div>
 
