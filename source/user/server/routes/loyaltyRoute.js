@@ -10,6 +10,7 @@ router.use(authMiddleware);
 
 // Core customer loyalty routes
 router.get('/account', loyaltyController.getLoyaltyAccount);
+router.post('/points', loyaltyController.earnPointsFromOrder);
 router.post('/redeem', loyaltyController.redeemPoints);
 
 module.exports = router;

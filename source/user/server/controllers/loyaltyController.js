@@ -20,6 +20,21 @@ const getLoyaltyAccount = async (req, res) => {
   });
 };
 
+const earnPointsFromOrder = async (req, res) => {
+  const userId = req.user?._id;
+  const { orderTotal } = req.body
+
+  if (!userId || typeof orderTotal !== 'number') {
+    throw new AppError('userId and orderTotal are required.', 400);
+  }
+
+  const result = await loyaltyService.earnPointsFromOrder(userId, orderTotal);
+  return res.status(200).json({
+    message: 'Points earned successfully.',
+    data: result
+  });
+
+}
 /**
  * Redeem points (called during checkout)
  * POST /api/loyalty/redeem
@@ -48,5 +63,6 @@ const redeemPoints = async (req, res) => {
 
 module.exports = {
   getLoyaltyAccount,
+  earnPointsFromOrder,
   redeemPoints
 };

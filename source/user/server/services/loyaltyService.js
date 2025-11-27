@@ -85,7 +85,7 @@ const redeemPoints = async (userId, pointsToRedeem) => {
   
   return {
     pointsRedeemed: pointsToRedeem,
-    discountAmount: pointsToRedeem, // 1 point = $1
+    discountAmount: pointsToRedeem * 1000, // 1 point = 1000đ
     newBalance: user.loyalty.points
   };
 };

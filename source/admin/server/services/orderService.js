@@ -106,7 +106,7 @@ const updateOrderStatus = async (orderId, status) => {
         
         // Populate product details and user after save
         const populatedOrder = await orderModel.findById(orderId)
-            .populate('items.product')
+            .populate('items.product', 'name images price author publisher')
             .populate('user', 'fullName email phoneNumber');
         
         return { success: true, order: populatedOrder};

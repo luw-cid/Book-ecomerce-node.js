@@ -234,6 +234,30 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
         return;
       }
 
+      let redeemedDiscount = 0;
+      // Nếu user chọn dùng điểm, gọi API redeem trước khi tạo order
+      if (user && useLoyaltyPoints && loyaltyPointsToUse > 0) {
+        try {
+          const res = await axios.post(
+            `${API_URL}/loyalty/redeem`,
+            { pointsToRedeem: loyaltyPointsToUse },
+            { headers: { Authorization: `Bearer ${getToken()}` } }
+          );
+          if (res.data && res.data.data) {
+            redeemedDiscount = res.data.data.discountAmount || 0;
+            // Cập nhật lại điểm còn lại trên UI
+            setLoyaltyAccount((prev) => prev ? { ...prev, totalPoints: res.data.data.newBalance } : prev);
+          }
+        } catch (err: any) {
+          alert(err.response?.data?.message || "Redeem failed");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Tính lại loyaltyDiscount nếu vừa redeem thành công
+      const finalLoyaltyDiscount = useLoyaltyPoints ? (redeemedDiscount > 0 ? redeemedDiscount : loyaltyDiscount) : 0;
+
       const orderData = {
         items: cartItems.map(item => ({
           product: item.book.id,
@@ -257,8 +281,8 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
           type: appliedDiscount.discountType
         } : undefined,
         loyaltyPointsUsed: useLoyaltyPoints ? loyaltyPointsToUse : 0,
-        loyaltyDiscount: useLoyaltyPoints ? loyaltyDiscount : 0,
-        total: total,
+        loyaltyDiscount: finalLoyaltyDiscount,
+        total: Math.max(0, subtotalAfterDiscount - finalLoyaltyDiscount + shippingCost),
         paymentStatus: "Pending",
         orderStatus: "Pending"
       };
@@ -272,38 +296,53 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
           } : {}
         });
 
-        console.log("Order created:", response.data);
+      console.log("Order created:", response.data);
 
-        if (response.data.success) {
-          const order = response.data.order;
+      if (response.data.success) {
+        const order = response.data.order;
 
-          if (paymentMethod === "bank-transfer") {
-            const newOrderData = {
-              orderId: order._id,
-              orderNumber: order.orderNumber,
-              total: order.total,
-              yourName: formData.fullName,
-              yourEmail: formData.email,
-              yourPhone: formData.phone,
-              yourAddress: formData.address,
-              paymentMethod: "Bank Transfer"
-            };
-            
-            console.log("Setting order data:", newOrderData);
-            setOrderData(newOrderData);
-            setShowPaymentModal(true);
-            console.log("Modal should be showing now");
-          } else {
-            // COD - Show success modal
-            setSuccessOrderData({
-              orderNumber: order.orderNumber,
-              total: order.total,
-              paymentMethod: "Cash on Delivery"
-            });
-            setShowSuccessModal(true);
-            onClearCart();
+        // Nếu là user đăng nhập, gọi API tích điểm
+        if (user) {
+          try {
+            await axios.post(
+              `${API_URL}/loyalty/earn`,
+              { userId: user.id, orderTotal: order.total },
+              { headers: { Authorization: `Bearer ${getToken()}` } }
+            );
+            // Cập nhật lại điểm mới
+            fetchLoyaltyAccount();
+          } catch (err) {
+            console.error("Loyalty API error:", err);
           }
         }
+
+        if (paymentMethod === "bank-transfer") {
+          const newOrderData = {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            total: order.total,
+            yourName: formData.fullName,
+            yourEmail: formData.email,
+            yourPhone: formData.phone,
+            yourAddress: formData.address,
+            paymentMethod: "Bank Transfer"
+          };
+
+          console.log("Setting order data:", newOrderData);
+          setOrderData(newOrderData);
+          setShowPaymentModal(true);
+          console.log("Modal should be showing now");
+        } else {
+          // COD - Show success modal
+          setSuccessOrderData({
+            orderNumber: order.orderNumber,
+            total: order.total,
+            paymentMethod: "Cash on Delivery"
+          });
+          setShowSuccessModal(true);
+          onClearCart();
+        }
+      }
     } catch (error: any) {
       console.error("Error creating order:", error);
       alert(error.response?.data?.message || "An error occurred while placing your order. Please try again.");
@@ -311,6 +350,24 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
       setIsSubmitting(false);
     }
   };
+
+  // const handleRedeemPoints = async (pointsToRedeem: number) => {
+  //   try {
+  //     const res = await axios.post(
+  //         "http://localhost:3000/loyalty/redeem",
+  //         { pointsToRedeem },
+  //         { headers: { Authorization: `Bearer ${getToken()}` } }
+  //       );
+  //       if (res.data && res.data.data) {
+  //         // res.data.data.discountAmount là số tiền giảm giá
+  //         // Cập nhật UI: trừ vào tổng tiền, hiển thị số điểm còn lại, v.v.
+  //         setCouponCode(res.data.data.discountAmount);
+  //         setUseLoyaltyPoints(res.data.data.newBalance);
+  //       }
+  //   } catch (error: any) {
+  //         alert(error.response?.data?.message || "Redeem failed");
+  //   }
+  // }
 
   const handelPaymentSuccess = () => {
     // Bank Transfer payment success - Show success modal
