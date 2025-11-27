@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { ArrowLeft, User, Mail, Calendar, Heart, ShoppingBag, Settings, Camera, Package } from "lucide-react";
+import { ArrowLeft, User, Mail, Calendar, Heart, ShoppingBag, Settings, Camera, Package, Star } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -132,6 +132,9 @@ export function ProfilePage({
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string>('');
 
+  // State cho loyalty account
+  const [loyaltyAccount, setLoyaltyAccount] = useState<{ totalPoints: number; tier: string } | null>(null);
+
   // Cập nhật states khi user prop thay đổi
   useEffect(() => {
     if (user) {
@@ -157,12 +160,31 @@ export function ProfilePage({
     }
   }, [message]);
 
-  // Fetch order history khi user đăng nhập
+  // Fetch order history và loyalty account khi user đăng nhập
   useEffect(() => {
     if (user) {
       fetchUserOrders();
+      fetchLoyaltyAccount();
     }
   }, [user]);
+
+  const fetchLoyaltyAccount = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/loyalty/account`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        }
+      });
+      
+      if (response.data.success && response.data.account) {
+        setLoyaltyAccount(response.data.account);
+      }
+    } catch (error: any) {
+      console.error('Error fetching loyalty account:', error);
+      // Set default nếu có lỗi
+      setLoyaltyAccount({ totalPoints: 0, tier: 'bronze' });
+    }
+  };
 
   const fetchUserOrders = async () => {
     setOrdersLoading(true);
@@ -492,8 +514,14 @@ export function ProfilePage({
                       <div className="text-sm text-gray-600">Wishlist</div>
                     </div>
                     <div className="text-center p-4 bg-white/60 rounded-lg backdrop-blur-sm">
-                      <div className="text-2xl font-bold text-winter">{cartItems.length}</div>
-                      <div className="text-sm text-gray-600">In Cart</div>
+                      <div className="text-2xl font-bold text-winter flex items-center justify-center gap-1">
+                        <Star className="h-5 w-5" />
+                        {loyaltyAccount ? loyaltyAccount.totalPoints.toLocaleString() : '0'}
+                      </div>
+                      <div className="text-sm text-gray-600">Loyalty Points</div>
+                      {/* {loyaltyAccount && loyaltyAccount.tier && (
+                        <div className="text-xs text-gray-500 mt-1 capitalize">{loyaltyAccount.tier}</div>
+                      )} */}
                     </div>
                   </div>
                 </div>

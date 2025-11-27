@@ -3,9 +3,9 @@ const User = require('../models/userModel');
 // Tier thresholds
 const TIER_THRESHOLDS = {
   bronze: 0,
-  silver: 1000,
-  gold: 5000,
-  platinum: 10000
+  silver: 100,
+  gold: 500,
+  platinum: 1000
 };
 
 // Earn rate: 10% of order total
