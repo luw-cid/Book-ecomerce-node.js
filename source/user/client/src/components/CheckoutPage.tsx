@@ -240,7 +240,7 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
         try {
           const res = await axios.post(
             `${API_URL}/loyalty/redeem`,
-            { pointsToRedeem: loyaltyPointsToUse },
+            { points: loyaltyPointsToUse },
             { headers: { Authorization: `Bearer ${getToken()}` } }
           );
           if (res.data && res.data.data) {
@@ -289,7 +289,7 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
 
       console.log("Creating order:", orderData);
 
-      const response = await axios.post('http://localhost:3000/orders', orderData, 
+      const response = await axios.post('http://localhost:3000/orders', orderData,
         { 
           headers: user ? {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -305,8 +305,8 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
         if (user) {
           try {
             await axios.post(
-              `${API_URL}/loyalty/earn`,
-              { userId: user.id, orderTotal: order.total },
+              `${API_URL}/loyalty/points`,
+              { orderTotal: order.total },
               { headers: { Authorization: `Bearer ${getToken()}` } }
             );
             // Cập nhật lại điểm mới
