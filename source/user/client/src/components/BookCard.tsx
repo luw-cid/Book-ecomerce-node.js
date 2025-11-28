@@ -29,6 +29,7 @@ export interface Book {
   category?: string;
   publisher?: string;
   coverImage?: string;
+  images?: string[];
   variants?: BookVariant[];
   isNew?: boolean;
   isBestseller?: boolean;
@@ -243,8 +244,8 @@ export function BookCard({
           <Button
             onClick={handleAddToCart}
             className={`${addedToCart
-                ? 'bg-green-500 hover:bg-green-600 text-white'
-                : 'bg-white text-black hover:bg-gray-100'
+              ? 'bg-green-500 hover:bg-green-600 text-white'
+              : 'bg-white text-black hover:bg-gray-100'
               } transition-all duration-300`}
             aria-label={`Add ${book.title} to cart`}
             disabled={isAddingToCart}

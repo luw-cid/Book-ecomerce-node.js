@@ -54,6 +54,7 @@ export function ProductDetailPage({
 }: ProductDetailPageProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState("description");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const [book, setBook] = useState<Book | null>(null);
   const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
@@ -101,6 +102,7 @@ export function ProductDetailPage({
         : undefined,
       language: product.bookLanguage || 'English',
       coverImage: product.images?.[0] || '/placeholder-book.jpg',
+      images: product.images || [product.images?.[0] || '/placeholder-book.jpg'],
       variants: [
         {
           id: product._id,
@@ -299,6 +301,10 @@ export function ProductDetailPage({
     onNavigate("cart");
   };
 
+  const allImages = book?.images && book.images.length > 0
+    ? book.images
+    : [book?.coverImage || '/placeholder-book.jpg'];
+
   return (
     <div className="min-h-screen">
       {/* Back to Books Navigation */}
@@ -317,18 +323,44 @@ export function ProductDetailPage({
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Book Image */}
+          {/* Image Gallery - FIXED LAYOUT */}
           <div className="space-y-4">
-            <div className="aspect-[3/4] bg-gray-50 rounded-lg overflow-hidden">
+            {/* Main Image - LỚN Ở TRÊN */}
+            <div className="w-full max-w-lg mx-auto aspect-[3/4] bg-gray-50 rounded-lg overflow-hidden border-2 border-gray-200 shadow-lg">
               <ImageWithFallback
-                src={book.coverImage}
-                alt={`${book.title} cover`}
-                className="w-full h-full object-cover"
+                src={allImages[selectedImageIndex]}
+                alt={`${book.title} - Image ${selectedImageIndex + 1}`}
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
               />
             </div>
 
+            {/* Thumbnail Gallery - NHỎ Ở DƯỚI */}
+            {allImages.length > 1 && (
+              <div className="flex justify-center gap-2 flex-wrap">
+                {allImages.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`
+    w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all
+    ${selectedImageIndex === index
+                        ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
+                        : 'border-gray-300 hover:border-blue-300 opacity-70 hover:opacity-100'
+                      }
+          `}
+                  >
+                    <ImageWithFallback
+                      src={image}
+                      alt={`${book.title} thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Share Options */}
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-4 pt-2">
               <Button variant="outline" size="sm">
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
