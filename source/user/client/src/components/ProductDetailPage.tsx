@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import io, { Socket } from 'socket.io-client';
-import { ArrowLeft, Star, Heart, Share2, ShoppingCart, Truck, Shield, RotateCcw, ThumbsUp, CheckCircle } from "lucide-react";
+import { ArrowLeft, Star, Heart, Share2, ShoppingCart, Truck, Shield, RotateCcw, ThumbsUp, CheckCircle, Package, TrendingUp } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
@@ -60,6 +60,8 @@ export function ProductDetailPage({
   const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stock, setStock] = useState<number>(0);
+  const [sold, setSold] = useState<number>(0);
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewStats, setReviewStats] = useState<ReviewStats>({
@@ -168,7 +170,12 @@ export function ProductDetailPage({
           headers: { "Content-Type": "application/json" }
         });
         const mapped = mapProductToBook(res.data);
-        if (!cancelled) setBook(mapped);
+        if (!cancelled) {
+          setBook(mapped);
+          // Lưu stock và sold từ product data
+          setStock(res.data.stock || 0);
+          setSold(res.data.sold || 0);
+        }
 
         // Fetch reviews 
         await fetchReviews(1);
@@ -413,6 +420,28 @@ export function ProductDetailPage({
                   {Math.round((1 - book.price / book.originalPrice) * 100)}% OFF
                 </Badge>
               )}
+            </div>
+
+            {/* Stock and Sold Info */}
+            <div className="flex items-center gap-6 py-4 border-t border-b">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="text-sm text-gray-600">In Stock</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {stock > 0 ? `${stock.toLocaleString()} books` : 'Out of stock'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Sold</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {sold.toLocaleString()} books
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Quantity and Actions */}

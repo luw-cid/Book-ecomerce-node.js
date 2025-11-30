@@ -115,7 +115,7 @@ const createOrder = async (orderData) => {
             }
         }
         const order = await orderModel.create(orderData);
-        await order.populate('items.product', 'title price coverImage author');
+        await order.populate('items.product', 'name images price author');
 
         // Gửi email xác nhận
         try {

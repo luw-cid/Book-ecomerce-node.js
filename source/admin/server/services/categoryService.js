@@ -59,7 +59,7 @@ const getCategories = async ({ filter = {}, page = 1, limit = 12, sortBy = 'crea
         categories.map(async (category) => {
             const productCount = await productModel.countDocuments({ 
                 category: category._id,
-                isActive: true 
+                // isActive: true 
             });
             
             return {

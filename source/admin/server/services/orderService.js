@@ -1,5 +1,6 @@
 const orderModel = require('../models/orderModel');
 const userModel = require('../models/userModel');
+const productModel = require('../models/productModel');
 
 const getOrders = async ({ filter, page, limit, sortBy, sortOrder, search }) => {
     try {
@@ -73,6 +74,34 @@ const getOrderById = async (orderId) => {
     }
 };
 
+// Helper function: Cập nhật stock và sold cho products trong order
+const updateProductStockAndSold = async (orderItems) => {
+    try {
+        for (const item of orderItems) {
+            const product = await productModel.findById(item.product);
+            if (product) {
+                // Kiểm tra stock đủ không
+                if (product.stock < item.quantity) {
+                    console.warn(`⚠️ Insufficient stock for product ${product.name}: requested=${item.quantity}, available=${product.stock}`);
+                    // Vẫn tiếp tục nhưng log warning
+                }
+                
+                // Giảm stock (không cho phép âm)
+                product.stock = Math.max(0, product.stock - item.quantity);
+                // Tăng sold
+                product.sold = (product.sold || 0) + item.quantity;
+                await product.save();
+                console.log(`✅ Updated stock for product ${product.name}: stock=${product.stock}, sold=${product.sold}`);
+            } else {
+                console.warn(`⚠️ Product not found: ${item.product}`);
+            }
+        }
+    } catch (error) {
+        console.error('Error updating product stock and sold:', error);
+        throw error;
+    }
+};
+
 const updateOrderStatus = async (orderId, status) => {
     try {
         const validStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
@@ -85,6 +114,8 @@ const updateOrderStatus = async (orderId, status) => {
         if (!order) {
             throw new Error('Order not found');
         }
+
+        const oldStatus = order.orderStatus;
 
         if (order.orderStatus === 'Cancelled' || order.orderStatus === 'Delivered') {
             throw new Error(`Cannot update order with status: ${order.orderStatus}`);
@@ -103,6 +134,17 @@ const updateOrderStatus = async (orderId, status) => {
         });
 
         await order.save();
+        
+        // Cập nhật stock và sold khi order status chuyển sang 'Delivered'
+        if (status === 'Delivered' && oldStatus !== 'Delivered' && order.items && order.items.length > 0) {
+            try {
+                await updateProductStockAndSold(order.items);
+                console.log(`✅ Stock and sold updated for order ${order.orderNumber} when delivered`);
+            } catch (error) {
+                console.error('Error updating product stock when order delivered:', error);
+                // Không throw error để không làm fail status update
+            }
+        }
         
         // Populate product details and user after save
         const populatedOrder = await orderModel.findById(orderId)

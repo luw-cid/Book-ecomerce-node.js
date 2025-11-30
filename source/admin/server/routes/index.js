@@ -10,6 +10,7 @@ const categoryRoutes = require('./categoryRoute');
 const discountRoutes = require('./discountRoute');
 const orderRoutes = require('./orderRoute');
 const customerRoutes = require('./customerRoute');
+const dashboardRoutes = require('./dashboardRoute');
 
 // ánh xạ các route con
 router.use('/auth', authRoutes);
@@ -18,5 +19,6 @@ router.use('/categories', categoryRoutes);
 router.use('/discounts', discountRoutes);
 router.use('/orders', orderRoutes);
 router.use('/customers', customerRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 module.exports = router;

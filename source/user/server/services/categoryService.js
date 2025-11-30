@@ -9,7 +9,7 @@ const getAllCategories = async () => {
         categories.map(async (category) => {
             const productCount = await productModel.countDocuments({ 
                 category: category._id,
-                isActive: true 
+                // isActive: true 
             });
             return {
                 ...category.toObject(),

@@ -37,6 +37,10 @@ interface Product {
   images: string[];
   tags?: string[];
   isActive: boolean;
+  // Backend field names
+  newProduct?: boolean;
+  isBestseller?: boolean;
+  // Frontend field names (for backward compatibility)
   isNewProduct?: boolean;
   isBestSeller?: boolean;
   isFlashSale?: boolean;
@@ -82,8 +86,10 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
   const [tags, setTags] = useState<string[]>(product?.tags || []);
   const [newTag, setNewTag] = useState('');
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
-  const [isNewProduct, setIsNewProduct] = useState(product?.isNewProduct || false);
-  const [isBestSeller, setIsBestSeller] = useState(product?.isBestSeller || false);
+  // Backend returns 'newProduct' but we use 'isNewProduct' in state for consistency
+  const [isNewProduct, setIsNewProduct] = useState(product?.newProduct || product?.isNewProduct || false);
+  // Backend returns 'isBestseller' but we use 'isBestSeller' in state for consistency
+  const [isBestSeller, setIsBestSeller] = useState(product?.isBestseller || product?.isBestSeller || false);
   const [isFlashSale, setIsFlashSale] = useState(product?.isFlashSale || false);
   
   const [categories, setCategories] = useState<Category[]>([]);
@@ -182,8 +188,8 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
       images: imageUrls,
       tags,
       isActive,
-      isNewProduct,
-      isBestSeller,
+      newProduct: isNewProduct, // Backend expects 'newProduct' not 'isNewProduct'
+      isBestseller: isBestSeller, // Backend expects 'isBestseller' not 'isBestSeller'
       isFlashSale
     };
 

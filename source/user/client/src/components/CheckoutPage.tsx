@@ -527,10 +527,16 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
                           placeholder="Enter promo code"
                           value={couponCode}
                           onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          onKeyPress={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleApplyCoupon();
+                            }
+                          }}                          
                           disabled={isLoadingCoupon}
                         />
                         <Button
+                          type="button"
                           onClick={() => handleApplyCoupon()}
                           disabled={isLoadingCoupon || !couponCode.trim()}
                           variant="outline"
@@ -611,6 +617,7 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
                                     </div>
                                     {canUse && (
                                       <Button
+                                        type="button"
                                         size="sm"
                                         variant="ghost"
                                         className="ml-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
@@ -652,6 +659,7 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
                         </div>
                       </div>
                       <Button
+                        type="button"
                         onClick={handleRemoveCoupon}
                         variant="ghost"
                         size="sm"

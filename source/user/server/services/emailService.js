@@ -36,14 +36,23 @@ const sendOrderConfirmation = async (recipientEmail, order) => {
                 </tr>
                 </thead>
                 <tbody>
-                ${order.items.map(item => `
+                ${order.items.map(item => {
+                    const product = item.product || {};
+                    const productName = product.name || 'Unknown Product';
+                    const productAuthor = product.author || '';
+                    
+                    return `
                     <tr>
-                    <td style="padding:8px; border-bottom:1px solid #eee;">${item.product.name}</td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;">
+                        <div style="font-weight:bold; margin-bottom:4px;">${productName}</div>
+                        ${productAuthor ? `<div style="font-size:12px; color:#666;">by ${productAuthor}</div>` : ''}
+                    </td>
                     <td align="center" style="padding:8px; border-bottom:1px solid #eee;">${item.quantity}</td>
                     <td align="right" style="padding:8px; border-bottom:1px solid #eee;">${item.price.toLocaleString()} đ</td>
                     <td align="right" style="padding:8px; border-bottom:1px solid #eee;">${(item.price * item.quantity).toLocaleString()} đ</td>
                     </tr>
-                `).join('')}
+                    `;
+                }).join('')}
                 </tbody>
                 <tfoot>
                 <tr>
@@ -70,7 +79,7 @@ const sendOrderConfirmation = async (recipientEmail, order) => {
                 <p><b>Phone:</b> ${order.shippingAddress.phone || ''}</p>
                 <p><b>Address:</b> ${order.shippingAddress.address}, ${order.shippingAddress.city}</p>
             </div>
-            <p style="margin-top:24px;">If you have any questions, just reply to this email. We’re always happy to help!</p>
+            <p style="margin-top:24px;">If you have any questions, just reply to this email. We're always happy to help!</p>
             <p style="margin-top:16px; color:#1a4d2e;"><b>Book Store Team</b></p>
             <hr style="margin:32px 0 8px 0; border:none; border-top:1px solid #eee;">
             <p style="font-size:12px; color:#888;">This is an automated email. Please do not reply directly.</p>
@@ -81,8 +90,8 @@ const sendOrderConfirmation = async (recipientEmail, order) => {
         await transporter.sendMail(mailOptions);
         return true;
     } catch (error) {
-        console.error('Email sending email:', error);
-        throw new Error('Failed to send password email');
+        console.error('Email sending error:', error);
+        throw new Error('Failed to send order confirmation email');
     }
 };
 
