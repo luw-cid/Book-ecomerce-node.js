@@ -52,8 +52,13 @@ io.on('connection', (socket) => {
 });
 
 // Cấu hình CORS
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://bookhaven-sandy.vercel.app', // Vercel frontend
+];
+
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true
 }));
 
