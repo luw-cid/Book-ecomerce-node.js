@@ -16,7 +16,7 @@ const sendOrderConfirmation = async (recipientEmail, order) => {
         const transporter = createEmailTransporter();
 
         const mailOptions = {
-            from: `"Book Store" <${process.env.EMAIL_USER}>`,
+            from: `"Book Store" <${process.env.GMAIL_USER}>`,
             to: recipientEmail,
             subject: `Order Confirmation - ${order.orderNumber}`,
             html: `
@@ -91,7 +91,8 @@ const sendOrderConfirmation = async (recipientEmail, order) => {
         return true;
     } catch (error) {
         console.error('Email sending error:', error);
-        throw new Error('Failed to send order confirmation email');
+        // Không để lỗi email làm fail đơn hàng
+        return false;
     }
 };
 
