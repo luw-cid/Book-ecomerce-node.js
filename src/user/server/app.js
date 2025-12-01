@@ -19,9 +19,11 @@ const app = express();
 const server = http.createServer(app);
 
 // ============= SOCKET.IO SETUP =============
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
 const socketAllowedOrigins = [
   'http://localhost:5173',
-  'https://bookhaven-sandy.vercel.app',
+  FRONTEND_URL,
 ];
 
 const io = socketIo(server, {
@@ -59,7 +61,7 @@ io.on('connection', (socket) => {
 // Cấu hình CORS
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://bookhaven-sandy.vercel.app', // Vercel frontend
+    FRONTEND_URL, // Vercel frontend (từ ENV)
 ];
 
 app.use(cors({
