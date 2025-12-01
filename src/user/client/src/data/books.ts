@@ -1,4 +1,4 @@
-import { Book } from "../components/BookCard";
+import type { Book } from "../components/BookCard";
 
 export const sampleBooks: Book[] = [
   {
@@ -10,7 +10,6 @@ export const sampleBooks: Book[] = [
     rating: 4.5,
     reviewCount: 12847,
     category: "Mystery",
-    brand: "Celadon Books",
     coverImage: "https://images.unsplash.com/photo-1698954634383-eba274a1b1c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxteXN0ZXJ5JTIwdGhyaWxsZXIlMjBib29rc3xlbnwxfHx8fDE3NTc3ODU1MzJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     variants: [
       { id: "1-paperback", name: "Paperback", price: 14.99, originalPrice: 18.99, stock: 45, sku: "SP-PB-001" },
@@ -29,7 +28,6 @@ export const sampleBooks: Book[] = [
     rating: 4.8,
     reviewCount: 8934,
     category: "Science Fiction",
-    brand: "Ace Books",
     coverImage: "https://images.unsplash.com/photo-1629237213606-4d894c8af292?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzY2llbmNlJTIwZmljdGlvbiUyMGJvb2tzfGVufDF8fHx8MTc1Nzc4NTUyOHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     variants: [
       { id: "2-paperback", name: "Paperback", price: 16.99, stock: 67, sku: "DN-PB-002" },

@@ -108,7 +108,8 @@ const googleCallback = asyncHandle(async (req, res) => {
     const encodedRefreshToken = encodeURIComponent(refreshToken);
     
     // Redirect về frontend
-    res.redirect(`http://localhost:5173/auth/callback?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}&user=${encodedUser}`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/auth/callback?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}&user=${encodedUser}`);
 });
 
 const checkSession = (req, res) => {

@@ -17,6 +17,8 @@ import { useAuth } from "../context/authContext";
 import { formatCurrency } from "../utils/formatCurrency";
 import type { ShippingAddress as UserShippingAddress } from "../types/address";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface User {
   _id: string;
   fullName: string;
@@ -85,8 +87,6 @@ interface ProfilePageProps {
   onToggleWishlist: (bookId: string) => void;
   onAddToCart: (payload: { book: Book; variantId?: string }) => void;
 }
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 export function ProfilePage({ 
   user, 

@@ -19,9 +19,14 @@ const app = express();
 const server = http.createServer(app);
 
 // ============= SOCKET.IO SETUP =============
+const socketAllowedOrigins = [
+  'http://localhost:5173',
+  'https://bookhaven-sandy.vercel.app',
+];
+
 const io = socketIo(server, {
   cors: {
-    origin: 'http://localhost:5173', // Frontend URL
+    origin: socketAllowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
   }
