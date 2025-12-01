@@ -18,7 +18,8 @@ async function getProducts({
     sortOrder = 'desc',
     page = 1, 
     limit = 10,
-    priceRange = {}
+    priceRange = {},
+    minRating = null
 }) {
     try {
         // Xây dựng query filter
@@ -48,6 +49,10 @@ async function getProducts({
           query.isFlashSale = filter.isFlashSale;
         }
 
+        if (filter.publisher) {
+            query.publisher = filter.publisher;
+        }
+
         // 2. Thêm điều kiện tìm kiếm theo từ khóa
         if (searchQuery) {
           query.$or = [
@@ -65,6 +70,10 @@ async function getProducts({
           if (priceRange.max !== undefined) {
               query.price.$lte = priceRange.max;
           }
+        }
+
+        if (minRating !== null && minRating > 0) {
+            query.rating = { $gte: minRating };
         }
 
         // 4. Tính toán skip cho phân trang

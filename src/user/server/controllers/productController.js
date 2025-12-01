@@ -20,7 +20,9 @@ const getProducts = asyncHandle(async (req, res) => {
         isBestseller,
         isFlashSale,
         minPrice,
-        maxPrice
+        maxPrice,
+        publisher,     
+        minRating  
     } = req.query;
 
     // Xây dựng object filter
@@ -30,6 +32,10 @@ const getProducts = asyncHandle(async (req, res) => {
     if (isNew !== undefined) filter.newProduct = isNew === 'true'; // Changed: isNew → newProduct
     if (isBestseller !== undefined) filter.isBestseller = isBestseller === 'true';
     if (isFlashSale !== undefined) filter.isFlashSale = isFlashSale === 'true';
+
+    if (publisher && publisher !== 'all') {
+        filter.publisher = publisher;
+    }
 
     // Xây dựng object priceRange
     const priceRange = {};
@@ -44,7 +50,8 @@ const getProducts = asyncHandle(async (req, res) => {
         sortOrder,
         page: Number(page),
         limit: Number(limit),
-        priceRange
+        priceRange,
+        minRating: minRating ? Number(minRating) : null
     });
     if(!result) throw new AppError("Không tìm thấy sản phẩm!", 404);
     res.status(200).json(result);
