@@ -14,6 +14,8 @@ import { Badge } from "./ui/badge";
 import type { PageType } from "../App";
 import { convertUSDtoVND, formatVND } from "../utils/currency";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface HomePageProps {
   onNavigate: (page: PageType, data?: any) => void;
   cartItems: CartItem[];
@@ -134,7 +136,7 @@ export function HomePage({
         setError(null);
 
         // 1. Fetch categories trước
-        const categoriesRes = await axios.get('http://localhost:3000/categories', {
+        const categoriesRes = await axios.get(`${API_URL}/categories`, {
           headers: { "Content-Type": "application/json" }
         });
 
@@ -155,15 +157,15 @@ export function HomePage({
 
         // 2. Gọi API song song cho New, Bestseller, Flash Sale
         const [newRes, bestsellerRes, flashSaleRes] = await Promise.all([
-          axios.get('http://localhost:3000/products/new', {
+          axios.get(`${API_URL}/products/new`, {
             params: { limit: 8 },
             headers: { "Content-Type": "application/json" }
           }),
-          axios.get('http://localhost:3000/products/bestseller', {
+          axios.get(`${API_URL}/products/bestseller`, {
             params: { limit: 8 },
             headers: { "Content-Type": "application/json" }
           }),
-          axios.get('http://localhost:3000/products/flash-sale', {
+          axios.get(`${API_URL}/products/flash-sale`, {
             params: { limit: 8 },
             headers: { "Content-Type": "application/json" }
           })
@@ -185,7 +187,7 @@ export function HomePage({
         await Promise.all(
           activeCategories.map(async (categoryName: string) => {
             try {
-              const res = await axios.get('http://localhost:3000/products', {
+              const res = await axios.get(`${API_URL}/products`, {
                 params: {
                   category: categoryName,
                   page: 1, // Load page 1 ban đầu
@@ -245,7 +247,7 @@ export function HomePage({
   // ============= HANDLE CATEGORY PAGE CHANGE =============
   const handleCategoryPageChange = async (categoryName: string, newPage: number) => {
     try {
-      const res = await axios.get('http://localhost:3000/products', {
+      const res = await axios.get(`${API_URL}/products`, {
         params: {
           category: categoryName,
           page: newPage,
@@ -287,7 +289,7 @@ export function HomePage({
     const loadFilteredBooks = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('http://localhost:3000/products', {
+        const response = await axios.get(`${API_URL}/products`, {
           params: {
             search: searchQuery || undefined,
             category: selectedCategory || undefined,

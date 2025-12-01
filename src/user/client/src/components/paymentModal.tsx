@@ -30,7 +30,7 @@ interface QRData {
   content: string;
 }
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function PaymentModal({ isOpen, onClose, orderData, onPaymentSuccess }: PaymentModalProps) {
   const [qrData, setQrData] = useState<QRData | null>(null);

@@ -11,6 +11,8 @@ import type { PageType } from "../App";
 import { useAuth } from "../context/authContext";
 import { toast } from "sonner";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface LoginPageProps {
   onNavigate: (page: PageType) => void;
 }
@@ -38,7 +40,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
     onNavigate("login");
     
     try {
-      const response = await axios.post('http://localhost:3000/auth/login',
+      const response = await axios.post(`${API_URL}/auth/login`,
         {
           email: email, 
           password: password
@@ -124,7 +126,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/auth/recover-password',
+      const response = await axios.post(`${API_URL}/auth/recover-password`,
         { email: email },
         {
           headers: {
@@ -148,7 +150,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
 
   const handleGoogleLogin = () => {
     // Redirect đến Google OAuth endpoint
-    window.location.href = 'http://localhost:3000/auth/google';
+    window.location.href = `${API_URL}/auth/google`;
   };
 
   return (

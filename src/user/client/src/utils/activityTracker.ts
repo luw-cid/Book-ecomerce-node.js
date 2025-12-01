@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 phút không hoạt động → logout
 const REFRESH_INTERVAL = 14 * 60 * 1000; // 14 phút → refresh token (trước khi access token 15 phút hết hạn)
 

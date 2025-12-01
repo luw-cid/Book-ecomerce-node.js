@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import type { PageType } from "../App";
 import { formatCurrency } from "../utils/formatCurrency";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface CategoryPageProps {
   category: string;
   onNavigate: (page: PageType, data?: any) => void;
@@ -105,7 +107,7 @@ export function CategoryPage({
         const params: any = {};
         if (category && category !== "") params.category = category;
 
-        const response = await axios.get('http://localhost:3000/products/price-range', {
+        const response = await axios.get(`${API_URL}/products/price-range`, {
           params,
           headers: { "Content-Type": "application/json" }
         });
@@ -140,7 +142,7 @@ export function CategoryPage({
         const params: any = {};
         if (category && category !== "") params.category = category;
 
-        const res = await axios.get('http://localhost:3000/products/brands', {
+        const res = await axios.get(`${API_URL}/products/brands`, {
           params,
           headers: { "Content-Type": "application/json" }
         });
@@ -233,7 +235,7 @@ export function CategoryPage({
         console.log('🔍 Fetching with params:', params);
 
         // 5. Gọi API
-        const response = await axios.get('http://localhost:3000/products', {
+        const response = await axios.get(`${API_URL}/products`, {
           params,
           headers: { "Content-Type": "application/json" }
         });

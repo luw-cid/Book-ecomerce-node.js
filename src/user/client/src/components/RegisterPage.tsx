@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Textarea } from "./ui/textarea";
 import type { PageType } from "../App";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface RegisterPageProps {
   onNavigate: (page: PageType) => void;
 }
@@ -31,7 +33,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
     setSuccessMessage("");
     
     try {
-      const response = await axios.post('http://localhost:3000/auth/signup',
+      const response = await axios.post(`${API_URL}/auth/signup`,
         formData,
         {
           headers: {

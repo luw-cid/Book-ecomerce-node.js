@@ -15,6 +15,7 @@ import { Checkbox } from "./ui/checkbox";
 import { PaymentModal } from "./paymentModal";
 import { OrderSuccessModal } from "./OrderSuccessModal";
 
+
 interface CheckoutPageProps {
   cartItems: CartItem[];
   onNavigate: (page: PageType, data?: any) => void;
@@ -53,7 +54,7 @@ interface ShippingAddress {
   isDefault?: boolean;
 }
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: CheckoutPageProps) {
   const [formData, setFormData] = useState({
@@ -352,7 +353,7 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
 
       console.log("Creating order:", orderData);
 
-      const response = await axios.post('http://localhost:3000/orders', orderData,
+      const response = await axios.post(`${API_URL}/orders`, orderData,
         { 
           headers: user ? {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -417,7 +418,7 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
   // const handleRedeemPoints = async (pointsToRedeem: number) => {
   //   try {
   //     const res = await axios.post(
-  //         "http://localhost:3000/loyalty/redeem",
+  //         `${API_URL}/loyalty/redeem`,
   //         { pointsToRedeem },
   //         { headers: { Authorization: `Bearer ${getToken()}` } }
   //       );

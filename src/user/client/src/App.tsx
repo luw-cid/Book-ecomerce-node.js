@@ -21,10 +21,10 @@ import { Toaster } from "./components/ui/sonner";
 
 export type PageType = "home" | "login" | "register" | "product-detail" | "cart" | "checkout" | "payment" | "profile" | "category" | "order-detail";
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 const CART_STORAGE_KEY = 'bookstore_cart';
-const PAGE_STORAGE_KEY = 'bookstore_current_page'; // ✅ Thêm key cho page
-const PAGE_DATA_STORAGE_KEY = 'bookstore_page_data'; // ✅ Thêm key cho page data
+const PAGE_STORAGE_KEY = 'bookstore_current_page';
+const PAGE_DATA_STORAGE_KEY = 'bookstore_page_data';
 
 export default function App() {
   const { user, login, logout } = useAuth();

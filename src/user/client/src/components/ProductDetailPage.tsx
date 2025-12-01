@@ -16,6 +16,8 @@ import type { PageType } from "../App";
 import { formatCurrency } from "../utils/formatCurrency";
 import { ReviewForm } from './ReviewForm';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface ProductDetailPageProps {
   bookId: string;
   onNavigate: (page: PageType, data?: any) => void;
@@ -128,7 +130,7 @@ export function ProductDetailPage({
   // ============= FETCH REVIEWS =============
   const fetchReviews = async (page: number = currentPage) => {
     try {
-      const res = await axios.get(`http://localhost:3000/reviews/${bookId}`, {
+      const res = await axios.get(`${API_URL}/reviews/${bookId}`, {
         params: {
           page,
           limit: REVIEWS_PER_PAGE
@@ -166,7 +168,7 @@ export function ProductDetailPage({
       setIsLoading(true);
       setError(null);
       try {
-        const res = await axios.get(`http://localhost:3000/products/${bookId}`, {
+        const res = await axios.get(`${API_URL}/products/${bookId}`, {
           headers: { "Content-Type": "application/json" }
         });
         const mapped = mapProductToBook(res.data);
@@ -184,7 +186,7 @@ export function ProductDetailPage({
         // fetch related products by category
         if (mapped.category) {
           try {
-            const relRes = await axios.get('http://localhost:3000/products', {
+            const relRes = await axios.get(`${API_URL}/products`, {
               params: { category: mapped.category, limit: 8 },
               headers: { "Content-Type": "application/json" }
             });
@@ -214,7 +216,7 @@ export function ProductDetailPage({
 
   // ============= WEBSOCKET SETUP ============= ← THÊM MỚI
   useEffect(() => {
-    const newSocket = io('http://localhost:3000', {
+    const newSocket = io(import.meta.env.VITE_API_URL, {
       transports: ['websocket'],
       upgrade: false
     });
@@ -296,7 +298,7 @@ export function ProductDetailPage({
   // ============= HANDLE HELPFUL ============= ← THÊM
   const handleMarkHelpful = async (reviewId: string) => {
     try {
-      await axios.post(`http://localhost:3000/reviews/${reviewId}/helpful`);
+      await axios.post(`${API_URL}/reviews/${reviewId}/helpful`);
       // WebSocket sẽ tự động update
     } catch (err) {
       console.error('Failed to mark helpful:', err);
@@ -349,12 +351,12 @@ export function ProductDetailPage({
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
                     className={`
-    w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all
-    ${selectedImageIndex === index
+                      w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all
+                      ${selectedImageIndex === index
                         ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
                         : 'border-gray-300 hover:border-blue-300 opacity-70 hover:opacity-100'
                       }
-          `}
+                    `}
                   >
                     <ImageWithFallback
                       src={image}

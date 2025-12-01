@@ -86,7 +86,7 @@ interface ProfilePageProps {
   onAddToCart: (payload: { book: Book; variantId?: string }) => void;
 }
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function ProfilePage({ 
   user, 

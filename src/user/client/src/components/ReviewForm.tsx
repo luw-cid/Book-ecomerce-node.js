@@ -7,6 +7,8 @@ import { Label } from './ui/label';
 import { Star } from 'lucide-react';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface ReviewFormProps {
     productId: string;
     isAuthenticated: boolean;
@@ -41,7 +43,7 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
                 console.log('🔑 Submitting review + rating with token:', token ? 'Present' : 'Missing');
 
                 await axios.post(
-                    `http://localhost:3000/reviews/${productId}/review`,
+                    `${API_URL}/reviews/${productId}/review`,
                     {
                         customerName,
                         title,
@@ -56,7 +58,7 @@ export function ReviewForm({ productId, isAuthenticated, onReviewSubmitted }: Re
                 );
             } else {
                 // User chưa login HOẶC không có rating → Chỉ gửi comment
-                await axios.post(`http://localhost:3000/reviews/${productId}/review`, {
+                await axios.post(`${API_URL}/reviews/${productId}/review`, {
                     customerName,
                     title,
                     comment
