@@ -17,4 +17,11 @@ router.post('/avatar', upload.single('avatar'), userController.uploadAvatar);
 
 router.put('/preference', userController.updatePreferences);
 
+// Shipping addresses
+router.get('/addresses', userController.getShippingAddresses);
+router.post('/addresses', userController.addShippingAddress);
+router.put('/addresses/:addressId', userController.updateShippingAddress);
+router.delete('/addresses/:addressId', userController.deleteShippingAddress);
+router.put('/addresses/:addressId/default', userController.setDefaultShippingAddress);
+
 module.exports = router;

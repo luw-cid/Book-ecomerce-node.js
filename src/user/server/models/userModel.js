@@ -9,7 +9,17 @@ const userSchema = new mongoose.Schema(
         email: { type: String, required: true, unique: true, sparse: true },
         password: { type: String, required: false }, // Không bắt buộc cho Google login
         phoneNumber: { type: String, required: false, unique: true, sparse: true },
-        address: { type: String, required: false}, // Sửa typo: adrress -> address
+        address: { type: String, required: false}, // Địa chỉ chính (backward compatible)
+        // Nhiều địa chỉ giao hàng
+        addresses: [{
+            fullName: { type: String, required: true },
+            phone: { type: String, required: true },
+            address: { type: String, required: true },
+            city: { type: String, required: false },
+            district: { type: String, required: false },
+            ward: { type: String, required: false },
+            isDefault: { type: Boolean, default: false }
+        }],
         avatar: { type: String, required: false }, // Avatar từ Google
         admin: { type: Boolean, required: false, default: false },
         preferences: {

@@ -75,10 +75,49 @@ const updatePreferences = asyncHandle(async (req, res) => {
     });
 });
 
+// ============ Shipping Addresses ============
+const getShippingAddresses = asyncHandle(async (req, res) => {
+    const userId = req.user.id;
+    const addresses = await userService.getShippingAddresses(userId);
+    res.status(200).json({ success: true, addresses });
+});
+
+const addShippingAddress = asyncHandle(async (req, res) => {
+    const userId = req.user.id;
+    const addresses = await userService.addShippingAddress(userId, req.body);
+    res.status(201).json({ success: true, addresses });
+});
+
+const updateShippingAddress = asyncHandle(async (req, res) => {
+    const userId = req.user.id;
+    const { addressId } = req.params;
+    const addresses = await userService.updateShippingAddress(userId, addressId, req.body);
+    res.status(200).json({ success: true, addresses });
+});
+
+const deleteShippingAddress = asyncHandle(async (req, res) => {
+    const userId = req.user.id;
+    const { addressId } = req.params;
+    const addresses = await userService.deleteShippingAddress(userId, addressId);
+    res.status(200).json({ success: true, addresses });
+});
+
+const setDefaultShippingAddress = asyncHandle(async (req, res) => {
+    const userId = req.user.id;
+    const { addressId } = req.params;
+    const addresses = await userService.setDefaultShippingAddress(userId, addressId);
+    res.status(200).json({ success: true, addresses });
+});
+
 module.exports = {
     getProfile,
     updateProfile,
     changePassword,
     uploadAvatar,
-    updatePreferences
+    updatePreferences,
+    getShippingAddresses,
+    addShippingAddress,
+    updateShippingAddress,
+    deleteShippingAddress,
+    setDefaultShippingAddress
 };

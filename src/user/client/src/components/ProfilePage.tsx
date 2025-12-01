@@ -15,6 +15,7 @@ import { sampleBooks } from "../data/books";
 import type { PageType } from "../App";
 import { useAuth } from "../context/authContext";
 import { formatCurrency } from "../utils/formatCurrency";
+import type { ShippingAddress as UserShippingAddress } from "../types/address";
 
 interface User {
   _id: string;
@@ -46,21 +47,19 @@ interface OrderItem {
   image?: string;
 }
 
-interface ShippingAddress {
-  fullName: string;
-  phone: string;
-  address: string;
-  city: string;
-  district: string;
-  ward: string;
-}
-
 interface Order {
   _id: string;
   orderNumber: string;
   user?: User;
   items: OrderItem[];
-  shippingAddress: ShippingAddress;
+  shippingAddress: {
+    fullName: string;
+    phone: string;
+    address: string;
+    city: string;
+    district: string;
+    ward: string;
+  };
   subtotal: number;
   discount?: {
     code?: string;
@@ -117,13 +116,6 @@ export function ProfilePage({
     confirmNewPassword: '',
   });
 
-  // State cho preferences
-  const [preferences, setPreferences] = useState({
-    emailNotifications: user?.preferences?.emailNotifications || false,
-    smsNotifications: user?.preferences?.smsNotifications || false,
-    marketingEmails: user?.preferences?.marketingEmails || false,
-  });
-
   // State cho chỉnh sửa avatar
   const [avatarPreview, setAvatarPreview] = useState<string>(user?.avatar || '');
 
@@ -135,6 +127,19 @@ export function ProfilePage({
   // State cho loyalty account
   const [loyaltyAccount, setLoyaltyAccount] = useState<{ totalPoints: number; tier: string } | null>(null);
 
+  // State cho quản lý nhiều địa chỉ giao hàng
+  const [shippingAddresses, setShippingAddresses] = useState<UserShippingAddress[]>([]);
+  const [editingAddress, setEditingAddress] = useState<UserShippingAddress | null>(null);
+  const [addressFormOpen, setAddressFormOpen] = useState(false);
+  const [addressForm, setAddressForm] = useState<Omit<UserShippingAddress, "_id" | "isDefault">>({
+    fullName: user?.fullName || "",
+    phone: user?.phoneNumber || "",
+    address: "",
+    city: "",
+    district: "",
+    ward: "",
+  });
+
   // Cập nhật states khi user prop thay đổi
   useEffect(() => {
     if (user) {
@@ -143,12 +148,9 @@ export function ProfilePage({
         phoneNumber: user.phoneNumber || '',
         address: user.address || '',
       });
-      setPreferences({
-        emailNotifications: user.preferences?.emailNotifications || false,
-        smsNotifications: user.preferences?.smsNotifications || false,
-        marketingEmails: user.preferences?.marketingEmails || false,
-      });
       setAvatarPreview(user.avatar || '');
+      // Load danh sách địa chỉ từ server
+      fetchShippingAddresses();
     }
   }, [user]);
 
@@ -214,6 +216,28 @@ export function ProfilePage({
     }
   };
 
+  const fetchShippingAddresses = async () => {
+    if (!user) return;
+    try {
+      const response = await axios.get(`${API_URL}/user/addresses`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        }
+      });
+      if (response.data.success) {
+        setShippingAddresses(response.data.addresses || []);
+      }
+    } catch (error) {
+      console.error('Error fetching shipping addresses:', error);
+    }
+  };
+
+  const getDefaultShippingAddress = (): UserShippingAddress | null => {
+    if (!shippingAddresses.length) return null;
+    const def = shippingAddresses.find((a) => a.isDefault);
+    return def || shippingAddresses[0];
+  };
+
   // JWT token được lưu trong localStorage sau khi login
   const getToken = () => localStorage.getItem('token');
 
@@ -229,7 +253,15 @@ export function ProfilePage({
     setLoading(true);
     
     try {
-      const response = await axios.put(`${API_URL}/user/profile`, profileData, {
+      // Đẩy địa chỉ mặc định vào profileData.address để backend vẫn hoạt động như cũ
+      const defaultAddress = getDefaultShippingAddress();
+      const addressString = defaultAddress
+        ? `${defaultAddress.address}${defaultAddress.ward ? `, ${defaultAddress.ward}` : ""}${
+            defaultAddress.district ? `, ${defaultAddress.district}` : ""
+          }${defaultAddress.city ? `, ${defaultAddress.city}` : ""}`
+        : profileData.address;
+
+      const response = await axios.put(`${API_URL}/user/profile`, { ...profileData, address: addressString }, {
         headers: {
           'Authorization': `Bearer ${getToken()}`,    //JWT token
           "Content-Type": "application/json"
@@ -339,39 +371,83 @@ export function ProfilePage({
     }
   }
 
-  // 4. Xử lý cập nhật preferences
-  const handleUpdatePreferences = async (e: React.FormEvent<HTMLFormElement>) => {
+  // 4. Quản lý nhiều địa chỉ giao hàng
+  const handleAddNewAddress = () => {
+    setEditingAddress(null);
+    setAddressForm({
+      fullName: user?.fullName || "",
+      phone: user?.phoneNumber || "",
+      address: "",
+      city: "",
+      district: "",
+      ward: "",
+    });
+    setAddressFormOpen(true);
+  };
+
+  const handleEditAddress = (addr: UserShippingAddress) => {
+    setEditingAddress(addr);
+    setAddressForm({
+      fullName: addr.fullName,
+      phone: addr.phone,
+      address: addr.address,
+      city: addr.city,
+      district: addr.district,
+      ward: addr.ward,
+    });
+    setAddressFormOpen(true);
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    try {
+      await axios.delete(`${API_URL}/user/addresses/${id}`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      await fetchShippingAddresses();
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      showMessage('error', 'Failed to delete address');
+    }
+  };
+
+  const handleSetDefaultAddress = async (id: string) => {
+    try {
+      await axios.put(`${API_URL}/user/addresses/${id}/default`, {}, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      await fetchShippingAddresses();
+    } catch (error) {
+      console.error('Error setting default address:', error);
+      showMessage('error', 'Failed to set default address');
+    }
+  };
+
+  const handleSubmitAddressForm = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    if (!user) return;
 
     try {
-      const response = await axios.put(`${API_URL}/user/preference`, preferences,
-        {
-          headers: {
-            'Authorization': `Bearer ${getToken()}`,
-            "Content-Type": "application/json"
-          }
-        });
-
-      if (response.data.preferences) {
-        // Fetch updated user profile
-        const profileResponse = await axios.get(`${API_URL}/user/profile`, {
-          headers: {
-            'Authorization': `Bearer ${getToken()}`,
-          }
-        });
-        
-        if (profileResponse.data.user) {
-          updateUser?.(profileResponse.data.user);
-        }
-        showMessage('success', response.data.message || 'Preferences updated successfully.');
+      if (editingAddress) {
+        await axios.put(
+          `${API_URL}/user/addresses/${editingAddress._id}`,
+          addressForm,
+          { headers: { 'Authorization': `Bearer ${getToken()}` } }
+        );
+      } else {
+        await axios.post(
+          `${API_URL}/user/addresses`,
+          addressForm,
+          { headers: { 'Authorization': `Bearer ${getToken()}` } }
+        );
       }
-    } catch (error: any) {
-      showMessage('error', error.response?.data?.message || 'Failed to update preferences.');
-    } finally {
-      setLoading(false);
+      await fetchShippingAddresses();
+      setAddressFormOpen(false);
+      setEditingAddress(null);
+    } catch (error) {
+      console.error('Error saving address:', error);
+      showMessage('error', 'Failed to save address');
     }
-  }
+  };
 
   // ==================== UI GUARD ====================
 
@@ -844,55 +920,169 @@ export function ProfilePage({
                   </CardContent>
                 </Card>
 
-                {/* Preferences */}
+                {/* Shipping Addresses */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Notification Preferences</CardTitle>
+                    <CardTitle>Shipping Addresses</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleUpdatePreferences} className="space-y-4">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 border rounded">
-                          <div>
-                            <h4 className="font-medium">Email Notifications</h4>
-                            <p className="text-sm text-gray-600">Receive order updates via email</p>
-                          </div>
-                          <input 
-                            type="checkbox" 
-                            checked={preferences.emailNotifications}
-                            onChange={(e) => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
-                            className="w-4 h-4"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between p-3 border rounded">
-                          <div>
-                            <h4 className="font-medium">SMS Notifications</h4>
-                            <p className="text-sm text-gray-600">Receive order updates via SMS</p>
-                          </div>
-                          <input 
-                            type="checkbox" 
-                            checked={preferences.smsNotifications}
-                            onChange={(e) => setPreferences({ ...preferences, smsNotifications: e.target.checked })}
-                            className="w-4 h-4"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between p-3 border rounded">
-                          <div>
-                            <h4 className="font-medium">Marketing Emails</h4>
-                            <p className="text-sm text-gray-600">Receive promotions and special offers</p>
-                          </div>
-                          <input 
-                            type="checkbox" 
-                            checked={preferences.marketingEmails}
-                            onChange={(e) => setPreferences({ ...preferences, marketingEmails: e.target.checked })}
-                            className="w-4 h-4"
-                          />
-                        </div>
-                      </div>
-                      <Button type="submit" disabled={loading}>
-                        {loading ? 'Saving...' : 'Save Preferences'}
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="text-gray-600">
+                        Manage multiple delivery addresses for faster checkout.
+                      </p>
+                      <Button type="button" variant="outline" onClick={handleAddNewAddress}>
+                        Add New Address
                       </Button>
-                    </form>
+                    </div>
+
+                    {shippingAddresses.length === 0 ? (
+                      <p className="text-gray-500 text-sm">
+                        You have no saved addresses. Click &quot;Add New Address&quot; to create one.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {shippingAddresses.map((addr) => (
+                          <div
+                            key={addr._id}
+                            className="border rounded-md p-3 flex justify-between items-start gap-4"
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{addr.fullName}</p>
+                                {addr.isDefault && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                {addr.phone}
+                              </p>
+                              <p className="text-sm text-gray-700 mt-1">
+                                {addr.address}
+                                {addr.ward && `, ${addr.ward}`}
+                                {addr.district && `, ${addr.district}`}
+                                {addr.city && `, ${addr.city}`}
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              {!addr.isDefault && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSetDefaultAddress(addr._id)}
+                                >
+                                  Set Default
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditAddress(addr)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => handleDeleteAddress(addr._id)}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {addressFormOpen && (
+                      <form onSubmit={handleSubmitAddressForm} className="mt-6 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="addrFullName">Full Name</Label>
+                            <Input
+                              id="addrFullName"
+                              value={addressForm.fullName}
+                              onChange={(e) =>
+                                setAddressForm({ ...addressForm, fullName: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrPhone">Phone</Label>
+                            <Input
+                              id="addrPhone"
+                              value={addressForm.phone}
+                              onChange={(e) =>
+                                setAddressForm({ ...addressForm, phone: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <Label htmlFor="addrAddress">Address</Label>
+                            <Input
+                              id="addrAddress"
+                              value={addressForm.address}
+                              onChange={(e) =>
+                                setAddressForm({ ...addressForm, address: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrCity">City</Label>
+                            <Input
+                              id="addrCity"
+                              value={addressForm.city}
+                              onChange={(e) =>
+                                setAddressForm({ ...addressForm, city: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrDistrict">District</Label>
+                            <Input
+                              id="addrDistrict"
+                              value={addressForm.district}
+                              onChange={(e) =>
+                                setAddressForm({ ...addressForm, district: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrWard">Ward</Label>
+                            <Input
+                              id="addrWard"
+                              value={addressForm.ward}
+                              onChange={(e) =>
+                                setAddressForm({ ...addressForm, ward: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="submit">
+                            {editingAddress ? "Save Address" : "Add Address"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setAddressFormOpen(false);
+                              setEditingAddress(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    )}
                   </CardContent>
                 </Card>
 

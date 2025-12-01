@@ -224,9 +224,9 @@ export function OverviewDashboard() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="week">Tuần</SelectItem>
-                <SelectItem value="month">Tháng</SelectItem>
-                <SelectItem value="quarter">Quý</SelectItem>
+                <SelectItem value="week">Week</SelectItem>
+                <SelectItem value="month">Month</SelectItem>
+                <SelectItem value="quarter">Quarter</SelectItem>
               </SelectContent>
             </Select>
           </div>

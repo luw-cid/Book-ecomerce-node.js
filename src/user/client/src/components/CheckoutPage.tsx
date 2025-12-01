@@ -42,6 +42,17 @@ interface LoyaltyAccount {
   tierBenefits?: string;
 }
 
+interface ShippingAddress {
+  _id: string;
+  fullName: string;
+  phone: string;
+  address: string;
+  city?: string;
+  district?: string;
+  ward?: string;
+  isDefault?: boolean;
+}
+
 const API_URL = 'http://localhost:3000';
 
 export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: CheckoutPageProps) {
@@ -69,6 +80,11 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
 
+  // Shipping addresses from server
+  const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
@@ -85,6 +101,7 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
   useEffect(() => {
     if (user) {
       fetchLoyaltyAccount();
+      fetchShippingAddresses();
     }
   }, [user]);
 
@@ -130,6 +147,38 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
           tier: 'Bronze'
         });
       }
+    }
+  };
+
+  const fetchShippingAddresses = async () => {
+    if (!user) return;
+    try {
+      setAddressesLoading(true);
+      const token = getToken();
+      const res = await axios.get(`${API_URL}/user/addresses`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success && Array.isArray(res.data.addresses)) {
+        const list: ShippingAddress[] = res.data.addresses;
+        setAddresses(list);
+
+        const defaultAddr =
+          list.find((a) => a.isDefault) || list[0];
+        if (defaultAddr) {
+          setSelectedAddressId(defaultAddr._id);
+          setFormData(prev => ({
+            ...prev,
+            fullName: defaultAddr.fullName || prev.fullName,
+            phone: defaultAddr.phone || prev.phone,
+            address: defaultAddr.address || prev.address,
+            city: defaultAddr.city || prev.city,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching shipping addresses:", error);
+    } finally {
+      setAddressesLoading(false);
     }
   };
 
@@ -222,6 +271,20 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSelectAddress = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    const addr = addresses.find((a) => a._id === addressId);
+    if (addr) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: addr.fullName || prev.fullName,
+        phone: addr.phone || prev.phone,
+        address: addr.address || prev.address,
+        city: addr.city || prev.city,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -481,6 +544,60 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
                   <CardTitle>Shipping Address</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {user && (
+                    <div className="space-y-2">
+                      <Label>Saved Addresses</Label>
+                      {addressesLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading addresses...
+                        </div>
+                      ) : addresses.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                          You have no saved addresses. You can add them in your Profile page.
+                        </p>
+                      ) : (
+                        <RadioGroup
+                          value={selectedAddressId || ""}
+                          onValueChange={handleSelectAddress}
+                          className="space-y-2"
+                        >
+                          {addresses.map((addr) => (
+                            <div
+                              key={addr._id}
+                              className="flex items-start space-x-3 p-3 border rounded-lg"
+                            >
+                              <RadioGroupItem value={addr._id} id={addr._id} />
+                              <div className="flex-1">
+                                <Label
+                                  htmlFor={addr._id}
+                                  className="font-medium cursor-pointer flex items-center gap-2"
+                                >
+                                  {addr.fullName}
+                                  {addr.isDefault && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                      Default
+                                    </span>
+                                  )}
+                                </Label>
+                                <p className="text-sm text-gray-600">
+                                  {addr.phone}
+                                </p>
+                                <p className="text-sm text-gray-700">
+                                  {addr.address}
+                                  {addr.ward && `, ${addr.ward}`}
+                                  {addr.district && `, ${addr.district}`}
+                                  {addr.city && `, ${addr.city}`}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      )}
+                      <Separator />
+                    </div>
+                  )}
+
                   <div>
                     <Label htmlFor="address">Street Address</Label>
                     <Input
