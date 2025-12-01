@@ -3,29 +3,25 @@ const RefreshToken = require('../models/refreshTokenModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
 const generatePassword = () => {
     // Tạo mật khẩu ngẫu nhiên 10 ký tự (chữ + số)
     return crypto.randomBytes(5).toString('hex');
 }
 
-const createEmailTransporter = () => {
-    return nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_PASS,
-        }
-    });
-};
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
 const sendPasswordEmail = async (recipientEmail, password, fullName) => {
     try {
-        const transporter = createEmailTransporter();
+        if (!RESEND_API_KEY) {
+            console.warn('⚠️ Resend API key not configured - skipping email');
+            return false;
+        }
 
-        const mailOptions = {
-            from: `"Book Store" <${process.env.EMAIL_USER}>`,
+        const emailData = {
+            from: `Book Store <${RESEND_FROM_EMAIL}>`,
             to: recipientEmail,
             subject: 'Welcome to Book Store - Your Account Password - Change your pasword',
             html: `
@@ -48,11 +44,20 @@ const sendPasswordEmail = async (recipientEmail, password, fullName) => {
             `
         };
 
-        await transporter.sendMail(mailOptions);
+        const response = await axios.post('https://api.resend.com/emails', emailData, {
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 10000 // 10 seconds timeout
+        });
+
+        console.log('✅ Password email sent successfully:', response.data.id);
         return true;
     } catch (error) {
-        console.error('Email sending email:', error);
-        throw new Error('Failed to send password email');
+        console.error('Email sending error:', error.response?.data || error.message);
+        // Không throw để không làm fail đăng ký / guest order
+        return false;
     }
 };
 
