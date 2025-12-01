@@ -1,22 +1,17 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
-const createEmailTransporter = () => {
-    return nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_PASS,
-        }
-    });
-};
-
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
 const sendOrderConfirmation = async (recipientEmail, order) => {
     try {
-        const transporter = createEmailTransporter();
+        if (!RESEND_API_KEY) {
+            console.warn('⚠️ Resend API key not configured - skipping email');
+            return false;
+        }
 
-        const mailOptions = {
-            from: `"Book Store" <${process.env.GMAIL_USER}>`,
+        const emailData = {
+            from: `Book Store <${RESEND_FROM_EMAIL}>`,
             to: recipientEmail,
             subject: `Order Confirmation - ${order.orderNumber}`,
             html: `
@@ -87,10 +82,18 @@ const sendOrderConfirmation = async (recipientEmail, order) => {
             `
         };
 
-        await transporter.sendMail(mailOptions);
+        const response = await axios.post('https://api.resend.com/emails', emailData, {
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 10000 // 10 seconds timeout
+        });
+
+        console.log('✅ Order confirmation email sent successfully:', response.data.id);
         return true;
     } catch (error) {
-        console.error('Email sending error:', error);
+        console.error('Email sending error:', error.response?.data || error.message);
         // Không để lỗi email làm fail đơn hàng
         return false;
     }
