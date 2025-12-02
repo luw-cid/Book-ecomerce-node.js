@@ -7,7 +7,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { formatCurrency } from '../../utils/formatCurrency';
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface OverviewStats {
   totalRevenue: string;
@@ -63,7 +63,9 @@ export function OverviewDashboard() {
   const fetchOrdersData = async (period: string) => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
 
       const ordersRes = await axios.get(`${API_URL}/dashboard/weekly-orders?period=${period}`, { headers });
 
@@ -80,7 +82,9 @@ export function OverviewDashboard() {
     setIsLoading(true);
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
 
       // Fetch all data in parallel (except orders which is handled separately)
       const [statsRes, revenueRes, recentRes] = await Promise.all([

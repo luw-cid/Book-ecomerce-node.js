@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { getUser, setUser as saveUser, removeUser, removeTokens, setTokens } from "../utils/tokenStorage";
 
 export interface User {
     id: string;
@@ -12,7 +13,7 @@ export interface User {
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
-    login: (user: User, token: string) => void;
+    login: (user: User, token: string, refreshToken: string, useLocalStorage?: boolean) => void;
     logout: () => void;
     updateUser?: (user: User) => void;
 }
@@ -20,27 +21,37 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(
-        JSON.parse(localStorage.getItem("user") || "null")
-    );
+    // Load user từ storage khi mount
+    const [user, setUser] = useState<User | null>(getUser());
+
+    // Sync user từ storage khi storage thay đổi (từ tab khác)
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const storedUser = getUser();
+            setUser(storedUser);
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const isAuthenticated = !!user;
 
-    const login = (user: User, token: string) => {
+    const login = (user: User, token: string, refreshToken: string, useLocalStorage: boolean = true) => {
         setUser(user);
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("token", token);
+        saveUser(user);
+        setTokens(token, refreshToken, useLocalStorage);
     }
 
     const logout = () => {
         setUser(null);
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        removeUser();
+        removeTokens();
     }
 
     const updateUser = (updatedUser: User) => {
         setUser(updatedUser);
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+        saveUser(updatedUser);
     }
 
     return (

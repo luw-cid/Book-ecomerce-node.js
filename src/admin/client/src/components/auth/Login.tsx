@@ -11,7 +11,7 @@ interface LoginProps {
   onLogin: (token: string, admin: any) => void;
 }
 
-const API_LOGIN_URL = "http://localhost:4000/auth/login";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
@@ -27,10 +27,16 @@ export function Login({ onLogin }: LoginProps) {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API_LOGIN_URL}`, {
-        email,
-        password,
-      });
+      const response = await axios.post(`${API_URL}/auth/login`, {
+          email,
+          password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (response.data.success) {
         const { token, admin } = response.data;
