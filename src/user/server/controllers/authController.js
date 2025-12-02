@@ -109,7 +109,7 @@ const googleCallback = asyncHandle(async (req, res) => {
     
     // Redirect về frontend
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/auth/callback?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}&user=${encodedUser}`);
+    res.redirect(`${frontendUrl}/?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}&user=${encodedUser}`);
 });
 
 const checkSession = (req, res) => {
