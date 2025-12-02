@@ -28,6 +28,16 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
   // Đảm bảo trang luôn là "login" khi component mount (chỉ chạy một lần)
   useEffect(() => {
     onNavigate("login");
+    
+    // Kiểm tra error từ query parameter (cho Google OAuth ban)
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    if (errorParam) {
+      setErrorMessage(decodeURIComponent(errorParam));
+      // Xóa error parameter khỏi URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Chỉ chạy một lần khi mount
 
@@ -82,7 +92,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
           sessionStorage.setItem('refreshToken', refreshToken);
         }
         
-        login(user, accessToken); // Lưu vào context với accessToken
+        login(user, accessToken, refreshToken); // Lưu vào context với accessToken và refreshToken
         toast.success(response.data.message || "Login successfully!");
         onNavigate("home");
       } else {

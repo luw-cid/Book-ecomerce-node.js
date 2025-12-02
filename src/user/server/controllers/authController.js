@@ -28,6 +28,12 @@ const login = asyncHandle(async (req, res) => {
     if (!result) {
         throw new AppError("Account or password incorrect", 401);
     }
+    
+    // Kiểm tra nếu tài khoản bị ban
+    if (result.banned) {
+        throw new AppError(result.reason, 403);
+    }
+    
     const { user, accessToken, refreshToken } = result;
     
     res.json({
@@ -99,6 +105,24 @@ const logoutAllDevices = asyncHandle(async (req, res) => {
 
 // Callback Google OAuth
 const googleCallback = asyncHandle(async (req, res) => {
+    // Kiểm tra nếu user không tồn tại (có thể do bị ban hoặc authentication fail)
+    if (!req.user) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const errorMessage = encodeURIComponent('Your account has been locked. Please contact the admin for more details.');
+        return res.redirect(`${frontendUrl}/login?error=${errorMessage}`);
+    }
+    
+    // Kiểm tra nếu user bị ban
+    if (req.user.isBanned) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const baseMessage = 'Your account has been locked.';
+        const fullMessage = req.user.banReason 
+            ? `${baseMessage} ${req.user.banReason}`
+            : `${baseMessage} Please contact the admin for more details.`;
+        const errorMessage = encodeURIComponent(fullMessage);
+        return res.redirect(`${frontendUrl}/login?error=${errorMessage}`);
+    }
+    
     // Gọi service xử lý logic
     const { accessToken, refreshToken, user } = await authService.handleGoogleCallback(req.user);
     

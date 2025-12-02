@@ -36,11 +36,8 @@ passport.use(
                     });
                 }
 
-                // Nếu tài khoản đã bị ban thì không cho đăng nhập
-                if (user.isBanned) {
-                    return done(null, false, { message: 'Account has been banned' });
-                }
-
+                // Vẫn trả về user object để googleCallback có thể kiểm tra isBanned
+                // googleCallback sẽ xử lý việc redirect với thông báo lỗi nếu user bị ban
                 return done(null, user); // lưu thông tin user vào session
                 
             } catch (err) {

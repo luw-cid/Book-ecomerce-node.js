@@ -137,9 +137,13 @@ const loginUser = async (email, password) => {
     const user = await userModel.findOne({email});
     if(!user || !user.password) return null;
 
-    // Nếu tài khoản đã bị ban thì không cho đăng nhập
+    // Nếu tài khoản đã bị ban thì trả về thông tin ban
     if (user.isBanned) {
-        return null;
+        const baseMessage = 'Your account has been locked.';
+        const reason = user.banReason 
+            ? `${baseMessage} ${user.banReason}` 
+            : baseMessage;
+        return { banned: true, reason };
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if(!isMatch) return null;
@@ -169,9 +173,13 @@ const findOrCreateGoogleUser = async (profile) => {
     });
   }
 
-  // Nếu tài khoản đã bị ban thì không cho đăng nhập
+  // Nếu tài khoản đã bị ban thì trả về thông tin ban
   if (user.isBanned) {
-    return null;
+    const baseMessage = 'Your account has been locked.';
+    const reason = user.banReason 
+      ? `${baseMessage} ${user.banReason}` 
+      : baseMessage;
+    return { banned: true, reason };
   }
 
   return user; 
