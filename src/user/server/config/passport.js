@@ -35,7 +35,13 @@ passport.use(
                         avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : undefined,
                     });
                 }
-                return done(null, user) // lưu thông tin user vào session
+
+                // Nếu tài khoản đã bị ban thì không cho đăng nhập
+                if (user.isBanned) {
+                    return done(null, false, { message: 'Account has been banned' });
+                }
+
+                return done(null, user); // lưu thông tin user vào session
                 
             } catch (err) {
                 return done(err, null);

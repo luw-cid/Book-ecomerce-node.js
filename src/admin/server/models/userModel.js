@@ -12,6 +12,9 @@ const userSchema = new mongoose.Schema(
         address: { type: String, required: false},
         avatar: { type: String, required: false },
         admin: { type: Boolean, required: false, default: false },
+        // Trạng thái khóa tài khoản
+        isBanned: { type: Boolean, default: false },
+        banReason: { type: String, required: false },
         preferences: {
             emailNotifications: { type: Boolean, default: true },
             smsNotifications: { type: Boolean, default: false },

@@ -136,6 +136,11 @@ const saveRefreshToken = async (userId, token) => {
 const loginUser = async (email, password) => {
     const user = await userModel.findOne({email});
     if(!user || !user.password) return null;
+
+    // Nếu tài khoản đã bị ban thì không cho đăng nhập
+    if (user.isBanned) {
+        return null;
+    }
     const isMatch = await bcrypt.compare(password, user.password);
     if(!isMatch) return null;
 
@@ -163,6 +168,12 @@ const findOrCreateGoogleUser = async (profile) => {
         avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : undefined,
     });
   }
+
+  // Nếu tài khoản đã bị ban thì không cho đăng nhập
+  if (user.isBanned) {
+    return null;
+  }
+
   return user; 
 };
 

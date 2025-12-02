@@ -215,6 +215,34 @@ const deleteCustomer = async (id) => {
 };
 
 /**
+ * Cập nhật trạng thái ban / unban user
+ */
+const updateCustomerBanStatus = async (id, isBanned, reason) => {
+    const customer = await User.findById(id);
+
+    if (!customer) {
+        throw new AppError('Customer not found', 404);
+    }
+
+    if (customer.admin) {
+        throw new AppError('Cannot ban admin users', 403);
+    }
+
+    customer.isBanned = isBanned;
+    customer.banReason = isBanned ? reason : undefined;
+    await customer.save();
+
+    const updatedCustomer = customer.toObject();
+    delete updatedCustomer.password;
+
+    return {
+        success: true,
+        message: isBanned ? 'Customer has been banned' : 'Customer has been unbanned',
+        customer: updatedCustomer
+    };
+};
+
+/**
  * Get customer's order history
  */
 const getCustomerOrders = async (customerId, { page, limit }) => {
@@ -366,5 +394,6 @@ module.exports = {
     deleteCustomer,
     getCustomerOrders,
     getCustomerStats,
-    resetCustomerPassword
+    resetCustomerPassword,
+    updateCustomerBanStatus
 };

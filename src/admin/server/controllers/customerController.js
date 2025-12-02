@@ -126,6 +126,27 @@ const deleteCustomer = async (req, res) => {
 };
 
 /**
+ * PUT /admin/customers/:id/ban
+ * Ban / Unban customer
+ */
+const updateCustomerBanStatus = async (req, res) => {
+    const { id } = req.params;
+    const { isBanned, reason } = req.body;
+
+    if (typeof isBanned !== 'boolean') {
+        throw new AppError('Field "isBanned" must be a boolean', 400);
+    }
+
+    if (isBanned && (!reason || !reason.trim())) {
+        throw new AppError('Ban reason is required when banning a user', 400);
+    }
+
+    const result = await customerService.updateCustomerBanStatus(id, isBanned, reason);
+
+    res.status(200).json(result);
+};
+
+/**
  * GET /admin/customers/:id/orders
  * Get customer's order history
  */
@@ -177,5 +198,6 @@ module.exports = {
     deleteCustomer,
     getCustomerOrders,
     getCustomerStats,
-    resetCustomerPassword
+    resetCustomerPassword,
+    updateCustomerBanStatus
 };

@@ -18,6 +18,8 @@ interface Customer {
   phoneNumber?: string;
   address?: string;
   avatar?: string;
+  isBanned?: boolean;
+  banReason?: string;
   loyalty: {
     points: number;
     lifetimePoints: number;
@@ -193,6 +195,7 @@ export function CustomerManagement() {
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Phone</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Points</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Joined</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
                     </tr>
                   </thead>
@@ -224,6 +227,15 @@ export function CustomerManagement() {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-600">{formatDate(customer.createdAt)}</td>
+                        <td className="py-3 px-4 text-sm">
+                          {customer.isBanned ? (
+                            <Badge variant="destructive" className="text-xs">Banned</Badge>
+                          ) : (
+                            <Badge className="text-xs bg-green-100 text-green-700 border border-green-300">
+                              Active
+                            </Badge>
+                          )}
+                        </td>
                         <td className="py-3 px-4">
                           <Button 
                             variant="ghost" 

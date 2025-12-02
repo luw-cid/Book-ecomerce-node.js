@@ -14,6 +14,7 @@ router.get('/:id', customerController.getCustomerById);
 router.put('/:id', customerController.updateCustomer);
 router.put('/:id/loyalty', customerController.updateLoyaltyPoints);
 router.put('/:id/tier', customerController.updateCustomerTier);
+router.put('/:id/ban', customerController.updateCustomerBanStatus);
 router.get('/:id/orders', customerController.getCustomerOrders);
 router.post('/:id/reset-password', customerController.resetCustomerPassword);
 router.delete('/:id', customerController.deleteCustomer);

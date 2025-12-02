@@ -22,6 +22,9 @@ const userSchema = new mongoose.Schema(
         }],
         avatar: { type: String, required: false }, // Avatar từ Google
         admin: { type: Boolean, required: false, default: false },
+        // Trạng thái khóa tài khoản
+        isBanned: { type: Boolean, default: false },
+        banReason: { type: String, required: false },
         preferences: {
             emailNotifications: { type: Boolean, default: true },
             smsNotifications: { type: Boolean, default: false },

@@ -19,6 +19,8 @@ interface Customer {
   phoneNumber?: string;
   address?: string;
   avatar?: string;
+  isBanned?: boolean;
+  banReason?: string;
   loyalty: {
     points: number;
     lifetimePoints: number;
@@ -62,6 +64,44 @@ export function CustomerDetail({ customer: initialCustomer, onBack, onUpdate }: 
 
   const getToken = () => {
     return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+  };
+
+  const [showBanDialog, setShowBanDialog] = useState(false);
+  const [banReason, setBanReason] = useState('');
+  const [isUpdatingBan, setIsUpdatingBan] = useState(false);
+
+  const handleBanUnban = async (isBan: boolean, reason?: string) => {
+    try {
+      setIsUpdatingBan(true);
+      const token = getToken();
+      const payload: any = { isBanned: isBan };
+      if (isBan) {
+        payload.reason = reason;
+      }
+      const response = await axios.put(
+        `${API_URL}/customers/${customer._id}/ban`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setCustomer(response.data.customer);
+        toast.success(isBan ? 'User has been banned' : 'User has been unbanned');
+        setShowBanDialog(false);
+        setBanReason('');
+        onUpdate();
+      }
+    } catch (error: any) {
+      console.error('Error updating ban status:', error);
+      toast.error(error.response?.data?.message || 'Failed to update ban status');
+    } finally {
+      setIsUpdatingBan(false);
+    }
   };
 
   useEffect(() => {
@@ -186,7 +226,7 @@ export function CustomerDetail({ customer: initialCustomer, onBack, onUpdate }: 
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
           {customer.avatar ? (
             <img 
               src={customer.avatar} 
@@ -203,16 +243,48 @@ export function CustomerDetail({ customer: initialCustomer, onBack, onUpdate }: 
             <p className="text-gray-600">Customer since {formatDate(customer.createdAt)}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Status badge */}
+          {customer.isBanned ? (
+            <Badge variant="destructive" className="text-xs px-2 py-1">
+              Banned
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="text-xs px-2 py-1">
+              Active
+            </Badge>
+          )}
+
           {!isEditing && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing(true)}
-            >
-              <Edit2 className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+              {customer.isBanned ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isUpdatingBan}
+                  onClick={() => handleBanUnban(false)}
+                >
+                  Unban User
+                </Button>
+              ) : (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowBanDialog(true)}
+                  disabled={isUpdatingBan}
+                >
+                  Ban User
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -473,6 +545,49 @@ export function CustomerDetail({ customer: initialCustomer, onBack, onUpdate }: 
             </Button>
             <Button onClick={handleUpdatePoints}>
               Update Points
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ban User Dialog */}
+      <Dialog open={showBanDialog} onOpenChange={setShowBanDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ban User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-gray-600">
+              When you ban this user, they will no longer be able to log in to the system.
+            </p>
+            <div>
+              <Label htmlFor="banReason">Reason for ban</Label>
+              <Input
+                id="banReason"
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                placeholder="Enter reason for banning this user"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                This reason will be stored in the user profile.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowBanDialog(false);
+                setBanReason('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!banReason.trim() || isUpdatingBan}
+              onClick={() => handleBanUnban(true, banReason)}
+            >
+              Confirm Ban
             </Button>
           </DialogFooter>
         </DialogContent>
