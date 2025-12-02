@@ -11,7 +11,7 @@ import { Plus, Edit, Trash2, Copy } from 'lucide-react';
 import { DeleteConfirmationDialog } from '../ui/delete-confirmation-dialog';
 import { toast } from 'sonner';
 
-const API_ADMIN = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 
 interface Coupon {
@@ -92,8 +92,10 @@ export function CouponManagement() {
     try {
       setLoading(true);
       const token = getToken();
-      const response = await axios.get(`${API_ADMIN}/discounts`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(`${API_URL}/discounts`, {
+        headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
       
       if (response.data.success) {
@@ -161,8 +163,10 @@ export function CouponManagement() {
     
     try {
       const token = getToken();
-      await axios.delete(`${API_ADMIN}/discounts/${couponToDelete._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.delete(`${API_URL}/discounts/${couponToDelete._id}`, {
+        headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
       
       toast.success('Coupon deleted successfully!');
@@ -178,8 +182,10 @@ export function CouponManagement() {
   const handleToggleStatus = async (coupon: Coupon) => {
     try {
       const token = getToken();
-      await axios.patch(`${API_ADMIN}/discounts/${coupon._id}/toggle`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.patch(`${API_URL}/discounts/${coupon._id}/toggle`, {}, {
+        headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
       
       toast.success(`Coupon ${!coupon.isActive ? 'activated' : 'deactivated'} successfully!`);
@@ -203,14 +209,18 @@ export function CouponManagement() {
       
       if (selectedCoupon) {
         // Update existing coupon
-        await axios.put(`${API_ADMIN}/discounts/${selectedCoupon._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
+        await axios.put(`${API_URL}/discounts/${selectedCoupon._id}`, payload, {
+          headers: { Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
         toast.success('Coupon updated successfully!');
       } else {
         // Create new coupon
-        await axios.post(`${API_ADMIN}/discounts`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
+        await axios.post(`${API_URL}/discounts`, payload, {
+          headers: { Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
         toast.success('Coupon created successfully!');
       }

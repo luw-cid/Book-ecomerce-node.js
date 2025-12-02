@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { formatCurrency } from '../../utils/formatCurrency';
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Category {
   _id: string;
@@ -74,7 +74,9 @@ export function ProductManagement() {
       });
       
       const response = await axios.get(`${API_URL}/products?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.data.success) {
@@ -124,7 +126,9 @@ export function ProductManagement() {
         const response = await axios.delete(
           `${API_URL}/products/${productToDelete._id}`,
           {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           }
         );
 
@@ -152,7 +156,7 @@ export function ProductManagement() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           }
         }
       );
@@ -181,7 +185,7 @@ export function ProductManagement() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
+            "Content-Type": "multipart/form-data",
           }
         }
       );
@@ -202,12 +206,14 @@ export function ProductManagement() {
     try {
       const token = getToken();
       const response = await axios.get(`${API_URL}/products/export`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob'
+        headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        responseType: "blob",
       });
 
       const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');

@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { formatCurrency } from '../../utils/formatCurrency';
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Customer {
   _id: string;
@@ -73,7 +73,9 @@ export function CustomerDetail({ customer: initialCustomer, onBack, onUpdate }: 
     try {
       const token = getToken();
       const response = await axios.get(`${API_URL}/customers/${customer._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.data.success) {
@@ -94,7 +96,9 @@ export function CustomerDetail({ customer: initialCustomer, onBack, onUpdate }: 
         `${API_URL}/customers/${customer._id}`,
         editData,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -126,7 +130,9 @@ export function CustomerDetail({ customer: initialCustomer, onBack, onUpdate }: 
           reason: pointsReason
         },
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 

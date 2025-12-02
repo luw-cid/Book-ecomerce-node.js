@@ -9,7 +9,7 @@ import { ArrowLeft, Package, User, CreditCard, MapPin, Loader2 } from 'lucide-re
 import { formatCurrency } from '../../utils/formatCurrency';
 
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface OrderDetailProps {
   order?: Order;
@@ -85,7 +85,9 @@ export function OrderDetail({ order: initialOrder, orderId, onBack }: OrderDetai
       setIsLoading(true);
       const token = getToken();
       const response = await axios.get(`${API_URL}/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.data.success) {
@@ -108,7 +110,9 @@ export function OrderDetail({ order: initialOrder, orderId, onBack }: OrderDetai
       const response = await axios.put(
         `${API_URL}/orders/${targetOrderId}/status`,
         { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }, }
       );
 
       if (response.data.success) {

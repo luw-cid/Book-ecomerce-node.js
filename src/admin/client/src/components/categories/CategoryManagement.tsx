@@ -21,7 +21,7 @@ interface Category {
   isActive?: boolean;
 }
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([]); // Initial categories can be fetched from an API
@@ -63,7 +63,10 @@ export function CategoryManagement() {
       });
       
       const response = await axios.get(`${API_URL}/categories?${params}`, {
-        headers: { Authorization: `Bearer ${token}`, },
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.data.success) {
@@ -123,7 +126,10 @@ export function CategoryManagement() {
       try {
         const token = getToken();
         const response = await axios.delete(`${API_URL}/categories/${categoryToDelete._id}`, {
-          headers: { Authorization: `Bearer ${token}`, },
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
 
         if (response.data.success) {
@@ -151,7 +157,7 @@ export function CategoryManagement() {
         const response = await axios.put(`${API_URL}/categories/${selectedCategory._id}`, formData, {
           headers: { 
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
         });
 
@@ -164,7 +170,7 @@ export function CategoryManagement() {
         const response = await axios.post(`${API_URL}/categories`, formData, {
           headers: { 
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
         });
 
@@ -219,7 +225,7 @@ export function CategoryManagement() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
         }
       );

@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { formatCurrency } from '../../utils/formatCurrency';
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Customer {
   _id: string;
@@ -74,7 +74,9 @@ export function CustomerManagement() {
       });
 
       const response = await axios.get(`${API_URL}/customers?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.data.success) {

@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { TiptapEditor } from './TiptapEditor';
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Category {
   _id: string;
@@ -106,7 +106,9 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
       try {
         const token = getToken();
         const response = await axios.get(`${API_URL}/categories`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
         setCategories(response.data.categories || []);
       } catch (error) {
@@ -204,7 +206,7 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
           {
             headers: {
               Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
+              "Content-Type": "application/json",
             }
           }
         );
@@ -221,7 +223,7 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
           {
             headers: {
               Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
+              "Content-Type": "application/json",
             }
           }
         );

@@ -15,10 +15,26 @@ const connectDB = require('./config/connectDB');
 
 const app = express();
 
+// Cấu hình CORS - Hỗ trợ cả localhost và production (Vercel)
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5000';
+const allowedOrigins = [
+    'http://localhost:5000',
+    'http://localhost:5173',
+    FRONTEND_URL, // Vercel URL từ env variable
+];
 
 // Cấu hình CORS
 app.use(cors({
-    origin: ['http://localhost:5000', 'http://localhost:5173'], // Thêm port 5173 cho Vite
+    origin: function (origin, callback) {
+        // Cho phép requests không có origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 

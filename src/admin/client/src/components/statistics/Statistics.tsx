@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatCurrency';
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface RevenueData {
   month: string;
@@ -57,7 +57,9 @@ export function Statistics() {
     setIsLoading(true);
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
 
       // Map period to API format
       let apiPeriod = 'year';

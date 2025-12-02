@@ -26,7 +26,9 @@ export interface Book {
   originalPrice?: number;
   rating?: number;
   reviewCount?: number;
-  category?: string;
+  // Ở DB category được lưu dạng mảng, nhưng để tương thích code cũ
+  // ta cho phép cả string đơn lẫn string[]
+  category?: string | string[];
   publisher?: string;
   coverImage?: string;
   images?: string[];
@@ -298,7 +300,6 @@ export function BookCard({
                 </span>
               )}
             </div>
-            {/* <Badge className="text-xs px-2 py-1">{book.category ?? "Uncategorized"}</Badge> */}
           </div>
         </div>
       </CardContent>
