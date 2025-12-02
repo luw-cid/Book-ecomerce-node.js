@@ -298,7 +298,7 @@ export function BookCard({
                 </span>
               )}
             </div>
-            <Badge className="text-xs px-2 py-1">{book.category ?? "Uncategorized"}</Badge>
+            {/* <Badge className="text-xs px-2 py-1">{book.category ?? "Uncategorized"}</Badge> */}
           </div>
         </div>
       </CardContent>
