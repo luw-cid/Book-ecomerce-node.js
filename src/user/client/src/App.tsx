@@ -210,13 +210,40 @@ export default function App() {
 
     setCartItems(prev => {
       const existingItem = prev.find(item => item.book.id === book.id);
+
+      // Lấy tồn kho (ưu tiên variant đầu tiên nếu có)
+      const availableStock =
+        book.variants && book.variants.length > 0
+          ? book.variants[0].stock
+          : undefined;
+
+      // Nếu có thông tin stock và stock = 0 → không cho add
+      if (availableStock !== undefined && availableStock <= 0) {
+        window.alert("This book is out of stock.");
+        return prev;
+      }
+
       if (existingItem) {
+        const currentQty = existingItem.quantity;
+
+        // Nếu có thông tin stock và đã đạt max → không tăng thêm
+        if (availableStock !== undefined && currentQty >= availableStock) {
+          window.alert("You have reached the maximum available stock for this book.");
+          return prev;
+        }
+
+        const newQty =
+          availableStock !== undefined
+            ? Math.min(currentQty + 1, availableStock)
+            : currentQty + 1;
+
         return prev.map(item =>
           item.book.id === book.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: newQty }
             : item
         );
       } else {
+        // Item mới: quantity luôn là 1 (và chắc chắn <= stock vì đã check ở trên)
         return [...prev, { book, quantity: 1 }];
       }
     });
@@ -227,9 +254,21 @@ export default function App() {
       setCartItems(prev => prev.filter(item => item.book.id !== bookId));
     } else {
       setCartItems(prev =>
-        prev.map(item =>
-          item.book.id === bookId ? { ...item, quantity } : item
-        )
+        prev.map(item => {
+          if (item.book.id !== bookId) return item;
+
+          const availableStock =
+            item.book.variants && item.book.variants.length > 0
+              ? item.book.variants[0].stock
+              : undefined;
+
+          if (availableStock !== undefined && quantity > availableStock) {
+            window.alert("Quantity exceeds available stock for this book.");
+            return { ...item, quantity: availableStock };
+          }
+
+          return { ...item, quantity };
+        })
       );
     }
   };
