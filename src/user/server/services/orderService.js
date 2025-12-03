@@ -100,6 +100,15 @@ const createOrder = async (orderData) => {
             orderData.orderStatus = 'Pending';
         }
 
+        // Khởi tạo statusHistory với status đầu tiên
+        if (!orderData.statusHistory) {
+            orderData.statusHistory = [{
+                status: orderData.orderStatus,
+                updatedAt: new Date(),
+                note: 'Order created'
+            }];
+        }
+
         let userId = orderData.user;
 
         if (!userId && orderData.shippingAddress && orderData.shippingAddress.email) {

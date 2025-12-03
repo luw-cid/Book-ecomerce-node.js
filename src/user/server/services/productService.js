@@ -22,8 +22,8 @@ async function getProducts({
     minRating = null
 }) {
     try {
-        // Xây dựng query filter
-        let query = {};
+        // Xây dựng query filter - chỉ lấy sản phẩm đang hoạt động
+        let query = { isActive: true };
 
         // 1. Thêm điều kiện filter cơ bản
         if (filter.category) {
@@ -116,9 +116,14 @@ async function getProducts({
  */
 
 async function getProductById (productId) {
-    return await Product.findById(productId)
+    const product = await Product.findById(productId)
                         .populate("category");
                         // .populate("discount");
+    // Chỉ trả về sản phẩm nếu đang active
+    if (product && !product.isActive) {
+        return null;
+    }
+    return product;
 }
 
 /**
@@ -127,8 +132,9 @@ async function getProductById (productId) {
 async function searchProducts(keyword, page = 1, limit = 10) {
   const skip = (page - 1) * limit;
 
-  // Regex search (case-insensitive)
+  // Regex search (case-insensitive) - chỉ tìm trong sản phẩm active
   const filter = {
+    isActive: true,
     $or: [
       { name: { $regex: keyword, $options: "i" } },
       { description: { $regex: keyword, $options: "i" } },
@@ -155,7 +161,7 @@ async function searchProducts(keyword, page = 1, limit = 10) {
  * Lấy sản phẩm theo tag
  */
 async function getProductsByTag(tag, limit = 10) {
-  return await Product.find({ tags: tag })
+  return await Product.find({ tags: tag, isActive: true })
     .limit(limit)
     .populate("category");
     // .populate("discount");

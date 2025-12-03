@@ -139,7 +139,28 @@ export function ProductManagement() {
         }
       } catch (error: any) {
         console.error('Error deleting product:', error);
-        toast.error(error.response?.data?.message || 'Failed to delete product');
+        // Hiển thị thông báo lỗi chi tiết từ backend
+        const errorMessage = error.response?.data?.message || error.response?.data?.error?.message || 'Failed to delete product';
+        
+        // Nếu message có nhiều dòng, hiển thị trong một toast với format đẹp hơn
+        if (errorMessage.includes('\n')) {
+          const lines = errorMessage.split('\n').filter((line: string) => line.trim());
+          const title = lines[0] || 'Error deleting product';
+          const description = lines.slice(1).join('\n');
+          
+          toast.error(title, {
+            description: description,
+            duration: 8000, // Hiển thị lâu hơn để đọc kỹ
+            style: {
+              maxWidth: '500px',
+              whiteSpace: 'pre-line' // Cho phép xuống dòng
+            }
+          });
+        } else {
+          toast.error(errorMessage, { 
+            duration: 5000 
+          });
+        }
       } finally {
         setShowDeleteDialog(false);
         setProductToDelete(null);

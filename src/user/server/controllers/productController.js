@@ -223,6 +223,8 @@ const getPriceRange = asyncHandle(async (req, res) => {
   }
 
   try {
+    // Chỉ lấy sản phẩm active
+    filter.isActive = true;
     console.log('🔍 Query filter:', filter);
     
     const result = await Product.aggregate([
@@ -246,9 +248,9 @@ const getPriceRange = asyncHandle(async (req, res) => {
         count: result[0].count
       });
     } else {
-      // Fallback: Lấy min/max của tất cả products
+      // Fallback: Lấy min/max của tất cả products active
       const allResult = await Product.aggregate([
-        { $match: {} }, // Không filter gì cả
+        { $match: { isActive: true } }, // Chỉ lấy sản phẩm active
         {
           $group: {
             _id: null,
@@ -305,6 +307,8 @@ const getBrands = asyncHandle(async (req, res) => {
   }
 
   try {
+    // Chỉ lấy sản phẩm active
+    filter.isActive = true;
     // Lấy distinct publishers (không null/empty)
     const brands = await Product.distinct('publisher', filter);
     const validBrands = brands.filter(b => b && b.trim() !== '');

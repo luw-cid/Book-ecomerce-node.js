@@ -81,17 +81,27 @@ const updateProduct = asyncHandle(async (req, res) => {
     });
 });
 
-// DELETE - Xóa sản phẩm (soft delete)
+// DELETE - Xóa sản phẩm (hard delete - xóa thật sự khỏi database)
 const deleteProduct = asyncHandle(async (req, res) => {
-    const deletedProduct = await productService.deleteProduct(req.params.id);
-    if (!deletedProduct) {
-        throw new AppError('Product not found!', 404);
+    try {
+        const deletedProduct = await productService.deleteProduct(req.params.id);
+        res.status(200).json({
+            success: true,
+            message: 'Product deleted successfully!',
+            product: deletedProduct
+        });
+    } catch (error) {
+        // Nếu lỗi là do sản phẩm đang được sử dụng trong orders
+        if (error.message.includes('Cannot delete product') || error.message.includes('is being used in')) {
+            throw new AppError(error.message, 400);
+        }
+        // Nếu lỗi là do không tìm thấy sản phẩm
+        if (error.message === 'Product not found') {
+            throw new AppError('Product not found!', 404);
+        }
+        // Các lỗi khác
+        throw error;
     }
-    res.status(200).json({
-        success: true,
-        message: 'Product deleted successfully!',
-        product: deletedProduct
-    });
 });
 
 // SEARCH - Tìm kiếm sản phẩm

@@ -2,6 +2,7 @@
 const Product = require('../models/productModel');
 const Category = require('../models/categoryModel'); // Import Category model
 const Discount = require('../models/discountModel'); // Import Discount model
+const Order = require('../models/orderModel'); // Import Order model để kiểm tra
 const ExcelJS = require('exceljs');
 
 // ==================== HELPER FUNCTIONS ====================
@@ -134,14 +135,68 @@ const updateProduct = async (productId, data) => {
 };
 
 /**
- * DELETE - Xóa sản phẩm (soft delete - set isActive = false)
+ * DELETE - Xóa sản phẩm (hard delete - xóa thật sự khỏi database)
+ * Kiểm tra xem sản phẩm có đang được sử dụng trong orders không
  */
 const deleteProduct = async (productId) => {
-    return await Product.findByIdAndUpdate(
-        productId,
-        { isActive: false },
-        { new: true }
-    );
+    // Kiểm tra sản phẩm có tồn tại không
+    const product = await Product.findById(productId);
+    if (!product) {
+        throw new Error('Product not found');
+    }
+
+    // Kiểm tra xem sản phẩm có đang được sử dụng trong orders không
+    const ordersWithProduct = await Order.find({
+        'items.product': productId
+    }).select('orderNumber orderStatus paymentStatus');
+
+    if (ordersWithProduct.length > 0) {
+        // Kiểm tra xem có orders đang pending/processing/shipped không
+        const activeOrders = ordersWithProduct.filter(order => 
+            order.orderStatus === 'Pending' || 
+            order.orderStatus === 'Processing' || 
+            order.orderStatus === 'Shipped'
+        );
+
+        if (activeOrders.length > 0) {
+            // Tạo thông báo chi tiết với danh sách orders
+            const orderDetails = activeOrders.map(order => 
+                `Order ${order.orderNumber} (${order.orderStatus})`
+            ).join(', ');
+            
+            const errorMessage = 
+                `Cannot delete product "${product.name}". ` +
+                `This product is being used in ${activeOrders.length} active order(s):\n` +
+                `${orderDetails}\n\n` +
+                `Please cancel or complete these orders first before deleting the product.`;
+            
+            throw new Error(errorMessage);
+        }
+
+        // Nếu chỉ có orders đã delivered/cancelled, cảnh báo nhưng vẫn cho phép xóa
+        const completedOrders = ordersWithProduct.filter(order => 
+            order.orderStatus === 'Delivered' || 
+            order.orderStatus === 'Cancelled'
+        );
+        
+        if (completedOrders.length > 0) {
+            console.warn(
+                `⚠️ Warning: Product "${product.name}" is referenced in ${completedOrders.length} completed/cancelled order(s), ` +
+                `but proceeding with deletion...`
+            );
+        }
+    }
+
+    // Thực hiện hard delete
+    const deletedProduct = await Product.findByIdAndDelete(productId);
+    
+    if (!deletedProduct) {
+        throw new Error('Product not found');
+    }
+
+    console.log(`✅ Product "${deletedProduct.name}" (ID: ${productId}) has been permanently deleted.`);
+    
+    return deletedProduct;
 };
 
 // ==================== SEARCH ====================

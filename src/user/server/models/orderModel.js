@@ -97,7 +97,18 @@ const orderSchema = new mongoose.Schema({
     bankCode: String
   },
   trackingNumber: String,
-  notes: String
+  notes: String,
+  statusHistory: [{
+    status: {
+      type: String,
+      enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    },
+    note: String
+  }]
 }, { 
   timestamps: true 
 });

@@ -33,6 +33,12 @@ interface ShippingAddress {
   zipCode?: string;
 }
 
+interface StatusHistoryItem {
+  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  updatedAt: string;
+  note?: string;
+}
+
 interface Order {
   _id: string;
   orderNumber: string;
@@ -53,6 +59,7 @@ interface Order {
   updatedAt: string;
   trackingNumber?: string;
   notes?: string;
+  statusHistory?: StatusHistoryItem[];
 }
 
 interface OrderDetailPageProps {
@@ -418,18 +425,65 @@ export function OrderDetailPage({ orderId, onNavigate }: OrderDetailPageProps) {
                     })}
                   </p>
                 </div>
-                {order.updatedAt !== order.createdAt && (
+                
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Current Status</p>
+                  <div className="flex items-center space-x-2">
+                    {getStatusIcon(order.orderStatus)}
+                    <Badge variant="outline" className={getStatusColor(order.orderStatus)}>
+                      {order.orderStatus}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Status History Timeline */}
+                {order.statusHistory && order.statusHistory.length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Last Updated</p>
-                    <p className="font-semibold">
-                      {new Date(order.updatedAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
+                    <p className="text-sm text-gray-600 mb-3">Status History</p>
+                    <div className="space-y-3">
+                      {order.statusHistory
+                        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                        .map((historyItem, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-2 h-2 rounded-full ${
+                                index === 0 ? 'bg-current' : 'bg-gray-300'
+                              }`} style={{ 
+                                color: index === 0 ? 
+                                  (order.orderStatus === 'Delivered' ? '#10b981' : 
+                                   order.orderStatus === 'Shipped' ? '#3b82f6' :
+                                   order.orderStatus === 'Processing' ? '#f59e0b' :
+                                   order.orderStatus === 'Cancelled' ? '#ef4444' : '#8b5cf6') : undefined
+                              }} />
+                              {index < order.statusHistory!.length - 1 && (
+                                <div className="w-0.5 h-8 bg-gray-200 mt-1" />
+                              )}
+                            </div>
+                            <div className="flex-1 pb-3">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <Badge 
+                                  variant="outline" 
+                                  className={`${getStatusColor(historyItem.status)} text-xs`}
+                                >
+                                  {historyItem.status}
+                                </Badge>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(historyItem.updatedAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                              {historyItem.note && (
+                                <p className="text-sm text-gray-600 mt-1">{historyItem.note}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 )}
               </CardContent>
