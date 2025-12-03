@@ -100,6 +100,20 @@ const createOrder = async (orderData) => {
             orderData.orderStatus = 'Pending';
         }
 
+        // Tính phí vận chuyển trên server dựa vào city
+        if (!orderData.shipping && orderData.shippingAddress && orderData.shippingAddress.city) {
+            const city = String(orderData.shippingAddress.city).toLowerCase();
+            const isHCM =
+                city.includes('hồ chí minh') ||
+                city.includes('thành phố hồ chí minh') ||
+                city.includes('tp.hcm') ||
+                city.includes('tphcm') ||
+                city.includes('hcm');
+
+            // Miễn phí trong TP.HCM, còn lại 30.000đ
+            orderData.shipping = isHCM ? 0 : 30000;
+        }
+
         // Khởi tạo statusHistory với status đầu tiên
         if (!orderData.statusHistory) {
             orderData.statusHistory = [{

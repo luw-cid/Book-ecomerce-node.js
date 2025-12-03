@@ -66,6 +66,16 @@ const orderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  loyaltyPointsUsed: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  loyaltyDiscount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   paymentMethod: {
     type: String,
     enum: ['COD', 'Card', 'Banking', 'Bank Transfer', 'Cash on Delivery'],

@@ -52,6 +52,8 @@ interface Order {
   shipping: number;
   tax: number;
   total: number;
+  loyaltyPointsUsed?: number;
+  loyaltyDiscount?: number;
   orderStatus: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   paymentStatus: 'Pending' | 'Paid' | 'Failed';
   paymentMethod: string;
@@ -360,6 +362,18 @@ export function OrderDetailPage({ orderId, onNavigate }: OrderDetailPageProps) {
                   <div className="flex justify-between text-green-600">
                     <span>Discount {order.discount.code && `(${order.discount.code})`}</span>
                     <span className="font-semibold">-{formatCurrency(order.discount.amount)}</span>
+                  </div>
+                )}
+
+                {order.loyaltyDiscount && order.loyaltyDiscount > 0 && (
+                  <div className="flex justify-between text-amber-700">
+                    <span>
+                      Loyalty Points
+                      {typeof order.loyaltyPointsUsed === 'number' && order.loyaltyPointsUsed > 0
+                        ? ` (${order.loyaltyPointsUsed.toLocaleString()} pts)`
+                        : ''}
+                    </span>
+                    <span className="font-semibold">-{formatCurrency(order.loyaltyDiscount)}</span>
                   </div>
                 )}
 
