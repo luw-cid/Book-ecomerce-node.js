@@ -183,7 +183,7 @@ export default function App() {
         localStorage.setItem('token', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
 
-        login(userData, accessToken);
+        login(userData, accessToken, refreshToken);
 
         // Xóa query params khỏi URL
         window.history.replaceState({}, document.title, window.location.pathname);

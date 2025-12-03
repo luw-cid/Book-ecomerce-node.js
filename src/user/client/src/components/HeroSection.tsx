@@ -1,8 +1,46 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Button } from "./ui/button";
 import { ArrowRight } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
+interface HeroStats {
+  totalBooks: number;
+  totalUsers: number;
+  averageRating: number;
+}
+
 export function HeroSection() {
+  const [stats, setStats] = useState<HeroStats | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/stats/hero`);
+        if (response.data?.success && response.data.data) {
+          setStats(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to load hero stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const formatCount = (value: number, suffix: string = "+") => {
+    if (value >= 1000) {
+      return `${Math.round(value / 1000)}K${suffix}`;
+    }
+    return `${value.toLocaleString()}${suffix}`;
+  };
+
+  const totalBooksLabel = stats ? formatCount(stats.totalBooks, "+") : "50K+";
+  const totalUsersLabel = stats ? formatCount(stats.totalUsers, "+") : "25K+";
+  const averageRatingLabel = stats ? `${stats.averageRating.toFixed(1)}★` : "4.8★";
+
   return (
     <section className="relative bg-gradient-to-r from-blue-100 to-sky-100 text-slate-800">
       <div className="container mx-auto px-4 py-24">
@@ -31,15 +69,15 @@ export function HeroSection() {
 
             <div className="flex items-center space-x-8 pt-8">
               <div className="text-center">
-                <div className="text-2xl font-bold text-slate-800">50K+</div>
+                <div className="text-2xl font-bold text-slate-800">{totalBooksLabel}</div>
                 <div className="text-sm text-slate-500">Books Available</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-slate-800">25K+</div>
+                <div className="text-2xl font-bold text-slate-800">{totalUsersLabel}</div>
                 <div className="text-sm text-slate-500">Happy Readers</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-slate-800">4.8★</div>
+                <div className="text-2xl font-bold text-slate-800">{averageRatingLabel}</div>
                 <div className="text-sm text-slate-500">Customer Rating</div>
               </div>
             </div>
