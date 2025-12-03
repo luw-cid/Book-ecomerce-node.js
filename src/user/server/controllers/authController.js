@@ -109,7 +109,7 @@ const googleCallback = asyncHandle(async (req, res) => {
     if (!req.user) {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const errorMessage = encodeURIComponent('Your account has been locked. Please contact the admin for more details.');
-        return res.redirect(`${frontendUrl}/login?error=${errorMessage}`);
+        return res.redirect(`${frontendUrl}?error=${errorMessage}`);
     }
     
     // Kiểm tra nếu user bị ban
@@ -120,7 +120,7 @@ const googleCallback = asyncHandle(async (req, res) => {
             ? `${baseMessage} ${req.user.banReason}`
             : `${baseMessage} Please contact the admin for more details.`;
         const errorMessage = encodeURIComponent(fullMessage);
-        return res.redirect(`${frontendUrl}/login?error=${errorMessage}`);
+        return res.redirect(`${frontendUrl}?error=${errorMessage}`);
     }
     
     // Gọi service xử lý logic
