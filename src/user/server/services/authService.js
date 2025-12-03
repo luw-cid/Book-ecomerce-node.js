@@ -37,7 +37,7 @@ const sendPasswordEmail = async (recipientEmail, password, fullName) => {
                     
                     <p style="color: #ff6b6b;"><strong>⚠️ Important:</strong> Please change your password after first login for security reasons.</p>
                     
-                    <p>You can login at: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login">Login Here</a></p>
+                    <p>You can login at: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}">Login Here</a></p>
                     
                     <p>Best regards,<br>Book Store Team</p>
                 </div>
