@@ -56,6 +56,16 @@ const validateDiscount = async (code, userId = null) => {
         throw new Error('This discount code has reached its usage limit');
     }
 
+    // if (discount.perUserLimit > 0) {
+    //     const userUsageCount = await orderModel.countDocuments({
+    //         user: userId,
+    //         'discount.code': discount.code
+    //     });
+    //     if (userUsageCount >= discount.perUserLimit) {
+    //         throw new Error('You have reached the maximum number of uses for this discount code');
+    //     }
+    // }
+
     // check user-specific restrictions
     if(userId) {
         const canUse = await canUserUseDiscount(discount, userId);

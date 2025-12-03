@@ -231,10 +231,16 @@ export function CheckoutPage({ cartItems, onNavigate, user, onClearCart }: Check
       setIsLoadingCoupon(true);
       setCouponMessage("");
       
-      const response = await axios.post(`${API_URL}/discounts/apply`, {
-        code: code.toUpperCase(),
-        subtotal: subtotal
-      });
+      const response = await axios.post(
+        `${API_URL}/discounts/apply`,
+        {
+          code: code.toUpperCase(),
+          subtotal: subtotal
+        },
+        // Gửi kèm Authorization để backend biết user hiện tại,
+        // từ đó mới kiểm tra được perUserLimit cho coupon
+        user ? { headers: { Authorization: `Bearer ${getToken()}` } } : undefined
+      );
 
       if (response.data.success && response.data.data.discount) {
         const discount = response.data.data.discount;
