@@ -75,6 +75,7 @@ export function OrderDetailPage({ orderId, onNavigate }: OrderDetailPageProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     if (orderId) {
@@ -105,6 +106,44 @@ export function OrderDetailPage({ orderId, onNavigate }: OrderDetailPageProps) {
       setError(err.response?.data?.message || 'Failed to load order details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+
+    const confirmCancel = window.confirm("Are you sure you want to cancel this order?");
+    if (!confirmCancel) return;
+
+    try {
+      setIsCancelling(true);
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      const response = await axios.patch(
+        `${API_URL}/orders/${order._id}/cancel`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data?.success && response.data.data) {
+        // Cập nhật lại dữ liệu đơn hàng tại chỗ
+        setOrder(response.data.data);
+        // Điều hướng về trang Profile (tab orders) sau khi hủy thành công
+        onNavigate("profile", { initialTab: "orders" });
+      } else {
+        alert(response.data?.message || "Failed to cancel order. Please try again.");
+      }
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Failed to cancel order. Please try again.";
+      alert(msg);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -205,11 +244,25 @@ export function OrderDetailPage({ orderId, onNavigate }: OrderDetailPageProps) {
               <h1 className="text-3xl font-bold text-gray-900">Order Details</h1>
               <p className="text-gray-600 mt-1">Order #{order.orderNumber}</p>
             </div>
-            <div className="flex items-center space-x-2">
-              {getStatusIcon(order.orderStatus)}
-              <Badge variant="outline" className={getStatusColor(order.orderStatus)}>
-                {order.orderStatus}
-              </Badge>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                {getStatusIcon(order.orderStatus)}
+                <Badge variant="outline" className={getStatusColor(order.orderStatus)}>
+                  {order.orderStatus}
+                </Badge>
+              </div>
+              {/* Cancel Order button: chỉ cho phép khi Pending hoặc Processing */}
+              {(order.orderStatus === 'Pending' || order.orderStatus === 'Processing') && (
+                <Button
+                  variant="outline"
+                  className="border-red-500 text-red-600 hover:bg-red-50"
+                  size="sm"
+                  disabled={isCancelling}
+                  onClick={handleCancelOrder}
+                >
+                  {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
